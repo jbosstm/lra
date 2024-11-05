@@ -34,10 +34,10 @@ public class Deployer {
                                 .workOffline()
                                 .withMavenCentralRepo(false)
                                 .withClassPathResolution(true)
-                                .resolve("org.jboss.narayana.rts:lra-service-base:" + projectVersion,
-                                "org.jboss.narayana.rts:lra-proxy-api:" + projectVersion,
-                                "org.jboss.narayana.rts:lra-client:" + projectVersion,
-                                "org.jboss.narayana.rts:narayana-lra:" + projectVersion)
+                                .resolve("org.jboss.narayana.lra:lra-service-base:" + projectVersion,
+                                "org.jboss.narayana.lra:lra-proxy-api:" + projectVersion,
+                                "org.jboss.narayana.lra:lra-client:" + projectVersion,
+                                "org.jboss.narayana.lra:narayana-lra:" + projectVersion)
                         .withoutTransitivity().asFile())
                 // Adds a manifest to activate jts and logging submodules of Wildfly
                 .addAsManifestResource(

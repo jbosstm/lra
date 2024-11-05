@@ -7,9 +7,9 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.jboss.narayana.rts</groupId>
+    <groupId>org.jboss.narayana.lra</groupId>
     <artifactId>lra-parent</artifactId>
-    <version>7.1.1.Final-SNAPSHOT</version>
+    <version>1.0.0.Final-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -41,6 +41,7 @@
              is deployed at the different JVM; these properties define where the test JVM application is started -->
     <test.application.host>localhost</test.application.host>
     <test.application.port>8180</test.application.port>
+    <version.resteasy-client>${version.org.jboss.resteasy}</version.resteasy-client>
   </properties>
 
   <dependencies>
@@ -49,12 +50,12 @@
       <artifactId>resteasy-client</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.jboss.narayana.rts</groupId>
+      <groupId>org.jboss.narayana.lra</groupId>
       <artifactId>lra-client</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.jboss.narayana.rts</groupId>
+      <groupId>org.jboss.narayana.lra</groupId>
       <artifactId>narayana-lra</artifactId>
       <scope>test</scope>
     </dependency>
@@ -129,7 +130,7 @@
 
       <dependencies>
         <dependency>
-          <groupId>org.jboss.narayana.rts</groupId>
+          <groupId>org.jboss.narayana.lra</groupId>
           <artifactId>lra-coordinator-war</artifactId>
           <type>war</type>
         </dependency>
@@ -228,7 +229,7 @@
                   <javaOpts>${server.jvm.args} ${server.jvm.object.store.arg}</javaOpts>
 
                   <!-- used by deploy-artifact -->
-                  <groupId>org.jboss.narayana.rts</groupId>
+                  <groupId>org.jboss.narayana.lra</groupId>
                   <artifactId>lra-coordinator-war</artifactId>
                   <name>${lra.coordinator.war.name}</name>
                   <force>true</force>

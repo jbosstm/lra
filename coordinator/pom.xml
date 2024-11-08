@@ -7,9 +7,9 @@
 
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.jboss.narayana.rts</groupId>
+    <groupId>org.jboss.narayana.lra</groupId>
     <artifactId>lra-parent</artifactId>
-    <version>7.1.1.Final-SNAPSHOT</version>
+    <version>1.0.0.Final-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -60,7 +60,7 @@
       <artifactId>microprofile-fault-tolerance-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.jboss.narayana.rts</groupId>
+      <groupId>org.jboss.narayana.lra</groupId>
       <artifactId>lra-service-base</artifactId>
     </dependency>
     <dependency>
@@ -84,12 +84,17 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-jackson2-provider</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.jboss.narayana.rts</groupId>
+      <groupId>org.jboss.narayana.lra</groupId>
       <artifactId>lra-client</artifactId>
       <scope>test</scope>
     </dependency>
@@ -108,7 +113,7 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.jboss.narayana.rts</groupId>
+      <groupId>org.jboss.narayana.lra</groupId>
       <artifactId>narayana-lra</artifactId>
       <scope>test</scope>
     </dependency>
@@ -120,6 +125,16 @@
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

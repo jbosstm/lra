@@ -1,4 +1,4 @@
-= Versioning of Narayna LRA REST API
+= Versioning of Narayana LRA REST API
 
 The goal of this document is summarize the approach to REST API versioning
 in Narayana LRA coordinator service.

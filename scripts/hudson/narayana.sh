@@ -83,7 +83,7 @@ function init_test_options {
       fatal "Narayana does not support JDKs less than 11"
     fi
 
-    [ $NARAYANA_CURRENT_VERSION ] || NARAYANA_CURRENT_VERSION="7.1.1.Final-SNAPSHOT"
+    [ $LRA_CURRENT_VERSION ] || LRA_CURRENT_VERSION="1.0.0.Final-SNAPSHOT"
     [ $CODE_COVERAGE ] || CODE_COVERAGE=0
     [ x"$CODE_COVERAGE_ARGS" != "x" ] || CODE_COVERAGE_ARGS=""
     [ $ARQ_PROF ] || ARQ_PROF=arq	# IPv4 arquillian profile
@@ -299,7 +299,7 @@ function build_as {
 
     # building WildFly
     export MAVEN_OPTS="-XX:MaxMetaspaceSize=512m $MAVEN_OPTS"
-    JAVA_OPTS="-Xms1303m -Xmx1303m -XX:MaxMetaspaceSize=512m $JAVA_OPTS" ./build.sh clean install -B -DskipTests -Dts.smoke=false $IPV6_OPTS -Dversion.org.jboss.narayana=${NARAYANA_CURRENT_VERSION} "$@"
+    JAVA_OPTS="-Xms1303m -Xmx1303m -XX:MaxMetaspaceSize=512m $JAVA_OPTS" ./build.sh clean install -B -DskipTests -Dts.smoke=false $IPV6_OPTS -Dversion.org.jboss.narayana.lra=${LRA_CURRENT_VERSION} "$@"
     [ $? -eq 0 ] || fatal "AS build failed"
 
   fi
@@ -318,7 +318,7 @@ function tests_as {
   # running WildFly testsuite if configured to be run by axis AS_TESTS
 
   cd $WILDFLY_CLONED_REPO
-  JAVA_OPTS="-Xms1303m -Xmx1303m -XX:MaxMetaspaceSize=512m $JAVA_OPTS" ./build.sh clean install -B -DallTests $IPV6_OPTS -Dversion.org.jboss.narayana=${NARAYANA_CURRENT_VERSION} "$@"
+  JAVA_OPTS="-Xms1303m -Xmx1303m -XX:MaxMetaspaceSize=512m $JAVA_OPTS" ./build.sh clean install -B -DallTests $IPV6_OPTS -Dversion.org.jboss.narayana.lra=${LRA_CURRENT_VERSION} "$@"
   [ $? -eq 0 ] || fatal "AS tests failed"
   cd $WORKSPACE
 }
@@ -344,9 +344,9 @@ function init_jboss_home {
 function lra_as_tests {
   echo "#-1. LRA AS Tests"
   cd $WILDFLY_CLONED_REPO
-  ./build.sh -f testsuite/integration/microprofile-tck/lra/pom.xml -fae -B -Dversion.org.jboss.narayana=${NARAYANA_CURRENT_VERSION} "$@" test
+  ./build.sh -f testsuite/integration/microprofile-tck/lra/pom.xml -fae -B -Dversion.org.jboss.narayana.lra=${LRA_CURRENT_VERSION} "$@" test
   [ $? -eq 0 ] || fatal "LRA AS Test failed"
-  ./build.sh -f microprofile/lra/pom.xml -fae -B -Dversion.org.jboss.narayana=${NARAYANA_CURRENT_VERSION} "$@" test
+  ./build.sh -f microprofile/lra/pom.xml -fae -B -Dversion.org.jboss.narayana.lra=${LRA_CURRENT_VERSION} "$@" test
   [ $? -eq 0 ] || fatal "LRA AS Test failed"
   cd ${WORKSPACE}
 }

@@ -252,6 +252,11 @@ function clone_as {
   if [ -d jboss-as ]; then
     echo "Using existing checkout of WildFly. If a fresh build should be used, delete the folder ${WORKSPACE}/jboss-as"
     cd jboss-as
+    git fetch jbosstm
+    [ $? -eq 0 ] || fatal "Fetching from jbosstm remote did not work"
+    echo "Rebasing the local branch on top of jbosstm/main"
+    git pull --rebase jbosstm main
+    [ $? -eq 0 ] || fatal "git rebase jbosstm failed"
   else
     echo "First time checkout of WildFly"
     git clone https://github.com/jbosstm/jboss-as.git -o jbosstm
@@ -266,21 +271,21 @@ function clone_as {
     [ -z "$AS_BRANCH" ] || git checkout $AS_BRANCH
     [ $? -eq 0 ] || fatal "git fetch of pull branch failed"
     [ -z "$AS_BRANCH" ] || echo "Using non-default AS_BRANCH: $AS_BRANCH"
+  fi
 
-    git fetch upstream
-    echo "This is the JBoss-AS commit"
-    echo $(git rev-parse upstream/main)
-    echo "This is the AS_BRANCH $AS_BRANCH commit"
-    echo $(git rev-parse HEAD)
+  git fetch upstream
+  echo "This is the JBoss-AS commit"
+  echo $(git rev-parse upstream/main)
+  echo "This is the AS_BRANCH $AS_BRANCH commit"
+  echo $(git rev-parse HEAD)
 
-    echo "Rebasing the wildfly upstream/main on top of the AS_BRANCH $AS_BRANCH"
-    git pull --rebase upstream main
-    [ $? -eq 0 ] || fatal "git rebase failed"
+  echo "Rebasing the wildfly upstream/main on top of the AS_BRANCH $AS_BRANCH"
+  git pull --rebase upstream main
+  [ $? -eq 0 ] || fatal "git rebase failed"
 
-    if [ $REDUCE_SPACE = 1 ]; then
-      echo "Deleting git dir to reduce disk usage"
-      rm -rf .git
-    fi
+  if [ $REDUCE_SPACE = 1 ]; then
+    echo "Deleting git dir to reduce disk usage"
+    rm -rf .git
   fi
 
   WILDFLY_CLONED_REPO=$(pwd)

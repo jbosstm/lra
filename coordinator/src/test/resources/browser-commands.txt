@@ -1,0 +1,5 @@
+store_dir
+types
+ls StateManager/BasicAction/LongRunningAction
+ls StateManager/BasicAction/LongRunningAction/Failed
+quit

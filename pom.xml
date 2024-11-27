@@ -413,6 +413,12 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>org.jboss.narayana.arjunacore</groupId>
+      <artifactId>arjuna</artifactId>
+    </dependency>
+  </dependencies>
 
   <repositories>
     <repository>

@@ -76,7 +76,7 @@ public abstract class BrowserCommand {
     private enum CommandName {
         HELP("show command options and syntax"),
         SELECT("<type> - start browsing a particular transaction type"),
-        STORE_DIR("get/set the location of the object store (set fails due to JBTM-2654"),
+        STORE_DIR("get/set the location of the object store (set fails)"),
         START(null),
         TYPES("list record types"),
         PROBE("refresh the view of the object store"),
@@ -342,7 +342,8 @@ public abstract class BrowserCommand {
                     if (args.size() == 0)
                         printStream.print(currentStoreDir);
                     else
-                        restartStore(args.get(0));
+                        printStream.printf("not supported - please restart and use the \"-s\" option (%s)", SYNTAX);
+//                    restartStore(args.get(0));
                 }
             },
 

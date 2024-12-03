@@ -12,7 +12,6 @@ import com.arjuna.ats.arjuna.recovery.RecoveryManager;
 import com.arjuna.ats.arjuna.state.InputObjectState;
 import com.arjuna.ats.arjuna.tools.osb.mbean.ObjStoreBrowser;
 import com.arjuna.ats.arjuna.tools.osb.util.JMXServer;
-import com.arjuna.ats.internal.arjuna.objectstore.hornetq.HornetqJournalEnvironmentBean;
 import com.arjuna.ats.internal.arjuna.recovery.RecoveryManagerImple;
 import com.arjuna.common.internal.util.propertyservice.BeanPopulator;
 import io.narayana.lra.coordinator.domain.model.FailedLongRunningAction;
@@ -50,17 +49,17 @@ import java.util.Set;
 /*
  * Browser for viewing LRA MBeans:
  *
- * java -cp target/lra-browser-jar-with-dependencies.jar io.narayana.lra.tools.BrowserCommand -s <path to object store>
+ * java -cp target/lra-coordinator-jar-with-dependencies.jar io.narayana.lra.coordinator.management.BrowserCommand
+ *     -s src/test/resources/test-store
  */
 public abstract class BrowserCommand {
-    private static final String SYNTAX = "syntax: [-s <store location>] | [-f <command file>] | [-c <command>]";
+    private static final String SYNTAX = "syntax: [-s <store location>] | [-f <command file>]]";
 
-    private static String currentStoreDir;// = "/home/mmusgrov/tmp/tx-object-store";
+    private static String currentStoreDir;
     private static ObjStoreBrowser osb;
     private static String currentType = "";
     private static List<String> recordTypes = new ArrayList<String>();
     private static InputStream cmdSource;
-    private static boolean isHQStore;
     private static RecoveryManagerImple recoveryManager;
 
     private static String[][] LRA_OSB_TYPES = {
@@ -84,7 +83,7 @@ public abstract class BrowserCommand {
         QUIT("exit the browser"),
         EXCEPTION_TRACE("true | false - show full exception traces");
 
-        String cmdHelp;
+        final String cmdHelp; // is set by the HELP command
 
         CommandName(String cmdHelp) {
             this.cmdHelp = cmdHelp;
@@ -107,7 +106,7 @@ public abstract class BrowserCommand {
     }
 
     private static void parseArgs(String[] args) throws FileNotFoundException {
-        String validOpts = "fsch";
+        String validOpts = "fs"; // command line options (modeled on the bash getopts command)
         StringBuilder sb = new StringBuilder();
 
         for (int i = 0; i < args.length; i++) {
@@ -116,29 +115,20 @@ public abstract class BrowserCommand {
                     throw new IllegalArgumentException(SYNTAX);
 
                 switch (args[i++].charAt(1)) {
-                    case 'f':
+                    case 'f': // a file used for reading commands instead of from standard input
                         File f = validateFile(args[i], false);
                         Scanner s = new Scanner(new FileInputStream(f));
 
                         while (s.hasNext()) {
                             String ln = s.nextLine();
 
-//                            if (!setCurrentStoreDir(ln))
-                                sb.append(ln.trim()).append(System.lineSeparator());
+                            sb.append(ln.trim()).append(System.lineSeparator());
                         }
 
                         break;
-                    case 's':
+                    case 's': // set the location of the file based object store
                         currentStoreDir = args[i];
 
-                        break;
-                    case 'c':
-                        if (!setCurrentStoreDir(args[i]))
-                            sb.append(args[i].trim()).append(System.lineSeparator());
-
-                        break;
-                    case 'h':
-                        isHQStore = Boolean.parseBoolean(args[i]);
                         break;
                     default:
                         throw new IllegalArgumentException(SYNTAX);
@@ -220,7 +210,7 @@ public abstract class BrowserCommand {
         recoveryManager = new RecoveryManagerImple(false);
         recoveryManager.addModule(new LRARecoveryModule());
 
-        setupStore(storeDir, isHQStore);
+        setupStore(storeDir, false);
 
         osb = new ObjStoreBrowser();
         for(String[] typeAndBean: LRA_OSB_TYPES) {
@@ -231,14 +221,6 @@ public abstract class BrowserCommand {
 
     private static void setupStore(String storeDir, boolean hqstore) throws Exception {
         String storePath = new File(storeDir).getCanonicalPath();
-
-        if (hqstore) {
-            final String storeClassName = com.arjuna.ats.internal.arjuna.objectstore.hornetq.HornetqObjectStoreAdaptor.class.getName();
-
-            BeanPopulator.getDefaultInstance(HornetqJournalEnvironmentBean.class).setStoreDir(storePath);
-            BeanPopulator.getDefaultInstance(ObjectStoreEnvironmentBean.class).setObjectStoreType(storeClassName);
-            BeanPopulator.getNamedInstance(ObjectStoreEnvironmentBean.class, "communicationStore").setObjectStoreType(storeClassName);
-        }
 
         BeanPopulator.getDefaultInstance(ObjectStoreEnvironmentBean.class).setObjectStoreDir(storePath);
         BeanPopulator.getNamedInstance(ObjectStoreEnvironmentBean.class, "communicationStore").setObjectStoreDir(storePath);
@@ -287,8 +269,6 @@ public abstract class BrowserCommand {
                         processCommand(printStream, scanner);
 
                     scanner.close();
-
-//                    RecoveryManager.manager().terminate();
 
                     StoreManager.shutdown();
 

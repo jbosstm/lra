@@ -108,7 +108,8 @@
         <lra.coordinator.object.store.path>${project.build.directory}/wfly_lra_objectstore</lra.coordinator.object.store.path>
         <!-- the AppServerCoordinatorDeploymentObserver creates the deployment named 'lra-coordinator' and deploys it to the app server,
              the last part of the path with value 'lra-coordinator' is defined by LRA coordinator JAX-RS endpoint -->
-        <lra.coordinator.url>http://${lra.coordinator.host}:${lra.coordinator.port}/lra-coordinator</lra.coordinator.url>
+        <lra.coordinator.url>http://${lra.coordinator.host}:${lra.coordinator.port}/lra-coordinator/lra-coordinator</lra.coordinator.url>
+        <lra.coordinator.war.name>lra-coordinator.war</lra.coordinator.war.name>
         <!-- The following filename is used for starting the WildFly instance that hosts the LRA coordinator; this file is a copy of the
              standalone.xml file provided in WildFly (${env.JBOSS_HOME}/standalone/configuration/standalone.xml). Please, see the plugins
              section of this profile (specifically, maven-antrun-plugin) for further info -->

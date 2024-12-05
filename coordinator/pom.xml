@@ -17,6 +17,10 @@
   <packaging>jar</packaging>
   <name>LRA Coordinator jar</name>
 
+  <properties>
+    <lra.coordinator.path>lra-coordinator/lra-coordinator</lra.coordinator.path>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.jboss.byteman</groupId>

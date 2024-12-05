@@ -27,8 +27,8 @@ public class LRAConstantsTest {
 
     @Test
     public void getCoordinatorWithMultipleCoordinatorPaths() {
-        URI lraId = URI.create("http://198.10.0.10:8999/lra-coordinator");
+        URI lraId = URI.create("http://198.10.0.10:8999/lra-coordinator/lra-coordinator");
         URI coordinatorUri = LRAConstants.getLRACoordinatorUrl(lraId);
-        Assert.assertEquals("http://198.10.0.10:8999/lra-coordinator", coordinatorUri.toASCIIString());
+        Assert.assertEquals("http://198.10.0.10:8999/lra-coordinator/lra-coordinator", coordinatorUri.toASCIIString());
     }
 }

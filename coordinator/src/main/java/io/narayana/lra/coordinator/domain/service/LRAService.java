@@ -149,7 +149,7 @@ public class LRAService {
     }
 
     public void addTransaction(LongRunningAction lra) {
-        lras.put(lra.getId(), lra);
+        lras.putIfAbsent(lra.getId(), lra);
     }
 
     public void finished(LongRunningAction transaction, boolean fromHierarchy) {
@@ -209,6 +209,11 @@ public class LRAService {
 
     public void recover() {
         getRM().recover();
+    }
+
+    // perform a recovery scan to load any recovering LRAs from the store
+    public void scan() {
+        getRM().periodicWorkSecondPass(); // periodicWorkFirstPass is a no-op
     }
 
     public boolean updateRecoveryURI(URI lraId, String compensatorUrl, String recoveryURI, boolean persist) {

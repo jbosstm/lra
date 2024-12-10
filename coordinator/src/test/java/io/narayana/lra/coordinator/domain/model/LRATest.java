@@ -39,6 +39,7 @@ import com.arjuna.ats.arjuna.exceptions.ObjectStoreException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.narayana.lra.Current;
 import io.narayana.lra.LRAConstants;
 import jakarta.ws.rs.ServiceUnavailableException;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
@@ -161,6 +162,57 @@ public class LRATest extends LRATestBase {
         client.close();
         clearObjectStore(testName);
         server.stop();
+    }
+
+    // test that it is safe to run periodic recovery scans on the LRARecoveryModule in parallel
+    @Test
+    public void testParallelScan() {
+        final int LRA_COUNT = 3; // number of LRAs to add to the store
+        final int SCAN_COUNT = 100; // number of parallel periodic recovery scans
+
+        URI[] ids = new URI[LRA_COUNT];
+        URI[] ids2 = new URI[SCAN_COUNT];
+
+        try {
+            // start LRA_COUNT LRAs so that there is something already in the store when the scans run
+            IntStream.range(0, LRA_COUNT)
+                    .forEach(i -> {
+                        try {
+                            ids[i] = lraClient.startLRA(testName.getMethodName() + i);
+                            Current.pop(); // disassociate the LRA from the current thread
+                            assertNotNull(ids[i]);
+                        } catch (WebApplicationException e) {
+                            fail(String.format("%s: step %d failed with HTTP status %d (%s)",
+                                    testName.getMethodName(), i, e.getResponse().getStatus(), e.getMessage()));
+                        }
+                    });
+
+            // run SCAN_COUNT recovery passes and LRAs in parallel to verify parallelism support
+            IntStream.range(0, SCAN_COUNT)
+                    .parallel()
+                    .forEach(i -> {
+                        try {
+                            // start an LRA while a scan is in progress to test parallelism
+                            ids2[i] = lraClient.startLRA(testName.getMethodName() + i);
+                            service.scan();
+                        } finally {
+                            lraClient.cancelLRA(ids2[i]);
+                        }
+                    });
+        } finally {
+            // it's clearer and faster to use a standard for loop instead of the more elegant Java Streams API
+            // Stream.of(ids).filter(Objects::nonNull).forEach(lra -> lraClient.cancelLRA(lra))
+            for (int i = 0; i < LRA_COUNT; i++) {
+                if (ids[i] != null) {
+                    try {
+                        lraClient.cancelLRA(ids[i]);
+                    } catch (WebApplicationException e) {
+                        System.out.printf("%s: cancel %s failed with %s%n",
+                                testName.getMethodName(), ids[i], e.getMessage());
+                    }
+                }
+            }
+        }
     }
 
     @Test

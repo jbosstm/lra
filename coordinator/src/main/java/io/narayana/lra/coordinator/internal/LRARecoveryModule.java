@@ -102,7 +102,7 @@ public class LRARecoveryModule implements RecoveryModule {
     }
 
     private void doRecoverTransaction(Uid recoverUid) {
-        // Retrieve the transaction status from its original process.
+        // Retrieve the transaction status from its original process // TODO remove because it is not needed
         int theStatus = _transactionStatusConnectionMgr.getTransactionStatus(_transactionType, recoverUid);
 
         try {

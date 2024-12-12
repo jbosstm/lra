@@ -19,6 +19,7 @@
 
   <properties>
     <lra.coordinator.path>lra-coordinator/lra-coordinator</lra.coordinator.path>
+    <version.org.apache.activemq>2.30.0</version.org.apache.activemq>
   </properties>
 
   <dependencies>
@@ -70,6 +71,21 @@
         <exclusion>
           <groupId>sun.jdk</groupId>
           <artifactId>jconsole</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <!--
+        remark: the next dependency, namely org.apache.activemq:artemis-journal, is also depended upon
+        by org.jboss.narayana.arjunacore:arjuna but that uses <scope>provided</scope>
+      -->
+    <dependency>
+      <groupId>org.apache.activemq</groupId>
+      <artifactId>artemis-journal</artifactId>
+      <version>${version.org.apache.activemq}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>io.netty</groupId>
+          <artifactId>netty</artifactId>
         </exclusion>
       </exclusions>
     </dependency>

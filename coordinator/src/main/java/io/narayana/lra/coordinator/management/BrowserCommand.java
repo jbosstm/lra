@@ -12,6 +12,8 @@ import com.arjuna.ats.arjuna.recovery.RecoveryManager;
 import com.arjuna.ats.arjuna.state.InputObjectState;
 import com.arjuna.ats.arjuna.tools.osb.mbean.ObjStoreBrowser;
 import com.arjuna.ats.arjuna.tools.osb.util.JMXServer;
+import com.arjuna.ats.internal.arjuna.objectstore.hornetq.HornetqJournalEnvironmentBean;
+import com.arjuna.ats.internal.arjuna.objectstore.hornetq.HornetqObjectStoreAdaptor;
 import com.arjuna.ats.internal.arjuna.recovery.RecoveryManagerImple;
 import com.arjuna.common.internal.util.propertyservice.BeanPopulator;
 import io.narayana.lra.coordinator.domain.model.FailedLongRunningAction;
@@ -38,7 +40,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,7 +51,9 @@ import java.util.Set;
  * Browser for viewing LRA MBeans:
  *
  * java -cp target/lra-coordinator-jar-with-dependencies.jar io.narayana.lra.coordinator.management.BrowserCommand
- *     -s src/test/resources/test-store
+ *     -s src/test/resources/test-store -h <true|false>
+ * where -s points to the store directory and -h indicates whether to use the activemq journal based store
+ * (in which case the -s option must point to a valid journal store)
  */
 public abstract class BrowserCommand {
     private static final String SYNTAX = "syntax: [-s <store location>] | [-f <command file>]]";
@@ -61,6 +64,7 @@ public abstract class BrowserCommand {
     private static List<String> recordTypes = new ArrayList<String>();
     private static InputStream cmdSource;
     private static RecoveryManagerImple recoveryManager;
+    private static boolean isHQStore;
 
     private static String[][] LRA_OSB_TYPES = {
             // osTypeClassName, beanTypeClassName - see com.arjuna.ats.arjuna.tools.osb.mbean.ObjStoreBrowser
@@ -106,7 +110,7 @@ public abstract class BrowserCommand {
     }
 
     private static void parseArgs(String[] args) throws FileNotFoundException {
-        String validOpts = "fs"; // command line options (modeled on the bash getopts command)
+        String validOpts = "fsh"; // command line options (modeled on the bash getopts command)
         StringBuilder sb = new StringBuilder();
 
         for (int i = 0; i < args.length; i++) {
@@ -128,6 +132,10 @@ public abstract class BrowserCommand {
                         break;
                     case 's': // set the location of the file based object store
                         currentStoreDir = args[i];
+
+                        break;
+                    case 'h': // use the Artemis Journal based store
+                        isHQStore = Boolean.parseBoolean(args[i]);
 
                         break;
                     default:
@@ -207,10 +215,12 @@ public abstract class BrowserCommand {
     private static void setupStore(String storeDir) throws Exception {
         recoveryPropertyManager.getRecoveryEnvironmentBean().setRecoveryBackoffPeriod(1);
         Implementations.install();
+
+        // setup the store before starting recovery otherwise recovery won't use the desired store
+        setupStore(storeDir, isHQStore);
+
         recoveryManager = new RecoveryManagerImple(false);
         recoveryManager.addModule(new LRARecoveryModule());
-
-        setupStore(storeDir, false);
 
         osb = new ObjStoreBrowser();
         for(String[] typeAndBean: LRA_OSB_TYPES) {
@@ -221,9 +231,28 @@ public abstract class BrowserCommand {
 
     private static void setupStore(String storeDir, boolean hqstore) throws Exception {
         String storePath = new File(storeDir).getCanonicalPath();
+        ObjectStoreEnvironmentBean commsObjStoreCommsEnvBean =
+                BeanPopulator.getNamedInstance(ObjectStoreEnvironmentBean.class, "communicationStore");
+        ObjectStoreEnvironmentBean defObjStoreCommsEnvBean =
+                BeanPopulator.getDefaultInstance(ObjectStoreEnvironmentBean.class);
 
-        BeanPopulator.getDefaultInstance(ObjectStoreEnvironmentBean.class).setObjectStoreDir(storePath);
-        BeanPopulator.getNamedInstance(ObjectStoreEnvironmentBean.class, "communicationStore").setObjectStoreDir(storePath);
+        if (hqstore) {
+            File hornetqStoreDir = new File(storeDir);
+            String storeClassName =  com.arjuna.ats.internal.arjuna.objectstore.hornetq.HornetqObjectStoreAdaptor.class.getName();
+
+            BeanPopulator.getDefaultInstance(HornetqJournalEnvironmentBean.class)
+                    .setStoreDir(hornetqStoreDir.getCanonicalPath());
+
+            defObjStoreCommsEnvBean.setObjectStoreType(storeClassName);
+            commsObjStoreCommsEnvBean.setObjectStoreDir(storeDir);
+
+            defObjStoreCommsEnvBean.setObjectStoreType(storeClassName);
+            commsObjStoreCommsEnvBean.setObjectStoreType(storeClassName);
+        } else {
+            defObjStoreCommsEnvBean.setObjectStoreDir(storePath);
+            commsObjStoreCommsEnvBean.setObjectStoreDir(storePath);
+        }
+
         BeanPopulator.getDefaultInstance(CoreEnvironmentBean.class).setNodeIdentifier("no-recovery");
 
         currentStoreDir = storeDir;
@@ -312,6 +341,7 @@ public abstract class BrowserCommand {
                 @Override
                 void execute(PrintStream printStream, List<String> args) throws Exception {
                     getCommand(CommandName.START).cancel();
+                    StoreManager.shutdown();
                 }
             },
 

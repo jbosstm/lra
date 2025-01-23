@@ -22,7 +22,7 @@ NEXT="${NEXT}-SNAPSHOT"
 echo "This script will:"
 echo "================="
 echo "Tag $CURRENT"
-echo "Update Narayana $BRANCH to $NEXT"
+echo "Update lra $BRANCH to $NEXT"
 echo ""
 echo "Are you sure you want to continue? (y/n)"
 
@@ -36,7 +36,7 @@ fi
 echo "Proceeding..."
 
 set -e
-TEMP_WORKING_DIR=~/tmp/narayana/$CURRENT/sources/
+TEMP_WORKING_DIR=~/tmp/lra/$CURRENT/sources/
 mkdir -p $TEMP_WORKING_DIR
 cd $TEMP_WORKING_DIR || fatal
 

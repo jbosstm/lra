@@ -15,9 +15,7 @@ else
 fi
 
 echo "You will need: VPN, credentials for jbosstm host, jira admin, github permissions on all jbosstm/ repo and nexus permissions." 
-echo "By default you will need the ability to upload to a server for hosting the website and downloads." 
 echo "Please check the configuration in ~/.m2/settings.xml with repository 'jboss-releases-repository' and correct username/password." 
-echo "Until ./scripts/release/update_jira.py -k JBTM -t 5.next -n $CURRENT is fixed you will need to go to https://issues.jboss.org/projects/JBTM?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=released-unreleased, rename (Actions -> Edit) 5.next to $CURRENT, create a new 5.next version, Actions -> Release on the new $CURRENT."
 read -p "Have you done these steps? y/n " STEPSOK
 if [[ $STEPSOK == n* ]]
 then
@@ -72,28 +70,13 @@ else
   echo "This script is only interactive at the very end now, press enter to continue"
   read
 fi
-
-cd ~/tmp/narayana/$CURRENT/sources/documentation/
-git checkout $CURRENT
-if [[ $? != 0 ]]
-then
-  echo 1>&2 documentation: Tag '$CURRENT' did not exist
-  exit
-fi
-
 rm -rf $PWD/localm2repo
-./build.sh clean install -Dmaven.repo.local=${PWD}/localm2repo -Prelease
-if [[ $? != 0 ]]
-then
-  echo 1>&2 Could not clean install documentation
-  exit
-fi
 cd -
-cd ~/tmp/narayana/$CURRENT/sources/narayana/
+cd ~/tmp/lra/$CURRENT/sources/lra/
 git checkout $CURRENT
 if [[ $? != 0 ]]
 then
-  echo 1>&2 narayana: Tag '$CURRENT' did not exist
+  echo 1>&2 lra: Tag '$CURRENT' did not exist
   exit
 fi
 MAVEN_OPTS="-XX:MaxPermSize=512m" 
@@ -117,12 +100,11 @@ fi
 ./build.sh clean deploy -Dmaven.repo.local=${PWD}/localm2repo -DskipTests -gs ~/.m2/settings.xml -Dorson.jar.location=$ORSON_PATH -Prelease,community -DskipNexusStagingDeployMojo=false
 if [[ $? != 0 ]]
 then
-  echo 1>&2 Could not deploy narayana to nexus
+  echo 1>&2 Could not deploy lra to nexus
   exit
 fi
 
 # Post-release steps
 echo "Please visit Narayana CI and check the quickstarts are working with the release and obtain performance numbers for the blog post"
-echo "narayana.io needs updating, please update the narayana.io repository (see https://github.com/jbosstm/narayana.io/blob/develop/README.md)"
 echo "Please open a PR to lra-coordinator-quarkus when the artifact is available on nexus."
-echo "Please raise a Jira and pull request to update WildFly to the released version of Narayana"
+echo "Please raise a Jira and pull request to update WildFly to the released version of lra"

@@ -111,13 +111,11 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
         client = ClientBuilder.newClient();
         lraClient = new NarayanaLRAClient();
 
+        // Cleans Object Store in case there are transactions from previous tests
+        clearRecoveryLogFromFS();
         for (Map.Entry<String, String> entry : containerDeploymentMap.entrySet()) {
             startContainer(entry.getKey(), entry.getValue());
         }
-
-        // Cleans Object Store in case there are transactions from previous tests
-        clearRecoveryLogFromObjectStore();
-        clearRecoveryLogFromFS();
     }
 
     @After
@@ -125,14 +123,10 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
         if (client != null) {
             client.close();
         }
-
-        // Cleans Object Store in case there are still active transactions
-        clearRecoveryLogFromObjectStore();
-        clearRecoveryLogFromFS();
-
         for (Map.Entry<String, String> entry : containerDeploymentMap.entrySet()) {
             stopContainer(entry.getKey(), entry.getValue());
         }
+        clearRecoveryLogFromFS();
     }
 
     /**
@@ -163,36 +157,30 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
 
         Assert.assertEquals("LRA participant action", 200, response.getStatus());
 
+        // getting the lra ID before a recovery is done
+        // The LRA transaction could have been started via lraClient but it is useful to test the filters as well
+        lraId = getFirstLRAFromFS();
+        assertNotNull("A new LRA should have been added to the object store before the JVM was halted.", lraId);
+        lraId = String.format("%s/%s", lraClient.getCoordinatorUrl(), lraId);
         // Restarts lra-coordinator to simulate a crash
         restartContainer(LRA_COORDINATOR_CONTAINER_QUALIFIER);
 
         // Waits for a period of time longer than the timeout of the LRA Transaction
         doWait((LRAListener.LRA_SHORT_TIMELIMIT + 1L) * 1000);
-
-        // The LRA transaction could have been started via lraClient but it is useful to test the filters as well
-        lraId = getFirstLRAFromFS();
-        assertNotNull("A new LRA should have been added to the object store before the JVM was halted.", lraId);
-        lraId = String.format("%s/%s", lraClient.getCoordinatorUrl(), lraId);
-
-        // Waits for a period of time longer than the timeout of the LRA Transaction
-        doWait((LRAListener.LRA_SHORT_TIMELIMIT + 1L) * 1000);
+        // the recovery is started during the server restart asynchronously, so calling
+        // a synchronous recovery to make sure the recovery is finished
+        while (recover() != 0);
 
         // Checks recovery
         LRAStatus status = getStatus(new URI(lraId));
 
         LRALogger.logger.infof("%s: Status after restart is %s%n", status == null ? "GONE" : status.name());
 
-        if (status == null || status == LRAStatus.Cancelling) {
-            int sc = recover();
-
-            if (sc != 0) {
-                recover();
-            }
-        }
-
         // LRA with short timeout should have timed out and cancelled
         status = getStatus(new URI(lraId));
 
+        // null status is also accepted because the lra has already been cancelled and
+        // removed
         Assert.assertTrue(String.format("LRA %s should have cancelled", lraId),
                 status == null || status == LRAStatus.Cancelled);
 
@@ -217,14 +205,12 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
         // Restarts lra-coordinator to simulate a crash
         restartContainer(LRA_COORDINATOR_CONTAINER_QUALIFIER);
 
-        // Waits for a period of time longer than the timeout of the short LRA transaction
-        doWait((LRAListener.LRA_SHORT_TIMELIMIT + 1L) * 1000);
-
-        int sc = recover();
-
-        if (sc != 0) {
-            recover();
-        }
+        // Waits for a period of time longer than the timeout of the short LRA
+        // transaction
+        doWait(SHORT_TIMEOUT + 1000);
+        // the recovery is started during the server restart asynchronously, so calling
+        // a synchronous recovery to make sure the recovery is finished
+        while (recover() != 0);
 
         LRAStatus longStatus = getStatus(longLRA);
         LRAStatus shortStatus = getStatus(shortLRA);
@@ -247,7 +233,6 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
         }
 
         lraClient.closeLRA(longLRA);
-        lraClient.closeLRA(shortLRA);
 
         // Checks that lra-participant was notified when the long LRA transaction was closed
         String listenerStatus = getStatusFromListener(lraListenerURI);

@@ -319,17 +319,18 @@ public class LongRunningAction extends BasicAction {
                     }
 
                     if (status == LRAStatus.Active) {
-                        status = LRAStatus.Cancelling; // transition from Active to Cancelling
+                        status = LRAStatus.Cancelling;
+                        scheduler.schedule(this::abortLRA, 1, TimeUnit.MILLISECONDS);
                     }
                 } else {
                     if (LRALogger.logger.isDebugEnabled()) {
                         LRALogger.logger.debugf("Restarting time for LRA '%s'", id);
                     }
-                }
 
-                // remark setTimeLimit can call deactivate (under failure conditions)
-                // and since we are in the middle of a restore we don't want call save
-                setTimeLimit(ttl, false);
+                    // remark setTimeLimit can call deactivate (under failure conditions)
+                    // and since we are in the middle of a restore we don't want call save
+                    setTimeLimit(ttl, false);
+                }
             }
 
             return true;

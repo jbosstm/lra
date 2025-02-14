@@ -12,7 +12,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>lra-crash-test</artifactId>
+  <artifactId>lra-test-crash</artifactId>
   <name>LRA crash tests</name>
   <description>LRA integration tests using unmanaged containers to simulate crash scenarios</description>
 

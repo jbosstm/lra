@@ -53,13 +53,10 @@ public class LRAParticipantAfterLRAIT extends TestBase {
             Assert.assertEquals(200, response.getStatus());
             Assert.assertTrue(response.hasEntity());
 
-        } finally {
             if (response != null) {
                 response.close();
             }
-        }
 
-        try {
             response = client.target(UriBuilder.fromUri(baseURL.toExternalForm())
                     .path(LRAParticipantAfterLRA.SIMPLE_PARTICIPANT_RESOURCE_PATH)
                     .path(LRAParticipantAfterLRA.COUNTER_LRA_PATH).build()).request().get();
@@ -68,6 +65,9 @@ public class LRAParticipantAfterLRAIT extends TestBase {
         } finally {
             if (response != null) {
                 response.close();
+            }
+            if (client != null) {
+                client.close();
             }
         }
 

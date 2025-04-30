@@ -259,7 +259,9 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
 
             return recoveringLRAs.length() - recoveringLRAs.replace(".", "").length();
         } finally {
-            client.close();
+            if (client != null) {
+                client.close();
+            }
         }
     }
 

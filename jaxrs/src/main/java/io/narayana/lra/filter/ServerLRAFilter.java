@@ -523,9 +523,9 @@ public class ServerLRAFilter implements ContainerRequestFilter, ContainerRespons
                     // do not attempt to close or cancel if the request filter tried but failed to start a new LRA
                     if (progress == null || progressDoesNotContain(progress, ProgressStep.StartFailed)) {
                         if (isCancel) {
-                            getLRAClient().cancelLRA(toClose, compensator, getUserDefinedData());
+                            getLRAClient().cancelLRA(toClose, compensator, userData);
                         } else {
-                            getLRAClient().closeLRA(toClose, compensator, getUserDefinedData());
+                            getLRAClient().closeLRA(toClose, compensator, userData);
                         }
 
                         progress = updateProgress(progress, ProgressStep.Ended, null);
@@ -765,7 +765,7 @@ public class ServerLRAFilter implements ContainerRequestFilter, ContainerRespons
         try {
             return data != null ? data.getData() : null;
         } catch (ContextNotActiveException e) {
-            LRALogger.i18nLogger.warn_missingContexts("CDI bean of type LRAParticipantData is not available", e);
+            LRALogger.i18nLogger.warn_missingContexts("LRAParticipantData is not usable in this (probably async) context.");
         }
 
         return null;
@@ -777,7 +777,7 @@ public class ServerLRAFilter implements ContainerRequestFilter, ContainerRespons
                 data.setData(userDefinedData);
             }
         } catch (ContextNotActiveException e) {
-            LRALogger.i18nLogger.warn_missingContexts("CDI bean of type LRAParticipantData is not available", e);
+            LRALogger.i18nLogger.warn_missingContexts("LRAParticipantData is not usable in this (probably async) context.");
         }
     }
 

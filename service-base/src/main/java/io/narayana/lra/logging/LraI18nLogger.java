@@ -144,7 +144,7 @@ public interface LraI18nLogger {
 
     @LogMessage(level = WARN)
     @Message(id = 25036, value = "CDI Context not available: %s")
-    void warn_missingContexts(String reason, @Cause Throwable t);
+    void warn_missingContexts(String reason);
 
     @LogMessage(level = WARN)
     @Message(id = 25037, value = "Participant `%s` is not registered")

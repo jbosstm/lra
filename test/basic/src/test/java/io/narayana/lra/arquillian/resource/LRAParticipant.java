@@ -157,7 +157,9 @@ public class LRAParticipant {
                 response.close();
             }
 
-            client.close();
+            if (client != null) {
+                client.close();
+            }
         }
     }
 

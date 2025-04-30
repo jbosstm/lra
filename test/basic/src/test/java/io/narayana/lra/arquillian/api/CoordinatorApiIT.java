@@ -17,6 +17,7 @@ import static org.hamcrest.core.IsNot.not;
 import io.narayana.lra.LRAConstants;
 import io.narayana.lra.LRAData;
 import io.narayana.lra.arquillian.ArquillianParametrized;
+import io.narayana.lra.arquillian.Deployer;
 import io.narayana.lra.arquillian.TestBase;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.GenericType;
@@ -25,6 +26,7 @@ import jakarta.ws.rs.core.Link;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import java.net.URI;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -36,8 +38,11 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.hamcrest.MatcherAssert;
+import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
+import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.logging.Logger;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -89,6 +94,14 @@ public class CoordinatorApiIT extends TestBase {
 
     @Rule
     public ValidTestVersionsRule testRule = new ValidTestVersionsRule();
+
+    @ArquillianResource
+    private URL baseURL;
+
+    @Deployment
+    public static WebArchive deploy() {
+        return Deployer.deploy(CoordinatorApiIT.class.getSimpleName(), NoopParticipant.class);
+    }
 
     @Override
     public void before() {
@@ -704,7 +717,7 @@ public class CoordinatorApiIT extends TestBase {
         lrasToAfterFinish.add(lraId);
 
         String encodedLraId = URLEncoder.encode(lraId.toString(), StandardCharsets.UTF_8);
-        Link link = Link.fromUri("http://compensate.url:8080").rel("compensate").build();
+        Link link = Link.fromUri(getNoopURL()).rel("compensate").build();
         try (Response response = client.target(coordinatorUrl)
                 .path(encodedLraId)
                 .request()
@@ -734,7 +747,7 @@ public class CoordinatorApiIT extends TestBase {
         lrasToAfterFinish.add(lraId);
 
         String encodedLraId = URLEncoder.encode(lraId.toString(), StandardCharsets.UTF_8);
-        Link afterLink = Link.fromUri("http://after.url:8080").rel("after").build();
+        Link afterLink = Link.fromUri(getNoopURL()).rel("after").build();
         Link unknownLink = Link.fromUri("http://unknow.url:8080").rel("unknown").build();
         String linkList = afterLink.toString() + "," + unknownLink.toString();
         try (Response response = client.target(coordinatorUrl)
@@ -751,6 +764,10 @@ public class CoordinatorApiIT extends TestBase {
             MatcherAssert.assertThat("Expected returned message contains the sub-path of LRA recovery URL",
                     URLDecoder.decode(recoveryUrlBody, StandardCharsets.UTF_8), containsString("lra-coordinator/recovery"));
         }
+    }
+
+    private URI getNoopURL() {
+        return URI.create(String.format("%s%s", baseURL.toExternalForm(), NoopParticipant.NOOP_PARTICIPANT_PATH));
     }
 
     /**
@@ -827,7 +844,7 @@ public class CoordinatorApiIT extends TestBase {
         lrasToAfterFinish.add(lraId);
 
         String encodedLraId = URLEncoder.encode(lraId.toString(), StandardCharsets.UTF_8);
-        Link link = Link.fromUri("http://complete.url:8080").rel("complete").build();
+        Link link = Link.fromUri(getNoopURL()).rel("complete").build();
         try (Response response = client.target(coordinatorUrl)
                 .path(encodedLraId)
                 .request()

@@ -24,3 +24,5 @@ audit.log
 *.zip
 *.db
 *.json
+.cache
+

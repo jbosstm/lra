@@ -56,6 +56,7 @@
     <buildproperty.date>${maven.build.timestamp}</buildproperty.date>
     <!-- Checkstyle is disabled by default, but it could be enabled for default by a particular module -->
     <checkstyle.skip>false</checkstyle.skip>
+    <format.skip>false</format.skip>
     <ipv6.server.jvm.args>-Djboss.bind.address=[::1] -Djboss.bind.address.management=[::1]
       -Djboss.bind.address.unsecure=[::1] -Djava.net.preferIPv4Stack=false -Djava.net.preferIPv6Addresses=true</ipv6.server.jvm.args>
     <jvm.args.byteman>-Dorg.jboss.byteman.verbose
@@ -98,6 +99,7 @@
     <version.com.github.spotbugs.spotbugs-maven-plugin>4.8.3.1</version.com.github.spotbugs.spotbugs-maven-plugin>
     <version.com.h2database>2.2.224</version.com.h2database>
     <version.doxia>1.8.1</version.doxia>
+    <version.formatter.plugin>2.26.0</version.formatter.plugin>
 
     <version.hamcrest>2.2</version.hamcrest>
     <version.httpcomponents>4.5.14</version.httpcomponents>
@@ -706,24 +708,6 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>com.github.ekryd.sortpom</groupId>
-        <artifactId>sortpom-maven-plugin</artifactId>
-        <version>${version.sortpom}</version>
-        <configuration>
-          <skip>${sortpom.skip}</skip>
-          <createBackupFile>false</createBackupFile>
-          <sortProperties>true</sortProperties>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>sort</goal>
-            </goals>
-            <phase>verify</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration combine.self="append">
@@ -752,6 +736,25 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>net.revelc.code.formatter</groupId>
+        <artifactId>formatter-maven-plugin</artifactId>
+        <version>${version.formatter.plugin}</version>
+        <configuration>
+          <!-- store outside of target to speed up formatting when mvn clean is used -->
+          <cachedir>.cache/formatter-maven-plugin-${version.formatter.plugin}</cachedir>
+          <configFile>eclipse-format.xml</configFile>
+          <lineEnding>LF</lineEnding>
+          <skip>${format.skip}</skip>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-ide-config</artifactId>
+            <version>3.22.2</version>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
   </build>
@@ -999,5 +1002,64 @@
         </plugins>
       </build>
     </profile>
+    <profile>
+      <id>format</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+        <property>
+          <name>!no-format</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>net.revelc.code.formatter</groupId>
+            <artifactId>formatter-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>process-sources</phase>
+                <goals>
+                  <goal>format</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>net.revelc.code</groupId>
+            <artifactId>impsort-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>sort-imports</id>
+                <goals>
+                  <goal>sort</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <removeUnused>true</removeUnused>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>com.github.ekryd.sortpom</groupId>
+            <artifactId>sortpom-maven-plugin</artifactId>
+            <version>${version.sortpom}</version>
+            <configuration>
+              <skip>${sortpom.skip}</skip>
+              <createBackupFile>false</createBackupFile>
+              <sortProperties>true</sortProperties>
+            </configuration>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>sort</goal>
+                </goals>
+                <phase>verify</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
   </profiles>
 </project>

@@ -5,6 +5,12 @@
 
 package io.narayana.lra.coordinator.tools.osb.mbean;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import com.arjuna.ats.arjuna.common.recoveryPropertyManager;
 import com.arjuna.ats.arjuna.tools.osb.mbean.ActionBean;
 import com.arjuna.ats.arjuna.tools.osb.mbean.LogRecordWrapper;
@@ -18,20 +24,13 @@ import io.narayana.lra.coordinator.domain.model.LRAParticipantRecord;
 import io.narayana.lra.coordinator.domain.model.LongRunningAction;
 import io.narayana.lra.coordinator.internal.Implementations;
 import io.narayana.lra.coordinator.internal.LRARecoveryModule;
+import java.io.File;
+import java.net.URI;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.File;
-import java.net.URI;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 
 public class ObjStoreBrowserLRATest {
     private RecoveryManagerImple recoveryManager;
@@ -39,8 +38,9 @@ public class ObjStoreBrowserLRATest {
 
     private static final String[][] LRA_OSB_TYPES = {
             // osTypeClassName, beanTypeClassName - see com.arjuna.ats.arjuna.tools.osb.mbean.ObjStoreBrowser
-            {LongRunningAction.getType().substring(1), LongRunningAction.class.getName(), LRAActionBean.class.getName()},
-            {FailedLongRunningAction.getType().substring(1), FailedLongRunningAction.class.getName(), LRAActionBean.class.getName()}
+            { LongRunningAction.getType().substring(1), LongRunningAction.class.getName(), LRAActionBean.class.getName() },
+            { FailedLongRunningAction.getType().substring(1), FailedLongRunningAction.class.getName(),
+                    LRAActionBean.class.getName() }
     };
 
     @Before
@@ -52,7 +52,7 @@ public class ObjStoreBrowserLRATest {
 
         // initiating the ObjStoreBrowser
         osb = ObjStoreBrowser.getInstance();
-        for(String[] typeAndBean: LRA_OSB_TYPES) {
+        for (String[] typeAndBean : LRA_OSB_TYPES) {
             String typeName = typeAndBean[0].replace("/", File.separator);
             osb.addOSBTypeHandler(typeName, new OSBTypeHandler(true, true, typeAndBean[1], typeAndBean[2],
                     typeAndBean[0], null, this.getClass().getClassLoader()));
@@ -61,7 +61,7 @@ public class ObjStoreBrowserLRATest {
     }
 
     @After
-    public void tearDown () {
+    public void tearDown() {
         recoveryManager.removeAllModules(false);
         recoveryManager.stop(false);
         Implementations.uninstall();
@@ -109,7 +109,8 @@ public class ObjStoreBrowserLRATest {
             assertNotNull("Expected the LRA MBean uid was probed", uidWrapper);
             lraOSEntryBean = uidWrapper.getMBean();
             assertNotNull("Expecting the UID to contain the LRA mbean", lraOSEntryBean);
-            assertTrue("The mbean should wrap " + ActionBean.class.getName() + " but it's " + lraOSEntryBean.getClass().getName(),
+            assertTrue(
+                    "The mbean should wrap " + ActionBean.class.getName() + " but it's " + lraOSEntryBean.getClass().getName(),
                     lraOSEntryBean instanceof ActionBean);
             ActionBean actionBean = (ActionBean) lraOSEntryBean;
             assertEquals("One participant was enlisted", 1, actionBean.getParticipants().size());

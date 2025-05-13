@@ -5,6 +5,7 @@
 
 package io.narayana.lra.client.internal.proxy;
 
+import io.narayana.lra.proxy.logging.LRAProxyLogger;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DELETE;
@@ -13,9 +14,6 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Response;
-
-import io.narayana.lra.proxy.logging.LRAProxyLogger;
-
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -31,31 +29,31 @@ public class ParticipantProxyResource {
 
     @Path("{lraId}/{pId}/complete")
     @PUT
-    public Response complete(@PathParam("lraId")String lraId,
-                         @PathParam("pId")String participantId,
-                         String participantData) throws URISyntaxException, UnsupportedEncodingException {
+    public Response complete(@PathParam("lraId") String lraId,
+            @PathParam("pId") String participantId,
+            String participantData) throws URISyntaxException, UnsupportedEncodingException {
         return proxyService.notifyParticipant(toURI(lraId), participantId, participantData, false);
     }
 
     @Path("{lraId}/{pId}/compensate")
     @PUT
-    public Response compensate(@PathParam("lraId")String lraId,
-                               @PathParam("pId")String participantId,
-                               String participantData) throws URISyntaxException, UnsupportedEncodingException {
+    public Response compensate(@PathParam("lraId") String lraId,
+            @PathParam("pId") String participantId,
+            String participantData) throws URISyntaxException, UnsupportedEncodingException {
         return proxyService.notifyParticipant(toURI(lraId), participantId, participantData, true);
     }
 
     @Path("{lraId}/{pId}")
     @DELETE
-    public void forget(@PathParam("lraId")String lraId,
-                       @PathParam("pId")String participantId) throws URISyntaxException, UnsupportedEncodingException {
+    public void forget(@PathParam("lraId") String lraId,
+            @PathParam("pId") String participantId) throws URISyntaxException, UnsupportedEncodingException {
         proxyService.notifyForget(toURI(lraId), participantId);
     }
 
     @Path("{lraId}/{pId}")
     @GET
-    public String status(@PathParam("lraId")String lraId,
-                       @PathParam("pId")String participantId) throws UnsupportedEncodingException, InvalidLRAStateException {
+    public String status(@PathParam("lraId") String lraId,
+            @PathParam("pId") String participantId) throws UnsupportedEncodingException, InvalidLRAStateException {
         try {
             return proxyService.getStatus(toURI(lraId), participantId).name();
         } catch (URISyntaxException e) {

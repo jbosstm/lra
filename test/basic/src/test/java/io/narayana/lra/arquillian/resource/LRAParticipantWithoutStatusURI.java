@@ -5,11 +5,7 @@
 
 package io.narayana.lra.arquillian.resource;
 
-import org.eclipse.microprofile.lra.annotation.Compensate;
-import org.eclipse.microprofile.lra.annotation.Complete;
-import org.eclipse.microprofile.lra.annotation.Forget;
-import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
-import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.DELETE;
@@ -23,8 +19,11 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
+import org.eclipse.microprofile.lra.annotation.Compensate;
+import org.eclipse.microprofile.lra.annotation.Complete;
+import org.eclipse.microprofile.lra.annotation.Forget;
+import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
+import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
 
 @ApplicationScoped
 @Path(LRAParticipantWithoutStatusURI.LRA_PARTICIPANT_PATH)

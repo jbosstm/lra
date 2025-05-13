@@ -26,6 +26,6 @@ public class LRAParticipantRegistry {
     }
 
     public LRAParticipant getParticipant(String id) {
-            return lraParticipants.get(id);
+        return lraParticipants.get(id);
     }
 }

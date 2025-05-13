@@ -54,7 +54,8 @@ public class AnnotationResolver {
         return resolveAnnotation(annotationClass, method) != null;
     }
 
-    private static <T extends Annotation> T resolveAnnotationInSuperClass(Class<T> annotationClass, Method method, Class<?> clazz) {
+    private static <T extends Annotation> T resolveAnnotationInSuperClass(Class<T> annotationClass, Method method,
+            Class<?> clazz) {
         if (clazz == null) {
             return null;
         }
@@ -62,13 +63,15 @@ public class AnnotationResolver {
         try {
             Method superclassMethod = clazz.getMethod(method.getName(), method.getParameterTypes());
             T annotation = superclassMethod.getAnnotation(annotationClass);
-            return annotation != null ? annotation : resolveAnnotationInSuperClass(annotationClass, method, clazz.getSuperclass());
+            return annotation != null ? annotation
+                    : resolveAnnotationInSuperClass(annotationClass, method, clazz.getSuperclass());
         } catch (NoSuchMethodException e) {
             return resolveAnnotationInSuperClass(annotationClass, method, clazz.getSuperclass());
         }
     }
 
-    private static <T extends Annotation> T resolveAnnotationInInterfaces(Class<T> annotationClass, Method method, Class<?> clazz) {
+    private static <T extends Annotation> T resolveAnnotationInInterfaces(Class<T> annotationClass, Method method,
+            Class<?> clazz) {
         if (clazz == null) {
             return null;
         }

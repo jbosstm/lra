@@ -7,14 +7,13 @@ package io.narayana.lra.arquillian.client;
 
 import io.narayana.lra.LRAData;
 import io.narayana.lra.arquillian.TestBase;
+import java.net.URI;
+import java.util.List;
 import org.jboss.logging.Logger;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-
-import java.net.URI;
-import java.util.List;
 
 public class NarayanaLRAClientIT extends TestBase {
 

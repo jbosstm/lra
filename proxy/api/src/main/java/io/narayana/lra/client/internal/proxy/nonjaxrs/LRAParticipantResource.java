@@ -5,14 +5,16 @@
 
 package io.narayana.lra.client.internal.proxy.nonjaxrs;
 
-import io.narayana.lra.proxy.logging.LRAProxyLogger;
-import org.eclipse.microprofile.lra.annotation.AfterLRA;
-import org.eclipse.microprofile.lra.annotation.Compensate;
-import org.eclipse.microprofile.lra.annotation.Complete;
-import org.eclipse.microprofile.lra.annotation.Forget;
-import org.eclipse.microprofile.lra.annotation.LRAStatus;
-import org.eclipse.microprofile.lra.annotation.Status;
+import static io.narayana.lra.LRAConstants.AFTER;
+import static io.narayana.lra.LRAConstants.COMPENSATE;
+import static io.narayana.lra.LRAConstants.COMPLETE;
+import static io.narayana.lra.LRAConstants.FORGET;
+import static io.narayana.lra.LRAConstants.STATUS;
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_ENDED_CONTEXT_HEADER;
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_PARENT_CONTEXT_HEADER;
 
+import io.narayana.lra.proxy.logging.LRAProxyLogger;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DELETE;
@@ -26,15 +28,12 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
-
-import static io.narayana.lra.LRAConstants.AFTER;
-import static io.narayana.lra.LRAConstants.COMPENSATE;
-import static io.narayana.lra.LRAConstants.COMPLETE;
-import static io.narayana.lra.LRAConstants.FORGET;
-import static io.narayana.lra.LRAConstants.STATUS;
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_ENDED_CONTEXT_HEADER;
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_PARENT_CONTEXT_HEADER;
+import org.eclipse.microprofile.lra.annotation.AfterLRA;
+import org.eclipse.microprofile.lra.annotation.Compensate;
+import org.eclipse.microprofile.lra.annotation.Complete;
+import org.eclipse.microprofile.lra.annotation.Forget;
+import org.eclipse.microprofile.lra.annotation.LRAStatus;
+import org.eclipse.microprofile.lra.annotation.Status;
 
 @ApplicationScoped
 @Path(LRAParticipantResource.RESOURCE_PATH)
@@ -50,8 +49,8 @@ public class LRAParticipantResource {
     @Produces(MediaType.TEXT_PLAIN)
     @Compensate
     public Response compensate(@PathParam("participantId") String participantId,
-                               @HeaderParam(LRA_HTTP_CONTEXT_HEADER) String lraId,
-                               @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) String parentId) {
+            @HeaderParam(LRA_HTTP_CONTEXT_HEADER) String lraId,
+            @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) String parentId) {
         return getParticipant(participantId).compensate(createURI(lraId), createURI(parentId));
     }
 
@@ -60,8 +59,8 @@ public class LRAParticipantResource {
     @Produces(MediaType.TEXT_PLAIN)
     @Complete
     public Response complete(@PathParam("participantId") String participantId,
-                             @HeaderParam(LRA_HTTP_CONTEXT_HEADER) String lraId,
-                             @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) String parentId) {
+            @HeaderParam(LRA_HTTP_CONTEXT_HEADER) String lraId,
+            @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) String parentId) {
         return getParticipant(participantId).complete(createURI(lraId), createURI(parentId));
     }
 
@@ -70,8 +69,8 @@ public class LRAParticipantResource {
     @Produces(MediaType.TEXT_PLAIN)
     @Status
     public Response status(@PathParam("participantId") String participantId,
-                           @HeaderParam(LRA_HTTP_CONTEXT_HEADER) String lraId,
-                           @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) String parentId) {
+            @HeaderParam(LRA_HTTP_CONTEXT_HEADER) String lraId,
+            @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) String parentId) {
         return getParticipant(participantId).status(createURI(lraId), createURI(parentId));
     }
 
@@ -80,8 +79,8 @@ public class LRAParticipantResource {
     @Produces(MediaType.TEXT_PLAIN)
     @Forget
     public Response forget(@PathParam("participantId") String participantId,
-                           @HeaderParam(LRA_HTTP_CONTEXT_HEADER) String lraId,
-                           @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) String parentId) {
+            @HeaderParam(LRA_HTTP_CONTEXT_HEADER) String lraId,
+            @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) String parentId) {
         return getParticipant(participantId).forget(createURI(lraId), createURI(parentId));
     }
 
@@ -89,8 +88,8 @@ public class LRAParticipantResource {
     @Path("{participantId}/" + AFTER)
     @AfterLRA
     public Response afterLRA(@PathParam("participantId") String participantId,
-                         @HeaderParam(LRA_HTTP_ENDED_CONTEXT_HEADER) URI lraId,
-                         LRAStatus lraStatus) {
+            @HeaderParam(LRA_HTTP_ENDED_CONTEXT_HEADER) URI lraId,
+            LRAStatus lraStatus) {
         return getParticipant(participantId).afterLRA(lraId, lraStatus);
     }
 

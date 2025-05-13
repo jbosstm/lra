@@ -5,10 +5,13 @@
 
 package io.narayana.lra.coordinator.api;
 
+import static io.narayana.lra.LRAConstants.CURRENT_API_VERSION_STRING;
+import static jakarta.ws.rs.core.Response.Status.PRECONDITION_FAILED;
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
+
 import io.narayana.lra.Current;
 import io.narayana.lra.LRAConstants;
 import io.narayana.lra.logging.LRALogger;
-
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
@@ -20,10 +23,6 @@ import jakarta.ws.rs.ext.Provider;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-
-import static io.narayana.lra.LRAConstants.CURRENT_API_VERSION_STRING;
-import static jakarta.ws.rs.core.Response.Status.PRECONDITION_FAILED;
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
 
 @Provider
 public class CoordinatorContainerFilter implements ContainerRequestFilter, ContainerResponseFilter {
@@ -64,8 +63,9 @@ public class CoordinatorContainerFilter implements ContainerRequestFilter, Conta
         if (!responseContext.getHeaders().containsKey(LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME)) {
             // when app code did not provide version to header to be returned back
             // then using the api version which came within request; when provided neither then the current version of the api
-            String responseVersion = requestContext.getHeaders().containsKey(LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) ?
-                    requestContext.getHeaderString(LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) : CURRENT_API_VERSION_STRING;
+            String responseVersion = requestContext.getHeaders().containsKey(LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME)
+                    ? requestContext.getHeaderString(LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME)
+                    : CURRENT_API_VERSION_STRING;
             responseContext.getHeaders().putSingle(LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME, responseVersion);
         }
 

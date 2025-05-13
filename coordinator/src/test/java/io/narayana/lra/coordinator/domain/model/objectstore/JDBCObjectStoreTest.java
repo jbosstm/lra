@@ -5,16 +5,16 @@
 
 package io.narayana.lra.coordinator.domain.model.objectstore;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import com.arjuna.ats.arjuna.common.ObjectStoreEnvironmentBean;
 import com.arjuna.ats.internal.arjuna.objectstore.jdbc.JDBCStore;
 import com.arjuna.common.internal.util.propertyservice.BeanPopulator;
 import io.narayana.lra.LRAData;
 import io.narayana.lra.logging.LRALogger;
-import org.eclipse.microprofile.lra.annotation.LRAStatus;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import java.net.URI;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -24,11 +24,10 @@ import java.sql.Statement;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.eclipse.microprofile.lra.annotation.LRAStatus;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class JDBCObjectStoreTest extends TestBase {
 
@@ -50,7 +49,7 @@ public class JDBCObjectStoreTest extends TestBase {
         // This test fails if the Object Store is not set to JDBCStore
         assertEquals("The Object Store type should have been set to JDBCStore", JDBCStore.class.getName(), objectStoreType);
 
-        LRALogger.logger.infof("%s: the Object Store type is set to: %s",testName.getMethodName(), objectStoreType);
+        LRALogger.logger.infof("%s: the Object Store type is set to: %s", testName.getMethodName(), objectStoreType);
 
         // Starts a new LRA
         URI lraIdUri = lraClient.startLRA(testName.getMethodName() + "#newLRA");
@@ -63,7 +62,8 @@ public class JDBCObjectStoreTest extends TestBase {
         String lraId = convertLraUriToString(lraIdUri).replace('_', ':');
 
         LRAData lraData = getLastCreatedLRA();
-        assertEquals("Expected that the LRA transaction just started matches the LRA transaction fetched through the Narayana LRA client",
+        assertEquals(
+                "Expected that the LRA transaction just started matches the LRA transaction fetched through the Narayana LRA client",
                 lraData.getLraId(),
                 lraIdUri);
 

@@ -5,21 +5,14 @@
 
 package io.narayana.lra.coordinator.domain.model.objectstore;
 
+import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
+
 import io.narayana.lra.LRAData;
 import io.narayana.lra.client.internal.NarayanaLRAClient;
 import io.narayana.lra.coordinator.api.Coordinator;
 import io.narayana.lra.filter.ServerLRAFilter;
 import io.narayana.lra.logging.LRALogger;
 import io.narayana.lra.provider.ParticipantStatusOctetStreamProvider;
-import org.eclipse.microprofile.lra.annotation.LRAStatus;
-import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
-import org.jboss.resteasy.test.TestPortProvider;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.rules.TestName;
-
 import jakarta.ws.rs.ApplicationPath;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
@@ -31,8 +24,14 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
+import org.eclipse.microprofile.lra.annotation.LRAStatus;
+import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
+import org.jboss.resteasy.test.TestPortProvider;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.rules.TestName;
 
 public class TestBase {
 

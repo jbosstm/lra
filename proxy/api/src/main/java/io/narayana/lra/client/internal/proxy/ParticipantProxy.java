@@ -6,12 +6,11 @@
 package io.narayana.lra.client.internal.proxy;
 
 import io.narayana.lra.proxy.logging.LRAProxyLogger;
-import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
-
 import java.net.URI;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
 
 class ParticipantProxy {
     private final URI lraId;
@@ -30,7 +29,6 @@ class ParticipantProxy {
         this.lraId = lraId;
         this.participantId = participantId;
     }
-
 
     private URI getLraId() {
         return lraId;
@@ -65,7 +63,7 @@ class ParticipantProxy {
         return result;
     }
 
-     void setFuture(Future<Void> future, boolean compensate) {
+    void setFuture(Future<Void> future, boolean compensate) {
         this.future = future;
         this.compensate = compensate;
     }

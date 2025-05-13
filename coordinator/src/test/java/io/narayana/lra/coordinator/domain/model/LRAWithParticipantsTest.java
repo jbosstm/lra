@@ -10,24 +10,6 @@ import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_PARENT_
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
-import java.net.URI;
-import java.time.temporal.ChronoUnit;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.eclipse.microprofile.lra.annotation.Compensate;
-import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
-import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
-import org.jboss.resteasy.test.TestPortProvider;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-
 import io.narayana.lra.client.internal.NarayanaLRAClient;
 import io.narayana.lra.coordinator.api.Coordinator;
 import io.narayana.lra.filter.ServerLRAFilter;
@@ -40,6 +22,22 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Response;
+import java.net.URI;
+import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
+import org.eclipse.microprofile.lra.annotation.Compensate;
+import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
+import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
+import org.jboss.resteasy.test.TestPortProvider;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestName;
 
 public class LRAWithParticipantsTest extends LRATestBase {
 
@@ -50,6 +48,7 @@ public class LRAWithParticipantsTest extends LRATestBase {
     private static ReentrantLock lock = new ReentrantLock();
     private static boolean joinAttempted;
     private static boolean compensateCalled;
+
     @Path("/test")
     public static class ParticipantExtended extends Participant {
 
@@ -66,8 +65,7 @@ public class LRAWithParticipantsTest extends LRATestBase {
                 while (!joinAttempted) {
                     try {
                         lock.wait();
-                    }
-                    catch (InterruptedException e) {
+                    } catch (InterruptedException e) {
                         fail("Could not wait");
                     }
                 }
@@ -75,6 +73,7 @@ public class LRAWithParticipantsTest extends LRATestBase {
             return Response.status(Response.Status.ACCEPTED).entity(ParticipantStatus.Compensating).build();
         }
     }
+
     @ApplicationPath("service2")
     public static class Service2 extends Application {
 
@@ -87,12 +86,15 @@ public class LRAWithParticipantsTest extends LRATestBase {
             return classes;
         }
     }
+
     @ApplicationPath("service3")
     public static class Service3 extends Service2 {
     }
+
     @ApplicationPath("service4")
     public static class Service4 extends Service2 {
     }
+
     @ApplicationPath("/")
     public static class LRACoordinator extends Application {
 
@@ -103,6 +105,7 @@ public class LRAWithParticipantsTest extends LRATestBase {
             return classes;
         }
     }
+
     @BeforeClass
     public static void start() {
         System.setProperty("lra.coordinator.url", TestPortProvider.generateURL('/' + COORDINATOR_PATH_NAME));
@@ -143,16 +146,14 @@ public class LRAWithParticipantsTest extends LRATestBase {
         // by Service 2 and Service 3.
         try {
             TimeUnit.SECONDS.sleep(1);
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
         synchronized (lock) {
             while (!compensateCalled) {
                 try {
                     lock.wait();
-                }
-                catch (InterruptedException e) {
+                } catch (InterruptedException e) {
                     fail("Could not wait");
                 }
             }

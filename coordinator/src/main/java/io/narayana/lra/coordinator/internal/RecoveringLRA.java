@@ -7,13 +7,12 @@ package io.narayana.lra.coordinator.internal;
 
 import com.arjuna.ats.arjuna.common.Uid;
 import com.arjuna.ats.arjuna.coordinator.ActionStatus;
-import io.narayana.lra.logging.LRALogger;
 import io.narayana.lra.coordinator.domain.model.LongRunningAction;
 import io.narayana.lra.coordinator.domain.service.LRAService;
+import io.narayana.lra.logging.LRALogger;
 import jakarta.ws.rs.ServiceUnavailableException;
-import org.eclipse.microprofile.lra.annotation.LRAStatus;
-
 import java.util.concurrent.locks.ReentrantLock;
+import org.eclipse.microprofile.lra.annotation.LRAStatus;
 
 class RecoveringLRA extends LongRunningAction {
     /**

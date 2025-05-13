@@ -5,10 +5,14 @@
 
 package io.narayana.lra.arquillian;
 
+import static org.junit.Assert.assertNotEquals;
+
 import io.narayana.lra.arquillian.resource.LRAUnawareResource;
 import io.narayana.lra.arquillian.resource.SimpleLRAParticipant;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
+import java.net.URI;
+import java.net.URL;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.logging.Logger;
@@ -17,11 +21,6 @@ import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-
-import java.net.URI;
-import java.net.URL;
-
-import static org.junit.Assert.assertNotEquals;
 
 public class LRAPropagationIT extends TestBase {
     private static final Logger log = Logger.getLogger(LRAPropagationIT.class);
@@ -41,8 +40,8 @@ public class LRAPropagationIT extends TestBase {
     @Deployment
     public static WebArchive deploy() {
         return Deployer.deploy(LRAPropagationIT.class.getSimpleName(), LRAUnawareResource.class, SimpleLRAParticipant.class)
-            .addAsManifestResource(
-                new StringAsset("mp.lra.propagation.active=false"), "microprofile-config.properties");
+                .addAsManifestResource(
+                        new StringAsset("mp.lra.propagation.active=false"), "microprofile-config.properties");
     }
 
     @Test
@@ -52,8 +51,9 @@ public class LRAPropagationIT extends TestBase {
         URI returnedLraId = invokeInTransaction(baseURL,
                 Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
 
-        assertNotEquals("While calling non-LRA method the resource should not propagate the LRA id when mp.lra.propagation.active=false",
-            lraId, returnedLraId);
+        assertNotEquals(
+                "While calling non-LRA method the resource should not propagate the LRA id when mp.lra.propagation.active=false",
+                lraId, returnedLraId);
 
         lraClient.closeLRA(lraId);
     }

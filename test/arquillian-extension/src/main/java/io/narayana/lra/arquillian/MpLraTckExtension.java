@@ -12,7 +12,7 @@ import org.jboss.arquillian.core.spi.LoadableExtension;
 /**
  * This class is the activation point to use {@link MpLraTckAuxiliaryArchiveAppender}.
  */
-public class MpLraTckExtension  implements LoadableExtension {
+public class MpLraTckExtension implements LoadableExtension {
 
     @Override
     public void register(ExtensionBuilder extensionBuilder) {

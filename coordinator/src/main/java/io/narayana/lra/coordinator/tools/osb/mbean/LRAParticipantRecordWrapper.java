@@ -10,7 +10,6 @@ import com.arjuna.ats.arjuna.tools.osb.mbean.ActionBean;
 import com.arjuna.ats.arjuna.tools.osb.mbean.LogRecordWrapper;
 import com.arjuna.ats.arjuna.tools.osb.mbean.ParticipantStatus;
 import io.narayana.lra.coordinator.domain.model.LRAParticipantRecord;
-
 import java.net.URI;
 
 public class LRAParticipantRecordWrapper extends LogRecordWrapper implements LRAParticipantRecordWrapperMBean {

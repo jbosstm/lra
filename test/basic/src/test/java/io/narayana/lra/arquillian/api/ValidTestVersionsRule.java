@@ -5,13 +5,12 @@
 
 package io.narayana.lra.arquillian.api;
 
+import java.lang.reflect.Field;
+import java.util.Arrays;
 import org.junit.AssumptionViolatedException;
 import org.junit.rules.MethodRule;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
-
-import java.lang.reflect.Field;
-import java.util.Arrays;
 
 /**
  * This rule works with annotation {@link ValidTestVersions}.
@@ -39,7 +38,8 @@ public class ValidTestVersionsRule implements MethodRule {
                     @Override
                     public void evaluate() {
                         throw new AssumptionViolatedException("Test " + method.getName() + " annotated with annotation " +
-                                ValidTestVersions.class.getSimpleName() + " and the current '" + VERSION_FIELD_NAME + "' field is not in set " +
+                                ValidTestVersions.class.getSimpleName() + " and the current '" + VERSION_FIELD_NAME
+                                + "' field is not in set " +
                                 "of the versions to run with");
                     }
                 };
@@ -53,13 +53,14 @@ public class ValidTestVersionsRule implements MethodRule {
     }
 
     private String findVersionField(Object objectToSearch) {
-        for (Field field: objectToSearch.getClass().getDeclaredFields()) {
+        for (Field field : objectToSearch.getClass().getDeclaredFields()) {
             if (field.getName().equals(VERSION_FIELD_NAME) && field.getType().isAssignableFrom(String.class)) {
                 try {
                     field.setAccessible(true);
                     return (String) field.get(objectToSearch);
                 } catch (IllegalAccessException iae) {
-                    throw new IllegalStateException("Cannot get value of '" + VERSION_FIELD_NAME + "' field with reflection", iae);
+                    throw new IllegalStateException("Cannot get value of '" + VERSION_FIELD_NAME + "' field with reflection",
+                            iae);
                 }
             }
         }

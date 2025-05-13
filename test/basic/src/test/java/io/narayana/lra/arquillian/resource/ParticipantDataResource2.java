@@ -5,6 +5,10 @@
 
 package io.narayana.lra.arquillian.resource;
 
+import static io.narayana.lra.LRAConstants.NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME;
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_RECOVERY_HEADER;
+
 import io.narayana.lra.client.LRAParticipantData;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -13,15 +17,10 @@ import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
+import java.net.URI;
 import org.eclipse.microprofile.lra.annotation.Compensate;
 import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
 import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
-
-import java.net.URI;
-
-import static io.narayana.lra.LRAConstants.NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME;
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_RECOVERY_HEADER;
 
 @ApplicationScoped
 @Path(ParticipantDataResource2.DATA_PARTICIPANT_RESOURCE_PATH)
@@ -39,8 +38,8 @@ public class ParticipantDataResource2 {
     @Path(START_LRA_PATH)
     @LRA(value = LRA.Type.REQUIRES_NEW, end = false)
     public Response doStartLRA(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lraId,
-                               @HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryUrl,
-                               @HeaderParam(NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME) String pData) {
+            @HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryUrl,
+            @HeaderParam(NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME) String pData) {
         data.setData(pData);
 
         return Response.status(Response.Status.OK)
@@ -53,8 +52,8 @@ public class ParticipantDataResource2 {
     @Path(END_LRA_PATH)
     @LRA(value = LRA.Type.REQUIRED)
     public Response doEndLRA(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lraId,
-                             @HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryUrl,
-                             @HeaderParam(NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME) String pData) {
+            @HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryUrl,
+            @HeaderParam(NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME) String pData) {
         String prevData = data.getData();
 
         data.setData(pData);

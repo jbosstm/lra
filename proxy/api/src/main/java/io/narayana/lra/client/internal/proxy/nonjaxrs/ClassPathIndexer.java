@@ -6,12 +6,6 @@
 package io.narayana.lra.client.internal.proxy.nonjaxrs;
 
 import io.narayana.lra.logging.LRALogger;
-import org.jboss.jandex.Index;
-import org.jboss.jandex.Indexer;
-import org.jboss.logging.Logger;
-import org.jboss.modules.ModuleClassLoader;
-import org.jboss.modules.Resource;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,6 +19,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import org.jboss.jandex.Index;
+import org.jboss.jandex.Indexer;
+import org.jboss.logging.Logger;
+import org.jboss.modules.ModuleClassLoader;
+import org.jboss.modules.Resource;
 
 class ClassPathIndexer {
     private static final Logger log = Logger.getLogger(ClassPathIndexer.class);

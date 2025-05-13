@@ -5,11 +5,10 @@
 
 package io.narayana.lra.proxy.test.model;
 
-import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
-
 import java.io.Serializable;
 import java.net.URI;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
 
 public class Activity implements Serializable {
     public String id;
@@ -63,7 +62,6 @@ public class Activity implements Serializable {
     public void setAcceptedCount(int acceptedCount) {
         this.acceptedCount.set(acceptedCount);
     }
-
 
     public int getAndDecrementAcceptCount() {
         return acceptedCount.getAndDecrement();

@@ -6,6 +6,9 @@
 package io.narayana.lra.arquillian.deployment.scenario;
 
 import io.narayana.lra.arquillian.deployment.WildflyLRACoordinatorDeployment;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.jboss.arquillian.config.descriptor.api.ContainerDef;
 import org.jboss.arquillian.config.descriptor.api.GroupDef;
 import org.jboss.arquillian.container.spi.client.deployment.DeploymentDescription;
@@ -14,25 +17,37 @@ import org.jboss.arquillian.container.test.spi.client.deployment.DeploymentScena
 import org.jboss.arquillian.test.spi.TestClass;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 /**
- * <p>This class is an implementation of Arquillian SPI DeploymentScenarioGenerator. The purpose of this class
+ * <p>
+ * This class is an implementation of Arquillian SPI DeploymentScenarioGenerator. The purpose of this class
  * is creating an lra-coordinator DeploymentDescription to be deployed to a specific container. The information
  * identifying the container are fetched from arquillian.xml in the module that uses LRACoordinatoExtension.
  * Properties have to be specified according with the pre-fixed names within this class. Moreover, if the extension
  * is activated in the file src/main/resources/META-INF/services/org.jboss.arquillian.core.spi.LoadableExtension
  * but there is not mention of the extension in arquillian.xml, this extension returns without generating a
- * DeploymentDescription.</p>
- *<p>To activate this extension in your arquillian.xml, use the following construct:</p>
- * <p>{@code <extension qualifier="LRACoordinatorDeployment">}</p>
- * <p>{@code <property name="groupName">...</property>}</p>
- * <p>{@code <property name="containerName">...</property>}</p>
- * <p>{@code <property name="deploymentName">...</property>}</p>
- * <p>{@code <property name="testable">...</property>}</p>
- * <p>{@code </extension>}</p>
+ * DeploymentDescription.
+ * </p>
+ * <p>
+ * To activate this extension in your arquillian.xml, use the following construct:
+ * </p>
+ * <p>
+ * {@code <extension qualifier="LRACoordinatorDeployment">}
+ * </p>
+ * <p>
+ * {@code <property name="groupName">...</property>}
+ * </p>
+ * <p>
+ * {@code <property name="containerName">...</property>}
+ * </p>
+ * <p>
+ * {@code <property name="deploymentName">...</property>}
+ * </p>
+ * <p>
+ * {@code <property name="testable">...</property>}
+ * </p>
+ * <p>
+ * {@code </extension>}
+ * </p>
  */
 public class LRACoordinatorScenarioGenerator extends ScenarioGeneratorBase implements DeploymentScenarioGenerator {
 
@@ -85,11 +100,12 @@ public class LRACoordinatorScenarioGenerator extends ScenarioGeneratorBase imple
 
         String containerName = container.getContainerName();
 
-        WebArchive archive = (WebArchive) new WildflyLRACoordinatorDeployment().create(extensionProperties.get(EXTENSION_DEPLOYMENT_NAME));
+        WebArchive archive = (WebArchive) new WildflyLRACoordinatorDeployment()
+                .create(extensionProperties.get(EXTENSION_DEPLOYMENT_NAME));
 
-        DeploymentDescription deploymentDescription =
-                new DeploymentDescription(extensionProperties.get(EXTENSION_DEPLOYMENT_NAME), archive)
-                        .setTarget(new TargetDescription(containerName));
+        DeploymentDescription deploymentDescription = new DeploymentDescription(
+                extensionProperties.get(EXTENSION_DEPLOYMENT_NAME), archive)
+                .setTarget(new TargetDescription(containerName));
         deploymentDescription.shouldBeTestable(Boolean.parseBoolean(extensionProperties.get(EXTENSION_TESTABLE)));
         // Auto-define if the deployment should be managed or unmanaged
         deploymentDescription.shouldBeManaged(!container.getMode().equals("manual"));

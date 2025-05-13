@@ -5,16 +5,15 @@
 
 package io.narayana.lra.filter;
 
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
+
 import io.narayana.lra.Current;
 import jakarta.ws.rs.client.ClientRequestContext;
 import jakarta.ws.rs.client.ClientRequestFilter;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.ext.Provider;
-import org.eclipse.microprofile.config.ConfigProvider;
-
 import java.net.URI;
-
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
+import org.eclipse.microprofile.config.ConfigProvider;
 
 @Provider
 public class ClientLRARequestFilter implements ClientRequestFilter {
@@ -23,7 +22,7 @@ public class ClientLRARequestFilter implements ClientRequestFilter {
 
     public ClientLRARequestFilter() {
         canPropagate = ConfigProvider.getConfig()
-            .getOptionalValue("mp.lra.propagation.active", Boolean.class).orElse(true);
+                .getOptionalValue("mp.lra.propagation.active", Boolean.class).orElse(true);
     }
 
     @Override

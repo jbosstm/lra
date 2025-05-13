@@ -5,16 +5,14 @@
 
 package io.narayana.lra.client.internal.proxy.nonjaxrs;
 
+import static io.narayana.lra.LRAConstants.AFTER;
+import static io.narayana.lra.LRAConstants.COMPENSATE;
+import static io.narayana.lra.LRAConstants.COMPLETE;
+import static io.narayana.lra.LRAConstants.FORGET;
+import static io.narayana.lra.LRAConstants.STATUS;
+
 import io.narayana.lra.AnnotationResolver;
 import io.narayana.lra.logging.LRALogger;
-import org.eclipse.microprofile.lra.annotation.AfterLRA;
-import org.eclipse.microprofile.lra.annotation.Compensate;
-import org.eclipse.microprofile.lra.annotation.Complete;
-import org.eclipse.microprofile.lra.annotation.Forget;
-import org.eclipse.microprofile.lra.annotation.LRAStatus;
-import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
-import org.eclipse.microprofile.lra.annotation.Status;
-
 import jakarta.enterprise.inject.spi.CDI;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -34,12 +32,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
-
-import static io.narayana.lra.LRAConstants.AFTER;
-import static io.narayana.lra.LRAConstants.COMPENSATE;
-import static io.narayana.lra.LRAConstants.COMPLETE;
-import static io.narayana.lra.LRAConstants.FORGET;
-import static io.narayana.lra.LRAConstants.STATUS;
+import org.eclipse.microprofile.lra.annotation.AfterLRA;
+import org.eclipse.microprofile.lra.annotation.Compensate;
+import org.eclipse.microprofile.lra.annotation.Complete;
+import org.eclipse.microprofile.lra.annotation.Forget;
+import org.eclipse.microprofile.lra.annotation.LRAStatus;
+import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
+import org.eclipse.microprofile.lra.annotation.Status;
 
 /**
  * Keeps references to individual non-JAX-RS participant methods in
@@ -124,17 +123,17 @@ public class LRAParticipant {
 
         if (parameterTypes.length > 2) {
             throw new IllegalStateException(String.format("%s: %s",
-                method.toGenericString(), "Participant method cannot have more than 2 arguments"));
+                    method.toGenericString(), "Participant method cannot have more than 2 arguments"));
         }
 
         if (parameterTypes.length > 0 && !parameterTypes[0].equals(URI.class)) {
             throw new IllegalStateException(String.format("%s: %s",
-                method.toGenericString(), "Invalid argument type in LRA participant method: " + parameterTypes[0]));
+                    method.toGenericString(), "Invalid argument type in LRA participant method: " + parameterTypes[0]));
         }
 
         if (parameterTypes.length > 1 && !parameterTypes[1].equals(URI.class)) {
             throw new IllegalStateException(String.format("%s: %s",
-                method.toGenericString(), "Invalid argument type in LRA participant method: " + parameterTypes[1]));
+                    method.toGenericString(), "Invalid argument type in LRA participant method: " + parameterTypes[1]));
         }
     }
 
@@ -146,23 +145,23 @@ public class LRAParticipant {
         // spec defined signature is "void afterLRA(URI, LRAStatus)
         if (!method.getReturnType().equals(Void.TYPE)) {
             throw new IllegalStateException(String.format("%s: %s",
-                method.toGenericString(), "Invalid return type for @AfterLRA method: " + method.getReturnType()));
+                    method.toGenericString(), "Invalid return type for @AfterLRA method: " + method.getReturnType()));
         }
 
         Class<?>[] parameterTypes = method.getParameterTypes();
         if (parameterTypes.length > 2) {
             throw new IllegalStateException(String.format("%s: %s",
-                method.toGenericString(), "@AfterLRA method cannot have more than 2 arguments"));
+                    method.toGenericString(), "@AfterLRA method cannot have more than 2 arguments"));
         }
 
         if (parameterTypes.length > 0 && !parameterTypes[0].equals(URI.class)) {
             throw new IllegalStateException(String.format("%s: %s",
-                method.toGenericString(), "Invalid first argument of @AfterLRA method: " + parameterTypes[0]));
+                    method.toGenericString(), "Invalid first argument of @AfterLRA method: " + parameterTypes[0]));
         }
 
         if (parameterTypes.length > 1 && !parameterTypes[1].equals(LRAStatus.class)) {
             throw new IllegalStateException(String.format("%s: %s",
-                method.toGenericString(), "Invalid second argument of @AfterLRA method: " + parameterTypes[1]));
+                    method.toGenericString(), "Invalid second argument of @AfterLRA method: " + parameterTypes[1]));
         }
 
         afterLRAMethod = method;
@@ -171,11 +170,11 @@ public class LRAParticipant {
 
     private boolean isJaxRsMethod(Method method) {
         return AnnotationResolver.isAnnotationPresent(GET.class, method) ||
-            AnnotationResolver.isAnnotationPresent(POST.class, method) ||
-            AnnotationResolver.isAnnotationPresent(PUT.class, method) ||
-            AnnotationResolver.isAnnotationPresent(DELETE.class, method) ||
-            AnnotationResolver.isAnnotationPresent(HEAD.class, method) ||
-            AnnotationResolver.isAnnotationPresent(OPTIONS.class, method);
+                AnnotationResolver.isAnnotationPresent(POST.class, method) ||
+                AnnotationResolver.isAnnotationPresent(PUT.class, method) ||
+                AnnotationResolver.isAnnotationPresent(DELETE.class, method) ||
+                AnnotationResolver.isAnnotationPresent(HEAD.class, method) ||
+                AnnotationResolver.isAnnotationPresent(OPTIONS.class, method);
     }
 
     private boolean setParticipantAnnotation(Method method) {
@@ -209,12 +208,12 @@ public class LRAParticipant {
 
     private void verifyReturnType(Class<?> returnType, String methodGenericString, boolean inCompletionStage) {
         if (!returnType.equals(Void.TYPE) &&
-            !returnType.equals(Void.class) &&
-            !returnType.equals(ParticipantStatus.class) &&
-            !returnType.equals(Response.class)) {
+                !returnType.equals(Void.class) &&
+                !returnType.equals(ParticipantStatus.class) &&
+                !returnType.equals(Response.class)) {
             throw new IllegalStateException(String.format("%s: %s",
-                methodGenericString, "Invalid return type for participant method "
-                    + (inCompletionStage ? "CompletionStage<" + returnType + ">" : returnType)));
+                    methodGenericString, "Invalid return type for participant method "
+                            + (inCompletionStage ? "CompletionStage<" + returnType + ">" : returnType)));
         }
     }
 
@@ -227,7 +226,7 @@ public class LRAParticipant {
 
             if (shouldInvokeParticipantMethod(result)) {
                 LRALogger.i18nLogger.warn_participantReturnsImmediateStateFromCompletionStage(
-                    getJavaClass().getName(), lraId.toASCIIString());
+                        getJavaClass().getName(), lraId.toASCIIString());
                 return invokeParticipantMethod(method, lraId, parentId, type);
             }
 
@@ -249,7 +248,7 @@ public class LRAParticipant {
     }
 
     private Response invokeParticipantMethod(Method method, URI lraId,
-                                             URI parentId, String type) {
+            URI parentId, String type) {
         Object participant = getInstance();
         Object result;
 
@@ -265,7 +264,7 @@ public class LRAParticipant {
                 break;
             default:
                 throw new IllegalStateException(
-                    method.toGenericString() + ": invalid number of arguments: " + method.getParameterCount());
+                        method.toGenericString() + ": invalid number of arguments: " + method.getParameterCount());
         }
 
         return processResult(result, lraId, method, type);
@@ -290,11 +289,11 @@ public class LRAParticipant {
             // store the CompletionStage result and respond compensating / completing
             participantStatusMap.put(lraId, new ParticipantResult(getCompletionStageActualType(method)));
             ((CompletionStage<?>) result)
-                .thenAccept(res -> participantStatusMap.get(lraId).setValue(res))
-                .exceptionally(throwable -> {
-                    participantStatusMap.get(lraId).setValue(throwable);
-                    return null;
-                });
+                    .thenAccept(res -> participantStatusMap.get(lraId).setValue(res))
+                    .exceptionally(throwable -> {
+                        participantStatusMap.get(lraId).setValue(throwable);
+                        return null;
+                    });
             return Response.status(Response.Status.ACCEPTED).build();
         }
 
@@ -352,9 +351,9 @@ public class LRAParticipant {
 
     public void augmentTerminationURIs(Map<String, String> terminateURIs, URI baseUri) {
         String baseURI = UriBuilder.fromUri(baseUri)
-            .path(LRAParticipantResource.RESOURCE_PATH)
-            .path(javaClass.getName())
-            .build().toASCIIString();
+                .path(LRAParticipantResource.RESOURCE_PATH)
+                .path(javaClass.getName())
+                .build().toASCIIString();
 
         if (!terminateURIs.containsKey(COMPLETE) && completeMethod != null) {
             terminateURIs.put(COMPLETE, getURI(baseURI, COMPLETE));
@@ -383,10 +382,10 @@ public class LRAParticipant {
 
     boolean hasNonJaxRsMethods() {
         return compensateMethod != null ||
-            completeMethod != null ||
-            statusMethod != null ||
-            forgetMethod != null ||
-            afterLRAMethod != null;
+                completeMethod != null ||
+                statusMethod != null ||
+                forgetMethod != null ||
+                afterLRAMethod != null;
     }
 
     private static Class<?> getCompletionStageActualType(Method method) {

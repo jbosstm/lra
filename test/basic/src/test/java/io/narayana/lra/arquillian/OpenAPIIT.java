@@ -5,21 +5,20 @@
 
 package io.narayana.lra.arquillian;
 
+import static java.lang.System.getProperty;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import jakarta.ws.rs.core.Response;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-
-import jakarta.ws.rs.core.Response;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
-
-import static java.lang.System.getProperty;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class OpenAPIIT extends TestBase {
     private static final Logger log = Logger.getLogger(OpenAPIIT.class);
@@ -41,8 +40,8 @@ public class OpenAPIIT extends TestBase {
     @Test
     public void test() throws URISyntaxException, MalformedURLException {
         URL url = new URL("http://"
-                + getProperty("lra.coordinator.host", "localhost")+":"
-                + getProperty("lra.coordinator.port", "8080")+"/openapi");
+                + getProperty("lra.coordinator.host", "localhost") + ":"
+                + getProperty("lra.coordinator.port", "8080") + "/openapi");
         Response response = client.target(url.toURI()).request().get();
         String output = response.readEntity(String.class);
         assertFalse("WildFly OpenAPI document has paths at wrong location",

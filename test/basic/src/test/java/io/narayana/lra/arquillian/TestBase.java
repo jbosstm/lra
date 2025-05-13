@@ -14,14 +14,6 @@ import jakarta.json.JsonReader;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.core.Response;
-import org.jboss.arquillian.container.test.api.RunAsClient;
-import org.jboss.arquillian.junit.Arquillian;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.runner.RunWith;
-
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -29,6 +21,13 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.jboss.arquillian.container.test.api.RunAsClient;
+import org.jboss.arquillian.junit.Arquillian;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.runner.RunWith;
 
 @RunAsClient
 @RunWith(Arquillian.class)
@@ -54,7 +53,7 @@ public abstract class TestBase {
     @After
     public void after() {
         List<URI> lraURIList = lraClient.getAllLRAs().stream().map(LRAData::getLraId).collect(Collectors.toList());
-        for (URI lraToFinish: lrasToAfterFinish) {
+        for (URI lraToFinish : lrasToAfterFinish) {
             if (lraURIList.contains(lraToFinish)) {
                 lraClient.cancelLRA(lraToFinish);
             }
@@ -78,19 +77,23 @@ public abstract class TestBase {
     }
 
     protected URI invokeInTransaction(URL baseURL, int expectedStatus) {
-        try(Response response = client.target(baseURL.toURI())
+        try (Response response = client.target(baseURL.toURI())
                 .path(io.narayana.lra.arquillian.resource.LRAUnawareResource.ROOT_PATH)
                 .path(io.narayana.lra.arquillian.resource.LRAUnawareResource.RESOURCE_PATH)
                 .request()
                 .get()) {
 
-            Assert.assertTrue("Expecting a non empty body in response from " + io.narayana.lra.arquillian.resource.LRAUnawareResource.ROOT_PATH + "/" + io.narayana.lra.arquillian.resource.LRAUnawareResource.RESOURCE_PATH,
+            Assert.assertTrue(
+                    "Expecting a non empty body in response from "
+                            + io.narayana.lra.arquillian.resource.LRAUnawareResource.ROOT_PATH + "/"
+                            + io.narayana.lra.arquillian.resource.LRAUnawareResource.RESOURCE_PATH,
                     response.hasEntity());
 
             String entity = response.readEntity(String.class);
 
             Assert.assertEquals(
-                    "response from " + io.narayana.lra.arquillian.resource.LRAUnawareResource.ROOT_PATH + "/" + io.narayana.lra.arquillian.resource.LRAUnawareResource.RESOURCE_PATH + " was " + entity,
+                    "response from " + io.narayana.lra.arquillian.resource.LRAUnawareResource.ROOT_PATH + "/"
+                            + io.narayana.lra.arquillian.resource.LRAUnawareResource.RESOURCE_PATH + " was " + entity,
                     expectedStatus, response.getStatus());
 
             return new URI(entity);

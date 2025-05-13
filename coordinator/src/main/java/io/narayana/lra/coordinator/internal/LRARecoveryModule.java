@@ -8,26 +8,25 @@ package io.narayana.lra.coordinator.internal;
 import com.arjuna.ats.arjuna.common.Uid;
 import com.arjuna.ats.arjuna.common.recoveryPropertyManager;
 import com.arjuna.ats.arjuna.exceptions.ObjectStoreException;
-import com.arjuna.ats.arjuna.recovery.RecoveryManager;
-import io.narayana.lra.logging.LRALogger;
 import com.arjuna.ats.arjuna.objectstore.RecoveryStore;
 import com.arjuna.ats.arjuna.objectstore.StateStatus;
 import com.arjuna.ats.arjuna.objectstore.StoreManager;
+import com.arjuna.ats.arjuna.recovery.RecoveryManager;
 import com.arjuna.ats.arjuna.recovery.RecoveryModule;
 import com.arjuna.ats.arjuna.recovery.TransactionStatusConnectionManager;
 import com.arjuna.ats.arjuna.state.InputObjectState;
 import com.arjuna.ats.arjuna.state.OutputObjectState;
-import io.narayana.lra.coordinator.domain.model.LongRunningAction;
 import io.narayana.lra.coordinator.domain.model.FailedLongRunningAction;
+import io.narayana.lra.coordinator.domain.model.LongRunningAction;
 import io.narayana.lra.coordinator.domain.service.LRAService;
-import org.eclipse.microprofile.lra.annotation.LRAStatus;
-
+import io.narayana.lra.logging.LRALogger;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Consumer;
+import org.eclipse.microprofile.lra.annotation.LRAStatus;
 
 public class LRARecoveryModule implements RecoveryModule {
     public LRARecoveryModule() {
@@ -93,7 +92,7 @@ public class LRARecoveryModule implements RecoveryModule {
     }
 
     private synchronized void recoverTransactions() {
-         // uids per transaction type
+        // uids per transaction type
         InputObjectState aa_uids = new InputObjectState();
 
         if (getUids(_transactionType, aa_uids)) {
@@ -143,7 +142,7 @@ public class LRARecoveryModule implements RecoveryModule {
         }
     }
 
-    public boolean moveEntryToFailedLRAPath (final Uid failedUid) {
+    public boolean moveEntryToFailedLRAPath(final Uid failedUid) {
         String failedLRAType = FailedLongRunningAction.FAILED_LRA_TYPE;
         boolean moved = false;
         try {
@@ -164,7 +163,8 @@ public class LRARecoveryModule implements RecoveryModule {
                 if (_recoveryStore.write_committed(failedUid, failedLRAType, new OutputObjectState(inputState))) {
                     moved = _recoveryStore.remove_committed(failedUid, _transactionType);
                     if (moved) {
-                        LRALogger.logger.infof("Failed lra record (Uid: %s) moved to new location type: %s", failedUid, failedLRAType);
+                        LRALogger.logger.infof("Failed lra record (Uid: %s) moved to new location type: %s", failedUid,
+                                failedLRAType);
                     }
                 }
             }

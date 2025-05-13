@@ -5,14 +5,13 @@
 
 package io.narayana.lra.client.internal.proxy.nonjaxrs.jandex;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.Index;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class JandexAnnotationResolver {
 

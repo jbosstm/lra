@@ -6,15 +6,14 @@ package io.narayana.lra.coordinator.management;
 
 import io.narayana.lra.coordinator.domain.model.FailedLongRunningAction;
 import io.narayana.lra.coordinator.domain.model.LongRunningAction;
-import org.eclipse.microprofile.lra.annotation.LRAStatus;
-import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
+import org.eclipse.microprofile.lra.annotation.LRAStatus;
+import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class BrowserCommandTest {
     private static final String TEST_STORE = "test-store";

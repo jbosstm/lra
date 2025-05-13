@@ -7,6 +7,12 @@ package io.narayana.lra.arquillian;
 
 import io.narayana.lra.arquillian.resource.FailingAfterLRAListener;
 import io.narayana.lra.arquillian.spi.NarayanaLRARecovery;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriBuilder;
+import java.net.URI;
+import java.net.URL;
 import org.eclipse.microprofile.lra.tck.service.spi.LRACallbackException;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
@@ -16,13 +22,6 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.ClientBuilder;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriBuilder;
-import java.net.URI;
-import java.net.URL;
 
 public class FailingParticipantCallsIT extends TestBase {
 
@@ -53,10 +52,10 @@ public class FailingParticipantCallsIT extends TestBase {
 
         try {
             response = client.target(UriBuilder.fromUri(baseURL.toExternalForm())
-                .path(FailingAfterLRAListener.ROOT_PATH)
-                .path(FailingAfterLRAListener.ACTION_PATH).build())
-                .request()
-                .get();
+                    .path(FailingAfterLRAListener.ROOT_PATH)
+                    .path(FailingAfterLRAListener.ACTION_PATH).build())
+                    .request()
+                    .get();
 
             Assert.assertEquals(200, response.getStatus());
             Assert.assertTrue(response.hasEntity());
@@ -73,8 +72,8 @@ public class FailingParticipantCallsIT extends TestBase {
 
         try {
             response = client.target(UriBuilder.fromUri(baseURL.toExternalForm())
-                .path(FailingAfterLRAListener.ROOT_PATH).path("counter").build())
-                .request().get();
+                    .path(FailingAfterLRAListener.ROOT_PATH).path("counter").build())
+                    .request().get();
 
             Assert.assertEquals(2, Integer.parseInt(response.readEntity(String.class)));
         } finally {

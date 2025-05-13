@@ -5,20 +5,21 @@
 
 package io.narayana.lra.coordinator.domain.service;
 
+import static jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
+import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
+import static jakarta.ws.rs.core.Response.Status.SERVICE_UNAVAILABLE;
+import static java.util.stream.Collectors.toList;
+
 import com.arjuna.ats.arjuna.common.Uid;
 import com.arjuna.ats.arjuna.coordinator.ActionStatus;
 import com.arjuna.ats.arjuna.coordinator.BasicAction;
+import com.arjuna.ats.arjuna.recovery.RecoveryManager;
 import io.narayana.lra.LRAConstants;
 import io.narayana.lra.LRAData;
-import io.narayana.lra.logging.LRALogger;
-import com.arjuna.ats.arjuna.recovery.RecoveryManager;
-
 import io.narayana.lra.coordinator.domain.model.LRAParticipantRecord;
-import io.narayana.lra.coordinator.internal.LRARecoveryModule;
 import io.narayana.lra.coordinator.domain.model.LongRunningAction;
-
-import org.eclipse.microprofile.lra.annotation.LRAStatus;
-
+import io.narayana.lra.coordinator.internal.LRARecoveryModule;
+import io.narayana.lra.logging.LRALogger;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
@@ -31,11 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
-import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
-import static jakarta.ws.rs.core.Response.Status.SERVICE_UNAVAILABLE;
-import static java.util.stream.Collectors.toList;
+import org.eclipse.microprofile.lra.annotation.LRAStatus;
 
 public class LRAService {
     private static final Pattern LINK_REL_PATTERN = Pattern.compile("(\\w+)=\"([^\"]+)\"|([^\\s]+)");
@@ -131,9 +128,9 @@ public class LRAService {
      * Getting all the LRA managed by recovery manager. This means all LRAs which are not mapped
      * only in memory but that were already saved in object store.
      *
-     * @param scan  defines if there is run recovery manager scanning before returning the collection,
-     *              when the recovery is run then the object store is touched and the returned
-     *              list may be updated with the new loaded objects
+     * @param scan defines if there is run recovery manager scanning before returning the collection,
+     *        when the recovery is run then the object store is touched and the returned
+     *        list may be updated with the new loaded objects
      * @return list of the {@link LRAData} which define the recovering LRAs
      */
     public List<LRAData> getAllRecovering(boolean scan) {
@@ -171,6 +168,7 @@ public class LRAService {
 
     /**
      * Remove a log corresponding to an LRA record
+     *
      * @param lraId the id of the LRA
      * @return true if the record was either removed or was not present
      */
@@ -261,8 +259,8 @@ public class LRAService {
         } catch (URISyntaxException e) {
             throw new WebApplicationException(e.getMessage(),
                     Response.status(Response.Status.PRECONDITION_FAILED)
-                    .entity(String.format("Invalid base URI: '%s'", baseUri))
-                    .build());
+                            .entity(String.format("Invalid base URI: '%s'", baseUri))
+                            .build());
         }
 
         status = lra.begin(timelimit);
@@ -294,7 +292,7 @@ public class LRAService {
         return endLRA(lraId, compensate, fromHierarchy, null, null);
     }
 
-     public LRAData endLRA(URI lraId, boolean compensate, boolean fromHierarchy, String compensator, String userData) {
+    public LRAData endLRA(URI lraId, boolean compensate, boolean fromHierarchy, String compensator, String userData) {
         lraTrace(lraId, "end LRA");
 
         LongRunningAction transaction = getTransaction(lraId);
@@ -339,22 +337,24 @@ public class LRAService {
         if (wasForgotten) {
             return Response.Status.OK.getStatusCode();
         } else {
-            String errorMsg = String.format("LRAService.forget %s failed as the participant was not found, compensator url '%s'",
+            String errorMsg = String.format(
+                    "LRAService.forget %s failed as the participant was not found, compensator url '%s'",
                     lraId, compensatorUrl);
             throw new WebApplicationException(errorMsg, Response.status(Response.Status.BAD_REQUEST)
                     .entity(errorMsg).build());
         }
     }
+
     public int joinLRA(StringBuilder recoveryUrl, URI lra, long timeLimit,
-                                    String compensatorUrl, String linkHeader, String recoveryUrlBase,
-                                    StringBuilder compensatorData) {
-        return joinLRA(recoveryUrl, lra,timeLimit,  compensatorUrl, linkHeader, recoveryUrlBase, compensatorData, null);
+            String compensatorUrl, String linkHeader, String recoveryUrlBase,
+            StringBuilder compensatorData) {
+        return joinLRA(recoveryUrl, lra, timeLimit, compensatorUrl, linkHeader, recoveryUrlBase, compensatorData, null);
     }
 
     public int joinLRA(StringBuilder recoveryUrl, URI lra, long timeLimit,
-                                    String compensatorUrl, String linkHeader, String recoveryUrlBase,
-                                    StringBuilder compensatorData, String version) {
-        if (lra ==  null) {
+            String compensatorUrl, String linkHeader, String recoveryUrlBase,
+            StringBuilder compensatorData, String version) {
+        if (lra == null) {
             lraTrace(null, "Error missing LRA header in join request");
         } else {
             lraTrace(lra, "join LRA");

@@ -6,7 +6,6 @@
 package io.narayana.lra;
 
 import io.narayana.lra.logging.LRALogger;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.regex.Pattern;
@@ -75,8 +74,8 @@ public final class LRAConstants {
     /**
      * Extract the uid part from an LRA id.
      *
-     * @param lraId  LRA id to extract the uid from
-     * @return  uid of LRA
+     * @param lraId LRA id to extract the uid from
+     * @return uid of LRA
      */
     public static String getLRAUid(String lraId) {
         return lraId == null ? null : UID_REGEXP_EXTRACT_MATCHER.matcher(lraId).replaceFirst("$1");
@@ -85,31 +84,38 @@ public final class LRAConstants {
     /**
      * Extract the uid part from an LRA id.
      *
-     * @param lraId  LRA id to extract the uid from
-     * @return  uid of LRA
+     * @param lraId LRA id to extract the uid from
+     * @return uid of LRA
      */
     public static String getLRAUid(URI lraId) {
-        if (lraId == null) return null;
+        if (lraId == null)
+            return null;
         String path = lraId.getPath();
-        if (path == null) return null;
+        if (path == null)
+            return null;
         return path.substring(path.lastIndexOf('/') + 1);
     }
 
     /*
      * Extract the coordinator URL from the provided LRA id.
      *
-     * @implNote Narayana LRA id is defined as an URL, e.g. {@code http://localhost:8080/deployment/lra-coordinator/0_ffff0a28054b_9133_5f855916_a7}.
-     *           The LRA coordinator is available at {@code http://localhost:8080/deployment/lra-coordinator}
-     *           and the {@code 0_ffff0a28054b_9133_5f855916_a7} is the LRA uid.
+     * @implNote Narayana LRA id is defined as an URL, e.g. {@code
+     * http://localhost:8080/deployment/lra-coordinator/0_ffff0a28054b_9133_5f855916_a7}.
+     * The LRA coordinator is available at {@code http://localhost:8080/deployment/lra-coordinator}
+     * and the {@code 0_ffff0a28054b_9133_5f855916_a7} is the LRA uid.
      *
-     * @param lraId  LRA id to extract the LRA coordinator URI from
+     * @param lraId LRA id to extract the LRA coordinator URI from
+     *
      * @return LRA Coordinator URL
+     *
      * @throws IllegalStateException if the LRA coordinator URL, extracted from the LRA id, is not assignable to URI
      */
     public static URI getLRACoordinatorUrl(URI lraId) {
-        if (lraId == null) return null;
+        if (lraId == null)
+            return null;
         String lraIdPath = lraId.getPath();
-        String lraCoordinatorPath = lraIdPath.substring(0, lraIdPath.lastIndexOf(COORDINATOR_PATH_NAME)) + COORDINATOR_PATH_NAME;
+        String lraCoordinatorPath = lraIdPath.substring(0, lraIdPath.lastIndexOf(COORDINATOR_PATH_NAME))
+                + COORDINATOR_PATH_NAME;
         try {
             return new URI(lraId.getScheme(), lraId.getUserInfo(), lraId.getHost(), lraId.getPort(), lraCoordinatorPath,
                     null, null);

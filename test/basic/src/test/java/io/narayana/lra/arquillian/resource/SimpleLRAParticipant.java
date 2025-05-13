@@ -5,9 +5,8 @@
 
 package io.narayana.lra.arquillian.resource;
 
-import org.eclipse.microprofile.lra.annotation.Compensate;
-import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
-import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_RECOVERY_HEADER;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.GET;
@@ -17,9 +16,9 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_RECOVERY_HEADER;
+import org.eclipse.microprofile.lra.annotation.Compensate;
+import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
+import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
 
 @ApplicationScoped
 @Path(SimpleLRAParticipant.SIMPLE_PARTICIPANT_RESOURCE_PATH)
@@ -33,7 +32,8 @@ public class SimpleLRAParticipant {
     @GET
     @Path(START_LRA_PATH)
     @LRA(value = LRA.Type.REQUIRED)
-    public Response doInLRA(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lraId, @HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryUrl) {
+    public Response doInLRA(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lraId,
+            @HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryUrl) {
         accepted.set(true);
 
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)

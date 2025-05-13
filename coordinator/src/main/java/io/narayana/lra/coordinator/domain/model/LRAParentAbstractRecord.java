@@ -15,7 +15,6 @@ import com.arjuna.ats.arjuna.state.OutputObjectState;
 import io.narayana.lra.coordinator.domain.service.LRAService;
 import io.narayana.lra.coordinator.internal.LRARecoveryModule;
 import io.narayana.lra.logging.LRALogger;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;

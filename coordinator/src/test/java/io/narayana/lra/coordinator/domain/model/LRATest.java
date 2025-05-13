@@ -13,13 +13,39 @@ import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_RECOVER
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.arjuna.ats.arjuna.exceptions.ObjectStoreException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.narayana.lra.Current;
+import io.narayana.lra.LRAConstants;
+import io.narayana.lra.LRAData;
+import io.narayana.lra.client.internal.NarayanaLRAClient;
+import io.narayana.lra.coordinator.api.Coordinator;
+import io.narayana.lra.coordinator.domain.service.LRAService;
+import io.narayana.lra.coordinator.internal.LRARecoveryModule;
+import io.narayana.lra.filter.ServerLRAFilter;
+import io.narayana.lra.logging.LRALogger;
+import io.narayana.lra.provider.ParticipantStatusOctetStreamProvider;
+import jakarta.ws.rs.ApplicationPath;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.ServiceUnavailableException;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.Application;
+import jakarta.ws.rs.core.Link;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -34,14 +60,6 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
-
-import com.arjuna.ats.arjuna.exceptions.ObjectStoreException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.narayana.lra.Current;
-import io.narayana.lra.LRAConstants;
-import jakarta.ws.rs.ServiceUnavailableException;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -59,26 +77,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-
-import io.narayana.lra.LRAData;
-import io.narayana.lra.client.internal.NarayanaLRAClient;
-import io.narayana.lra.coordinator.api.Coordinator;
-import io.narayana.lra.coordinator.domain.service.LRAService;
-import io.narayana.lra.coordinator.internal.LRARecoveryModule;
-import io.narayana.lra.filter.ServerLRAFilter;
-import io.narayana.lra.logging.LRALogger;
-import io.narayana.lra.provider.ParticipantStatusOctetStreamProvider;
-import jakarta.ws.rs.ApplicationPath;
-import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.ClientBuilder;
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.Application;
-import jakarta.ws.rs.core.Link;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 import org.junit.runner.RunWith;
 
 @RunWith(BMUnitRunner.class)
@@ -694,6 +692,7 @@ public class LRATest extends LRATestBase {
 
     /**
      * Run a loop of LRAs so that a debugger can watch memory
+     *
      * @throws URISyntaxException
      */
     @Test
@@ -779,7 +778,7 @@ public class LRATest extends LRATestBase {
     }
 
     private void testNestedLRA(boolean childCancelEarly, boolean parentCancelEarly,
-                               boolean childCancelLate, boolean parentCancelLate) {
+            boolean childCancelLate, boolean parentCancelLate) {
         // start a transaction (and cancel it if parentCancelEarly is true)
         Response parentResponse = client.target(TestPortProvider.generateURL("/base/test/start"))
                 .queryParam("cancel", parentCancelEarly)
@@ -894,10 +893,13 @@ public class LRATest extends LRATestBase {
     }
 
     private enum CompletionType {
-        complete, compensate, mixed
+        complete,
+        compensate,
+        mixed
     }
 
-    private void multiLevelNestedActivity(CompletionType how, int nestedCnt) throws WebApplicationException, URISyntaxException {
+    private void multiLevelNestedActivity(CompletionType how, int nestedCnt)
+            throws WebApplicationException, URISyntaxException {
         WebTarget resourcePath = client.target(TestPortProvider.generateURL("/base/test/multiLevelNestedActivity"));
 
         if (how == CompletionType.mixed && nestedCnt <= 1) {
@@ -950,7 +952,7 @@ public class LRATest extends LRATestBase {
             /*
              * the test starts LRA1 calls a @Mandatory method multiLevelNestedActivity which enlists in LRA1
              * multiLevelNestedActivity then calls an @Nested method which starts L2 and enlists another participant
-             *   when the method returns the nested participant is completed (ie completed count is incremented)
+             * when the method returns the nested participant is completed (ie completed count is incremented)
              * Canceling L1 should then compensate the L1 enlistment (ie compensate count is incremented)
              * which will then tell L2 to compensate (ie the compensate count is incremented again)
              */
@@ -1016,7 +1018,7 @@ public class LRATest extends LRATestBase {
              */
             // there should be just 1 compensation (the first nested LRA)
             assertEquals("multiLevelNestedActivity: step 9 (called test path " +
-                    resourcePath.getUri() + ")",1, compensateCount.get());
+                    resourcePath.getUri() + ")", 1, compensateCount.get());
         }
 
         // verify that the coordinator does not return any LRAs
@@ -1109,14 +1111,9 @@ public class LRATest extends LRATestBase {
     }
 
     @Test
-    @BMRules(rules={
+    @BMRules(rules = {
             // a rule to abort an LRA when a participant is being enlisted
-            @BMRule(name = "Rendezvous doEnlistParticipant",
-                    targetClass = "io.narayana.lra.coordinator.domain.model.LongRunningAction",
-                    targetMethod = "enlistParticipant",
-                    targetLocation = "ENTRY",
-                    helper = "io.narayana.lra.coordinator.domain.model.BytemanHelper",
-                    action = "abortLRA($0)")
+            @BMRule(name = "Rendezvous doEnlistParticipant", targetClass = "io.narayana.lra.coordinator.domain.model.LongRunningAction", targetMethod = "enlistParticipant", targetLocation = "ENTRY", helper = "io.narayana.lra.coordinator.domain.model.BytemanHelper", action = "abortLRA($0)")
     })
     public void testTimeoutWhileJoining() throws URISyntaxException {
         String target = TestPortProvider.generateURL("/base/test/timeout-while-joining");
@@ -1248,13 +1245,9 @@ public class LRATest extends LRATestBase {
     }
 
     @Test
-    @BMRules(rules={
+    @BMRules(rules = {
             // a rule to fail store writes when an LRA participant is being enlisted
-            @BMRule(name = "fail deactivate during enlist",
-                    targetClass = "io.narayana.lra.coordinator.domain.model.LongRunningAction",
-                    targetMethod = "enlistParticipant",
-                    targetLocation = "AFTER INVOKE deactivate",
-                    action = "$! = false;" )
+            @BMRule(name = "fail deactivate during enlist", targetClass = "io.narayana.lra.coordinator.domain.model.LongRunningAction", targetMethod = "enlistParticipant", targetLocation = "AFTER INVOKE deactivate", action = "$! = false;")
     })
     public void testEnlistFailure() throws IOException, URISyntaxException {
         try {
@@ -1270,26 +1263,18 @@ public class LRATest extends LRATestBase {
     }
 
     @Test
-    @BMRules(rules={
+    @BMRules(rules = {
             // a rule to fail store writes when an LRA participant is being enlisted
-            @BMRule(name = "fail deactivate during close",
-                    targetClass = "io.narayana.lra.coordinator.domain.model.LongRunningAction",
-                    targetMethod = "updateState(LRAStatus, boolean)",
-                    targetLocation = "AFTER INVOKE deactivate",
-                    action = "$! = false;" )
+            @BMRule(name = "fail deactivate during close", targetClass = "io.narayana.lra.coordinator.domain.model.LongRunningAction", targetMethod = "updateState(LRAStatus, boolean)", targetLocation = "AFTER INVOKE deactivate", action = "$! = false;")
     })
     public void testCloseFailure() {
         testEndFailure(true);
     }
 
     @Test
-    @BMRules(rules={
+    @BMRules(rules = {
             // a rule to fail store writes when an LRA participant is being enlisted
-            @BMRule(name = "fail deactivate during close",
-                    targetClass = "io.narayana.lra.coordinator.domain.model.LongRunningAction",
-                    targetMethod = "updateState(LRAStatus, boolean)",
-                    targetLocation = "AFTER INVOKE deactivate",
-                    action = "$! = false;" )
+            @BMRule(name = "fail deactivate during close", targetClass = "io.narayana.lra.coordinator.domain.model.LongRunningAction", targetMethod = "updateState(LRAStatus, boolean)", targetLocation = "AFTER INVOKE deactivate", action = "$! = false;")
     })
     public void testCancelFailure() {
         testEndFailure(true);
@@ -1397,7 +1382,7 @@ public class LRATest extends LRATestBase {
                 || status == LRAStatus.FailedToClose || status == LRAStatus.FailedToCancel;
     }
 
-    private void assertStatus(String message, URI lraId, LRAStatus ... expectedValues) {
+    private void assertStatus(String message, URI lraId, LRAStatus... expectedValues) {
         try {
             LRAStatus status = getStatus(lraId);
 
@@ -1431,8 +1416,7 @@ public class LRATest extends LRATestBase {
                 makeLink(prefix, "forget"),
                 makeLink(prefix, "after"),
                 makeLink(prefix, "complete"),
-                makeLink(prefix, "compensate")
-        );
+                makeLink(prefix, "compensate"));
     }
 
     private static String makeLink(String uriPrefix, String key) {

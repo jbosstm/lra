@@ -5,25 +5,22 @@
 
 package io.narayana.lra.arquillian;
 
+import static io.narayana.lra.LRAConstants.RECOVERY_COORDINATOR_PATH_NAME;
+import static io.narayana.lra.arquillian.resource.SimpleLRAParticipant.RESET_ACCEPTED_PATH;
+import static io.narayana.lra.arquillian.resource.SimpleLRAParticipant.SIMPLE_PARTICIPANT_RESOURCE_PATH;
+import static io.narayana.lra.arquillian.resource.SimpleLRAParticipant.START_LRA_PATH;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.AnyOf.anyOf;
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import io.narayana.lra.LRAConstants;
 import io.narayana.lra.arquillian.resource.LRAParticipantWithStatusURI;
 import io.narayana.lra.arquillian.resource.LRAParticipantWithoutStatusURI;
 import io.narayana.lra.arquillian.resource.SimpleLRAParticipant;
 import io.narayana.lra.arquillian.spi.NarayanaLRARecovery;
 import io.narayana.lra.coordinator.domain.model.FailedLongRunningAction;
-import org.eclipse.microprofile.lra.annotation.LRAStatus;
-import org.jboss.arquillian.container.test.api.Deployment;
-import org.jboss.arquillian.test.api.ArquillianResource;
-import org.jboss.logging.Logger;
-import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.AnyOf.anyOf;
-import static org.hamcrest.core.IsEqual.equalTo;
-
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonReader;
@@ -35,13 +32,15 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-
-import static io.narayana.lra.arquillian.resource.SimpleLRAParticipant.RESET_ACCEPTED_PATH;
-import static io.narayana.lra.arquillian.resource.SimpleLRAParticipant.SIMPLE_PARTICIPANT_RESOURCE_PATH;
-import static  io.narayana.lra.LRAConstants.RECOVERY_COORDINATOR_PATH_NAME;
-import static io.narayana.lra.arquillian.resource.SimpleLRAParticipant.START_LRA_PATH;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import org.eclipse.microprofile.lra.annotation.LRAStatus;
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.logging.Logger;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestName;
 
 /**
  * There is a spec requirement to report failed LRAs but the spec only requires that a failure message is reported
@@ -154,7 +153,8 @@ public class FailedLRAIT extends TestBase {
 
         int status3 = removeFailedLRA(getRecoveryUrl(lraId), "http://example.com");
         // there is a difference on handling this url format in different REST Easy versions
-        assertThat("deleting an LRA in wrong format that JAX-RS understands as non-existent URL binding or as method not-allowed",
+        assertThat(
+                "deleting an LRA in wrong format that JAX-RS understands as non-existent URL binding or as method not-allowed",
                 status3, anyOf(equalTo(404), equalTo(405)));
 
         int status4 = removeFailedLRA(getRecoveryUrl(lraId), URLEncoder.encode("http://example.com", StandardCharsets.UTF_8));
@@ -223,7 +223,7 @@ public class FailedLRAIT extends TestBase {
     }
 
     private URI invokeInTransaction(String resourcePrefix, String resourcePath, int expectedStatus) {
-        try(Response response = client.target(baseURL.toURI())
+        try (Response response = client.target(baseURL.toURI())
                 .path(resourcePrefix)
                 .path(resourcePath)
                 .request()
@@ -276,7 +276,7 @@ public class FailedLRAIT extends TestBase {
     private JsonArray getFailedRecords(URI lra) {
         String recoveryUrl = getRecoveryUrl(lra);
 
-        try (Response response = client.target(recoveryUrl).path("failed").request().get()){
+        try (Response response = client.target(recoveryUrl).path("failed").request().get()) {
             Assert.assertTrue("Missing response body when querying for failed LRAs", response.hasEntity());
             String failedLRAs = response.readEntity(String.class);
 

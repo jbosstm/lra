@@ -11,35 +11,13 @@ import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_PARENT_
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_RECOVERY_HEADER;
 import static org.junit.Assert.assertEquals;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.time.temporal.ChronoUnit;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.IntStream;
-
 import com.arjuna.ats.arjuna.common.Uid;
+import com.arjuna.ats.arjuna.common.arjPropertyManager;
 import com.arjuna.ats.arjuna.exceptions.ObjectStoreException;
 import com.arjuna.ats.arjuna.objectstore.RecoveryStore;
 import com.arjuna.ats.arjuna.objectstore.StoreManager;
 import com.arjuna.ats.arjuna.state.InputObjectState;
 import com.arjuna.ats.internal.arjuna.common.UidHelper;
-import org.eclipse.microprofile.lra.annotation.AfterLRA;
-import org.eclipse.microprofile.lra.annotation.Compensate;
-import org.eclipse.microprofile.lra.annotation.Complete;
-import org.eclipse.microprofile.lra.annotation.Forget;
-import org.eclipse.microprofile.lra.annotation.LRAStatus;
-import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
-import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
-import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
-import org.jboss.resteasy.test.TestPortProvider;
-import org.junit.rules.TestName;
-
-import com.arjuna.ats.arjuna.common.arjPropertyManager;
-
 import io.narayana.lra.logging.LRALogger;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
@@ -55,6 +33,25 @@ import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.time.temporal.ChronoUnit;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
+import org.eclipse.microprofile.lra.annotation.AfterLRA;
+import org.eclipse.microprofile.lra.annotation.Compensate;
+import org.eclipse.microprofile.lra.annotation.Complete;
+import org.eclipse.microprofile.lra.annotation.Forget;
+import org.eclipse.microprofile.lra.annotation.LRAStatus;
+import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
+import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
+import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
+import org.jboss.resteasy.test.TestPortProvider;
+import org.junit.rules.TestName;
 
 public class LRATestBase {
 
@@ -87,8 +84,8 @@ public class LRATestBase {
         @Path("start-end")
         @LRA(value = LRA.Type.REQUIRED)
         public Response doInLRA(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI contextId,
-                                @DefaultValue("0") @QueryParam("accept") Integer acceptCount,
-                                @DefaultValue("false") @QueryParam("cancel") Boolean cancel) {
+                @DefaultValue("0") @QueryParam("accept") Integer acceptCount,
+                @DefaultValue("false") @QueryParam("cancel") Boolean cancel) {
             LRATestBase.acceptCount.set(acceptCount);
 
             return getResult(cancel, contextId);
@@ -98,10 +95,10 @@ public class LRATestBase {
         @Path("start")
         @LRA(value = LRA.Type.REQUIRED, end = false)
         public Response startInLRA(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI contextId,
-                                   @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentLRA,
-                                   @HeaderParam(LRA_HTTP_RECOVERY_HEADER) String recoveryId,
-                                   @DefaultValue("0") @QueryParam("accept") Integer acceptCount,
-                                   @DefaultValue("false") @QueryParam("cancel") Boolean cancel) {
+                @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentLRA,
+                @HeaderParam(LRA_HTTP_RECOVERY_HEADER) String recoveryId,
+                @DefaultValue("0") @QueryParam("accept") Integer acceptCount,
+                @DefaultValue("false") @QueryParam("cancel") Boolean cancel) {
             LRATestBase.acceptCount.set(acceptCount);
 
             return getResult(cancel, contextId);
@@ -111,10 +108,10 @@ public class LRATestBase {
         @Path("start-with-recovery")
         @LRA(value = LRA.Type.REQUIRED, end = false)
         public Response startInLRAWithRecovery(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI contextId,
-                                   @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentLRA,
-                                   @HeaderParam(LRA_HTTP_RECOVERY_HEADER) String recoveryId,
-                                   @DefaultValue("0") @QueryParam("accept") Integer acceptCount,
-                                   @DefaultValue("false") @QueryParam("cancel") Boolean cancel) {
+                @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentLRA,
+                @HeaderParam(LRA_HTTP_RECOVERY_HEADER) String recoveryId,
+                @DefaultValue("0") @QueryParam("accept") Integer acceptCount,
+                @DefaultValue("false") @QueryParam("cancel") Boolean cancel) {
             LRATestBase.acceptCount.set(acceptCount);
 
             Response.Status status = cancel ? Response.Status.INTERNAL_SERVER_ERROR : Response.Status.OK;
@@ -125,12 +122,11 @@ public class LRATestBase {
 
         @PUT
         @Path("end")
-        @LRA(value = LRA.Type.MANDATORY,
-                cancelOnFamily = Response.Status.Family.SERVER_ERROR)
+        @LRA(value = LRA.Type.MANDATORY, cancelOnFamily = Response.Status.Family.SERVER_ERROR)
         public Response endLRA(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI contextId,
-                               @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentLRA,
-                               @DefaultValue("0") @QueryParam("accept") Integer acceptCount,
-                               @DefaultValue("false") @QueryParam("cancel") Boolean cancel) {
+                @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentLRA,
+                @DefaultValue("0") @QueryParam("accept") Integer acceptCount,
+                @DefaultValue("false") @QueryParam("cancel") Boolean cancel) {
             LRATestBase.acceptCount.set(acceptCount);
 
             return getResult(cancel, contextId);
@@ -164,7 +160,7 @@ public class LRATestBase {
         @Path("timed-action")
         @LRA(value = LRA.Type.REQUIRED, end = false, timeLimit = LRA_SHORT_TIMELIMIT) // the default unit is SECONDS
         public Response actionWithLRA(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI contextId,
-                                      @DefaultValue("false") @QueryParam("cancel") Boolean cancel) {
+                @DefaultValue("false") @QueryParam("cancel") Boolean cancel) {
             status = LRAStatus.Active;
 
             server.stop(); //simulate a server crash
@@ -177,7 +173,7 @@ public class LRATestBase {
          * invocation to a mandatory LRA endpoint (which should fail with 412)
          *
          * @param lraId
-         *            the id of the LRA
+         *        the id of the LRA
          * @return the JAX-RS response 200 if successful or the received HTTP status call otherwise
          */
         @GET
@@ -218,7 +214,7 @@ public class LRATestBase {
         @Produces(MediaType.TEXT_PLAIN)
         @LRA(value = LRA.Type.MANDATORY, end = false)
         public Response activityWithMandatoryLRA(@HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryId,
-                                                 @HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lraId) {
+                @HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lraId) {
             return Response.ok(lraId).header(LRA_HTTP_RECOVERY_HEADER, recoveryId).build();
         }
 
@@ -226,8 +222,8 @@ public class LRATestBase {
         @PUT
         @Path("nested")
         public Response nestedLRA(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI contextId,
-                                  @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentLRA,
-                                  @DefaultValue("false") @QueryParam("cancel") Boolean cancel) {
+                @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentLRA,
+                @DefaultValue("false") @QueryParam("cancel") Boolean cancel) {
             return getResult(cancel, contextId);
         }
 
@@ -235,8 +231,8 @@ public class LRATestBase {
         @PUT
         @Path("nested-with-close")
         public Response nestedLRAWithClose(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI contextId,
-                                           @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentId,
-                                           @DefaultValue("false") @QueryParam("cancel") Boolean cancel) {
+                @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentId,
+                @DefaultValue("false") @QueryParam("cancel") Boolean cancel) {
             return getResult(cancel, contextId);
         }
 
@@ -250,7 +246,7 @@ public class LRATestBase {
             // invoke resources that enlist nested LRAs
             String[] lras = new String[nestedCnt + 1];
             lras[0] = nestedLRAId.toASCIIString();
-            IntStream.range(1, lras.length).forEach(i -> lras[i] = restPutInvocation(nestedLRAId,"nestedActivity", ""));
+            IntStream.range(1, lras.length).forEach(i -> lras[i] = restPutInvocation(nestedLRAId, "nestedActivity", ""));
 
             return Response.ok(String.join(",", lras)).build();
         }
@@ -259,7 +255,7 @@ public class LRATestBase {
         @Path("nestedActivity")
         @LRA(value = LRA.Type.NESTED, end = true)
         public Response nestedActivity(@HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryId,
-                                       @HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI nestedLRAId) {
+                @HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI nestedLRAId) {
             return Response.ok(nestedLRAId.toASCIIString()).build();
         }
 
@@ -273,7 +269,7 @@ public class LRATestBase {
         @Path("/complete")
         @Complete
         public Response complete(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI contextLRA,
-                                 @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentLRA) {
+                @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentLRA) {
             if (acceptCount.getAndDecrement() <= 0) {
                 completeCount.incrementAndGet();
                 acceptCount.set(0);
@@ -287,7 +283,7 @@ public class LRATestBase {
         @Path("/compensate")
         @Compensate
         public Response compensate(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI contextLRA,
-                                   @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentLRA) {
+                @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentLRA) {
             if (acceptCount.getAndDecrement() <= 0) {
                 compensateCount.incrementAndGet();
                 acceptCount.set(0);
@@ -300,7 +296,7 @@ public class LRATestBase {
         @PUT
         @Path("/fallback-compensate")
         public Response alternateCompensate(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI contextLRA,
-                                   @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentLRA) {
+                @HeaderParam(LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentLRA) {
             Response r = compensate(contextLRA, parentLRA);
 
             if (r.getStatus() == Response.Status.OK.getStatusCode()) {
@@ -324,7 +320,7 @@ public class LRATestBase {
         @Produces(MediaType.APPLICATION_JSON)
         @Forget
         public Response forgetWork(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lraId,
-                                   @HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryId) {
+                @HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryId) {
             forgetCount.incrementAndGet();
 
             return Response.ok().build();
@@ -397,6 +393,7 @@ public class LRATestBase {
             return Response.status(Response.Status.OK).entity(ParticipantStatus.Compensated).build();
         }
     }
+
     @Path("/participant2")
     public static class Participant2 {
         @GET
@@ -405,7 +402,6 @@ public class LRATestBase {
         public Response continueInLRA(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI ignore) {
             return Response.ok().build();
         }
-
 
         @PUT
         @Path("complete")

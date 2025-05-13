@@ -5,28 +5,24 @@
 
 package io.narayana.lra.participant;
 
+import static io.narayana.lra.proxy.test.api.LRAMgmtEgController.GET_ACTIVITY_PATH;
+import static io.narayana.lra.proxy.test.api.LRAMgmtEgController.LRAM_PATH;
+import static io.narayana.lra.proxy.test.api.LRAMgmtEgController.LRAM_WORK;
+import static org.junit.Assert.assertTrue;
+
 import io.narayana.lra.client.internal.NarayanaLRAClient;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.Response;
-
 import java.net.URI;
 import java.net.URL;
-
-import static io.narayana.lra.proxy.test.api.LRAMgmtEgController.GET_ACTIVITY_PATH;
-import static io.narayana.lra.proxy.test.api.LRAMgmtEgController.LRAM_PATH;
-import static io.narayana.lra.proxy.test.api.LRAMgmtEgController.LRAM_WORK;
-
-import static org.junit.Assert.assertTrue;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class SpecTest {
     private static URL MICROSERVICE_BASE_URL;
@@ -93,16 +89,16 @@ public class SpecTest {
         assertTrue(activity.contains("status=Completed"));
     }
 
-     private String checkStatusAndClose(Response response, int expected, boolean readEntity) {
-         try (response) {
-             if (expected != -1 && response.getStatus() != expected) {
-                 throw new WebApplicationException(response);
-             }
+    private String checkStatusAndClose(Response response, int expected, boolean readEntity) {
+        try (response) {
+            if (expected != -1 && response.getStatus() != expected) {
+                throw new WebApplicationException(response);
+            }
 
-             if (readEntity) {
-                 return response.readEntity(String.class);
-             }
-         }
+            if (readEntity) {
+                return response.readEntity(String.class);
+            }
+        }
 
         return null;
     }

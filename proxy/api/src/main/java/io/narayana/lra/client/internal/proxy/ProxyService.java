@@ -5,6 +5,9 @@
 
 package io.narayana.lra.client.internal.proxy;
 
+import static io.narayana.lra.client.internal.proxy.ParticipantProxyResource.LRA_PROXY_PATH;
+import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
+
 import io.narayana.lra.client.internal.NarayanaLRAClient;
 import io.narayana.lra.proxy.logging.LRAProxyLogger;
 import jakarta.annotation.PostConstruct;
@@ -14,8 +17,6 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
-import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -31,9 +32,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Future;
-
-import static io.narayana.lra.client.internal.proxy.ParticipantProxyResource.LRA_PROXY_PATH;
-import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
+import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
 
 @ApplicationScoped
 public class ProxyService {
@@ -166,13 +165,13 @@ public class ProxyService {
             return narayanaLRAClient.joinLRA(lraId, timeLimitInSeconds, participantUri, sb);
         } catch (Exception e) {
             throw new WebApplicationException(e, Response.status(0)
-                .entity(lraId + ": Exception whilst joining with this LRA").build());
+                    .entity(lraId + ": Exception whilst joining with this LRA").build());
         }
     }
 
     private static Optional<String> serializeParticipant(final Serializable object) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+                ObjectOutputStream oos = new ObjectOutputStream(baos)) {
             oos.writeObject(object);
 
             return Optional.of(Base64.getEncoder().encodeToString(baos.toByteArray()));

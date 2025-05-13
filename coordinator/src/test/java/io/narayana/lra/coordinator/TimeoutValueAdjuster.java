@@ -14,7 +14,7 @@ final class TimeoutValueAdjuster {
         // not for initialization
     }
 
-    static long adjustTimeout(long originalTimeout)  {
+    static long adjustTimeout(long originalTimeout) {
         if (timeoutFactor <= 0) {
             return originalTimeout;
         }

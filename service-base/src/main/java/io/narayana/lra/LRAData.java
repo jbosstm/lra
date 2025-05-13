@@ -5,10 +5,9 @@
 
 package io.narayana.lra;
 
-import org.eclipse.microprofile.lra.annotation.LRAStatus;
-
 import java.beans.Transient;
 import java.net.URI;
+import org.eclipse.microprofile.lra.annotation.LRAStatus;
 
 /**
  * DTO object which serves to transfer data of particular LRA instance.
@@ -25,10 +24,11 @@ public class LRAData {
     private long finishTime;
     private int httpStatus;
 
-    public LRAData() {}
+    public LRAData() {
+    }
 
     public LRAData(URI lraId, String clientId, LRAStatus status, boolean isTopLevel, boolean isRecovering,
-                    long startTime, long finishTime, int httpStatus) {
+            long startTime, long finishTime, int httpStatus) {
         this.lraId = lraId;
         this.clientId = clientId;
         this.status = status;
@@ -126,7 +126,7 @@ public class LRAData {
     @Override
     public String toString() {
         return String.format(
-            "%s {lraId='%s', clientId='%s', status='%s', isTopLevel=%b, isRecovering=%b, startTime=%d, finishTime=%d, httpStatus=%d}",
+                "%s {lraId='%s', clientId='%s', status='%s', isTopLevel=%b, isRecovering=%b, startTime=%d, finishTime=%d, httpStatus=%d}",
                 this.getClass().getSimpleName(), lraId, clientId, status,
                 isTopLevel, isRecovering, startTime, finishTime, httpStatus);
     }

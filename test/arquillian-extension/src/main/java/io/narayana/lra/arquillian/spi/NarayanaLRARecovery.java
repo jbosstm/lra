@@ -5,20 +5,19 @@
 
 package io.narayana.lra.arquillian.spi;
 
+import static io.narayana.lra.LRAConstants.RECOVERY_COORDINATOR_PATH_NAME;
+
 import io.narayana.lra.LRAConstants;
-
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.ConfigProvider;
-import org.eclipse.microprofile.lra.tck.service.spi.LRARecoveryService;
-import org.jboss.logging.Logger;
-
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
 import java.net.URI;
-import static io.narayana.lra.LRAConstants.RECOVERY_COORDINATOR_PATH_NAME;
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.lra.tck.service.spi.LRARecoveryService;
+import org.jboss.logging.Logger;
 
 public class NarayanaLRARecovery implements LRARecoveryService {
     private static final Logger log = Logger.getLogger(NarayanaLRARecovery.class);
@@ -37,8 +36,7 @@ public class NarayanaLRARecovery implements LRARecoveryService {
         log.trace("waitForCallbacks for: " + lraId.toASCIIString());
         try {
             Thread.sleep(WAIT_CALLBACK_TIMEOUT);
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error("waitForCallbacks interrupted by " + e.getMessage());
         }
     }
@@ -85,8 +83,7 @@ public class NarayanaLRARecovery implements LRARecoveryService {
         if (config != null) {
             try {
                 return config.getOptionalValue(WAIT_CALLBACK_TIMEOUT_PROPERTY, Integer.class).orElse(defaultValue);
-            }
-            catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException e) {
                 log.error("property " + WAIT_CALLBACK_TIMEOUT_PROPERTY + " not set correctly, using the default value: "
                         + defaultValue);
             }

@@ -5,6 +5,11 @@
 
 package io.narayana.lra;
 
+import static io.narayana.lra.LRAConstants.PARENT_LRA_PARAM_NAME;
+import static io.narayana.lra.LRAConstants.QUERY_FIELD_SEPARATOR;
+import static io.narayana.lra.LRAConstants.QUERY_PAIR_SEPARATOR;
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
+
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.UriBuilder;
@@ -19,11 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static io.narayana.lra.LRAConstants.PARENT_LRA_PARAM_NAME;
-import static io.narayana.lra.LRAConstants.QUERY_FIELD_SEPARATOR;
-import static io.narayana.lra.LRAConstants.QUERY_PAIR_SEPARATOR;
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
 
 // similar to ThreadActionData except it need to be available on the client side
 // for use by NarayanaLRAClient and ServerLRAFilter
@@ -245,6 +245,7 @@ public class Current {
 
     /**
      * push the current context onto the stack of contexts for this thread
+     *
      * @param lraId id of context to push (must not be null)
      */
     public static void push(URI lraId) {

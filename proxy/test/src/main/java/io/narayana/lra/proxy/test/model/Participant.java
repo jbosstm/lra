@@ -6,12 +6,11 @@
 package io.narayana.lra.proxy.test.model;
 
 import io.narayana.lra.client.internal.proxy.LRAProxyParticipant;
-import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
-
 import jakarta.ws.rs.NotFoundException;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.concurrent.Future;
+import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
 
 public class Participant implements LRAProxyParticipant, Serializable {
     private Activity activity;

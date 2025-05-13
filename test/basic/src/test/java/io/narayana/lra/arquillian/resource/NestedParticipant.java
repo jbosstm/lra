@@ -5,14 +5,6 @@
 
 package io.narayana.lra.arquillian.resource;
 
-import org.eclipse.microprofile.lra.annotation.AfterLRA;
-import org.eclipse.microprofile.lra.annotation.Compensate;
-import org.eclipse.microprofile.lra.annotation.Complete;
-import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
-import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
-import org.eclipse.microprofile.lra.tck.service.LRAMetricService;
-import org.eclipse.microprofile.lra.tck.service.LRAMetricType;
-
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -26,6 +18,13 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.net.URISyntaxException;
+import org.eclipse.microprofile.lra.annotation.AfterLRA;
+import org.eclipse.microprofile.lra.annotation.Compensate;
+import org.eclipse.microprofile.lra.annotation.Complete;
+import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
+import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
+import org.eclipse.microprofile.lra.tck.service.LRAMetricService;
+import org.eclipse.microprofile.lra.tck.service.LRAMetricType;
 
 @Path(NestedParticipant.ROOT_PATH)
 @ApplicationScoped
@@ -43,9 +42,9 @@ public class NestedParticipant {
     @LRA(end = false)
     @GET
     @Path(PATH)
-    @Produces({MediaType.TEXT_PLAIN})
+    @Produces({ MediaType.TEXT_PLAIN })
     public Response runWithNestedContext(@HeaderParam(LRA.LRA_HTTP_CONTEXT_HEADER) URI lraId,
-                           @HeaderParam(LRA.LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentId) {
+            @HeaderParam(LRA.LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentId) {
         if (parentId == null || lraId == null) {
             throw new WebApplicationException(
                     Response.status(Response.Status.PRECONDITION_FAILED)
@@ -60,7 +59,7 @@ public class NestedParticipant {
     @Path(NestedParticipant.ENLIST_PATH)
     @Produces(MediaType.TEXT_PLAIN)
     public Response enlist(@HeaderParam(LRA.LRA_HTTP_CONTEXT_HEADER) URI lraId,
-                           @HeaderParam(LRA.LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentId) {
+            @HeaderParam(LRA.LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentId) {
         lraMetricService.incrementMetric(LRAMetricType.Nested, parentId, NestedParticipant.class);
         return Response.ok(lraId).build();
     }
@@ -73,8 +72,8 @@ public class NestedParticipant {
             @QueryParam("type") String type) throws URISyntaxException {
 
         return Response.ok(lraMetricService.getMetric(
-                    LRAMetricType.valueOf(type), new URI(lraId)))
-                    .build();
+                LRAMetricType.valueOf(type), new URI(lraId)))
+                .build();
     }
 
     @GET
@@ -89,7 +88,7 @@ public class NestedParticipant {
     @Path("/complete")
     @Produces(MediaType.TEXT_PLAIN)
     public Response complete(@HeaderParam(LRA.LRA_HTTP_CONTEXT_HEADER) URI lraId,
-                             @HeaderParam(LRA.LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentId) {
+            @HeaderParam(LRA.LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentId) {
         lraMetricService.incrementMetric(LRAMetricType.Nested, parentId, NestedParticipant.class);
         lraMetricService.incrementMetric(LRAMetricType.Completed, lraId, NestedParticipant.class);
         return Response.ok(ParticipantStatus.Completed).build();
@@ -109,7 +108,7 @@ public class NestedParticipant {
     @Path("/after")
     @Produces(MediaType.TEXT_PLAIN)
     public Response afterLRA(@HeaderParam(LRA.LRA_HTTP_ENDED_CONTEXT_HEADER) URI endedLraId,
-                             @HeaderParam(LRA.LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentId) {
+            @HeaderParam(LRA.LRA_HTTP_PARENT_CONTEXT_HEADER) URI parentId) {
         lraMetricService.incrementMetric(LRAMetricType.Nested, parentId, NestedParticipant.class);
         lraMetricService.incrementMetric(LRAMetricType.AfterLRA, endedLraId, NestedParticipant.class);
         return Response.ok(endedLraId).build();

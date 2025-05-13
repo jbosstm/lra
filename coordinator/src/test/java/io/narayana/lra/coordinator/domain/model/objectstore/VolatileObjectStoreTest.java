@@ -5,19 +5,18 @@
 
 package io.narayana.lra.coordinator.domain.model.objectstore;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import com.arjuna.ats.arjuna.common.ObjectStoreEnvironmentBean;
 import com.arjuna.ats.internal.arjuna.objectstore.VolatileStore;
 import com.arjuna.common.internal.util.propertyservice.BeanPopulator;
 import io.narayana.lra.LRAData;
 import io.narayana.lra.logging.LRALogger;
+import java.net.URI;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.net.URI;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public class VolatileObjectStoreTest extends TestBase {
 
@@ -37,9 +36,10 @@ public class VolatileObjectStoreTest extends TestBase {
 
         String objectStoreType = BeanPopulator.getDefaultInstance(ObjectStoreEnvironmentBean.class).getObjectStoreType();
         // This test fails if the Object Store is not set to Volatile
-        assertEquals("The Object Store type should have been set to VolatileStore", VolatileStore.class.getName(), objectStoreType);
+        assertEquals("The Object Store type should have been set to VolatileStore", VolatileStore.class.getName(),
+                objectStoreType);
 
-        LRALogger.logger.infof("%s: the Object Store type is set to: %s",testName.getMethodName(), objectStoreType);
+        LRALogger.logger.infof("%s: the Object Store type is set to: %s", testName.getMethodName(), objectStoreType);
 
         // Starts a new LRA
         URI lraIdUri = lraClient.startLRA(testName.getMethodName() + "#newLRA");
@@ -52,7 +52,8 @@ public class VolatileObjectStoreTest extends TestBase {
         String lraId = convertLraUriToString(lraIdUri).replace('_', ':');
 
         LRAData lraData = getLastCreatedLRA();
-        assertEquals("Expected that the LRA transaction just started matches the LRA transaction fetched through the Narayana LRA client",
+        assertEquals(
+                "Expected that the LRA transaction just started matches the LRA transaction fetched through the Narayana LRA client",
                 lraData.getLraId(),
                 lraIdUri);
     }

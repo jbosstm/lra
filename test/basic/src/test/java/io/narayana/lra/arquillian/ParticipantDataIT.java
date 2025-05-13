@@ -5,14 +5,20 @@
 
 package io.narayana.lra.arquillian;
 
-import io.narayana.lra.arquillian.resource.ParticipantDataResource;
+import static io.narayana.lra.LRAConstants.NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME;
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
+
 import io.narayana.lra.arquillian.resource.LRAParticipantWithStatusURI;
 import io.narayana.lra.arquillian.resource.LRAParticipantWithoutStatusURI;
+import io.narayana.lra.arquillian.resource.ParticipantDataResource;
 import io.narayana.lra.arquillian.resource.ParticipantDataResource2;
 import io.narayana.lra.arquillian.spi.NarayanaLRARecovery;
 import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import org.eclipse.microprofile.lra.tck.service.spi.LRACallbackException;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
@@ -22,13 +28,6 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
-import static io.narayana.lra.LRAConstants.NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME;
 
 /**
  * There is a spec requirement to report failed LRAs but the spec only requires that a failure message is reported
@@ -84,7 +83,8 @@ public class ParticipantDataIT extends TestBase {
     public void testPropagateLRAData() throws URISyntaxException {
         // invoke a resource that starts an LRA
         URI lraId = new URI(invoke(null, ParticipantDataResource2.DATA_PARTICIPANT_RESOURCE_PATH,
-                ParticipantDataResource2.START_LRA_PATH, Response.Status.OK.getStatusCode(), ParticipantDataResource2.START_DATA));
+                ParticipantDataResource2.START_LRA_PATH, Response.Status.OK.getStatusCode(),
+                ParticipantDataResource2.START_DATA));
         // invoke a second resource in the same context
         String data = invoke(lraId, ParticipantDataResource2.DATA_PARTICIPANT_RESOURCE_PATH,
                 ParticipantDataResource2.END_LRA_PATH, Response.Status.OK.getStatusCode(), ParticipantDataResource2.END_DATA);
@@ -99,7 +99,7 @@ public class ParticipantDataIT extends TestBase {
         MultivaluedMap<String, Object> headers = new MultivaluedHashMap<>();
         headers.add(LRA_HTTP_CONTEXT_HEADER, lraId);
 
-        if(data!= null) {
+        if (data != null) {
             headers.add(NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME, data);
         }
 

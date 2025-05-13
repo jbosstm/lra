@@ -5,6 +5,11 @@
 
 package io.narayana.lra.arquillian.resource;
 
+import static io.narayana.lra.LRAConstants.NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME;
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_ENDED_CONTEXT_HEADER;
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_RECOVERY_HEADER;
+
 import io.narayana.lra.client.LRAParticipantData;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -16,6 +21,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.net.URI;
 import org.eclipse.microprofile.lra.annotation.AfterLRA;
 import org.eclipse.microprofile.lra.annotation.Compensate;
 import org.eclipse.microprofile.lra.annotation.Complete;
@@ -24,13 +30,6 @@ import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
 import org.eclipse.microprofile.lra.annotation.Status;
 import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
-
-import java.net.URI;
-
-import static io.narayana.lra.LRAConstants.NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME;
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_ENDED_CONTEXT_HEADER;
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_RECOVERY_HEADER;
 
 @ApplicationScoped
 @Path(ParticipantDataResource.SIMPLE_PARTICIPANT_RESOURCE_PATH)
@@ -54,7 +53,7 @@ public class ParticipantDataResource {
     @Path(START_LRA_PATH)
     @LRA(value = LRA.Type.REQUIRED)
     public Response doInLRA(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lraId,
-                            @HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryUrl) {
+            @HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryUrl) {
         data.setData(CONTEXT_DATA);
         calls.setLength(0);
         status = ParticipantStatus.Active;
@@ -69,7 +68,7 @@ public class ParticipantDataResource {
     @Path(BEGIN_LRA_PATH)
     @LRA(value = LRA.Type.REQUIRES_NEW, end = false)
     public Response doStartLRA(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lraId,
-                               @HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryUrl) {
+            @HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryUrl) {
         data.setData(BEGIN_DATA);
         calls.setLength(0);
         status = ParticipantStatus.Active;
@@ -84,7 +83,7 @@ public class ParticipantDataResource {
     @Path(END_LRA_PATH)
     @LRA(value = LRA.Type.REQUIRED)
     public Response doEndLRA(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lraId,
-                             @HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryUrl) {
+            @HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryUrl) {
         status = ParticipantStatus.Active;
 
         return Response.status(Response.Status.OK)
@@ -141,8 +140,8 @@ public class ParticipantDataResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Status
     public Response status(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lraId,
-                           @HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryId,
-                           @HeaderParam(NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME) String pData) {
+            @HeaderParam(LRA_HTTP_RECOVERY_HEADER) URI recoveryId,
+            @HeaderParam(NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME) String pData) {
         if (CONTEXT_DATA.equals(pData)) {
             calls.append("@Status");
         } else {
@@ -156,8 +155,8 @@ public class ParticipantDataResource {
     @Path("/after")
     @AfterLRA
     public Response afterLRA(LRAStatus status,
-                             @HeaderParam(LRA_HTTP_ENDED_CONTEXT_HEADER) URI endedLRAId,
-                             @HeaderParam(NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME) String pData) {
+            @HeaderParam(LRA_HTTP_ENDED_CONTEXT_HEADER) URI endedLRAId,
+            @HeaderParam(NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME) String pData) {
         if (CONTEXT_DATA.equals(pData)) {
             calls.append("@AfterLRA");
         } else {

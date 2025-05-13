@@ -61,11 +61,11 @@ public class WildflyLRACoordinatorDeployment implements Deployment<WebArchive> {
                                 "org.jboss.narayana.lra:lra-service-base:" + projectVersion)
                         .withoutTransitivity().asFile())
                 // Adds a manifest to activate jts and logging submodules of Wildfly
-                .addAsManifestResource(new StringAsset(ManifestMF),"MANIFEST.MF")
+                .addAsManifestResource(new StringAsset(ManifestMF), "MANIFEST.MF")
                 // Adds an empty beans.xml to activate the bean in discovery-mode set to "all"
-                .addAsWebInfResource(EmptyAsset.INSTANCE,"beans.xml");
+                .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
 
-        if(log.isDebugEnabled()) {
+        if (log.isDebugEnabled()) {
             log.debugf("Content of the LRA Coordinator WAR is:%n%s%n", war.toString(Formatters.VERBOSE));
         }
 

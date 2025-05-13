@@ -5,6 +5,11 @@
 
 package io.narayana.lra.arquillian;
 
+import java.lang.reflect.Field;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Ignore;
 import org.junit.runner.Description;
@@ -14,11 +19,6 @@ import org.junit.runners.ParentRunner;
 import org.junit.runners.model.FrameworkField;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
-import java.lang.reflect.Field;
-import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * Parameterized Arquillian JUnit runner adding the possibility to run parameterized JUnit test cases ,
@@ -88,7 +88,8 @@ public class ArquillianParametrized extends ParentRunner<Arquillian> {
             List<FrameworkField> annotatedFieldsByParameter = getAnnotatedFieldsByParameter();
             if (annotatedFieldsByParameter.size() != fParameters.length) {
                 throw new Exception("Wrong number of parameters and @Parameter fields." +
-                        " @Parameter fields counted: " + annotatedFieldsByParameter.size() + ", available parameters: " + fParameters.length + ".");
+                        " @Parameter fields counted: " + annotatedFieldsByParameter.size() + ", available parameters: "
+                        + fParameters.length + ".");
             }
             Object testClassInstance = getTestClass().getJavaClass().getDeclaredConstructor().newInstance();
             for (FrameworkField each : annotatedFieldsByParameter) {
@@ -137,8 +138,7 @@ public class ArquillianParametrized extends ParentRunner<Arquillian> {
                         errors.add(
                                 new Exception("Invalid @Parameter value: " + index + ". @Parameter fields counted: " +
                                         annotatedFieldsByParameter.size() + ". Please use an index between 0 and " +
-                                        (annotatedFieldsByParameter.size() - 1) + ".")
-                        );
+                                        (annotatedFieldsByParameter.size() - 1) + "."));
                     } else {
                         usedIndices[index]++;
                     }
@@ -163,8 +163,8 @@ public class ArquillianParametrized extends ParentRunner<Arquillian> {
             if (iter.hasNext()) {
                 if (!(iter.next() instanceof Object[])) { // it's single value
                     List<Object[]> multiValue = new ArrayList<>();
-                    for (Object parameter: (Iterable<?>) parameters) {
-                        multiValue.add(new Object[]{parameter});
+                    for (Object parameter : (Iterable<?>) parameters) {
+                        multiValue.add(new Object[] { parameter });
                     }
                     return multiValue;
                 }
@@ -189,7 +189,7 @@ public class ArquillianParametrized extends ParentRunner<Arquillian> {
     }
 
     private void createRunnersForParameters(Iterable<Object[]> allParameters,
-                                            String namePattern) throws InitializationError, Exception {
+            String namePattern) throws InitializationError, Exception {
         try {
             int i = 0;
             for (Object[] parametersOfSingleTest : allParameters) {

@@ -5,20 +5,19 @@
 
 package io.narayana.lra.arquillian.api;
 
+import static io.narayana.lra.LRAConstants.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.emptyCollectionOf;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.core.IsCollectionContaining.hasItem;
+import static org.hamcrest.core.IsCollectionContaining.hasItems;
+import static org.hamcrest.core.IsNot.not;
+
 import io.narayana.lra.LRAConstants;
 import io.narayana.lra.LRAData;
 import io.narayana.lra.arquillian.ArquillianParametrized;
 import io.narayana.lra.arquillian.TestBase;
-import org.eclipse.microprofile.lra.annotation.LRAStatus;
-import org.hamcrest.MatcherAssert;
-import org.jboss.arquillian.container.test.api.RunAsClient;
-import org.jboss.logging.Logger;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.GenericType;
 import jakarta.ws.rs.core.HttpHeaders;
@@ -35,15 +34,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import static io.narayana.lra.LRAConstants.*;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.emptyCollectionOf;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
-import static org.hamcrest.core.IsCollectionContaining.hasItems;
-import static org.hamcrest.core.IsNot.not;
+import org.eclipse.microprofile.lra.annotation.LRAStatus;
+import org.hamcrest.MatcherAssert;
+import org.jboss.arquillian.container.test.api.RunAsClient;
+import org.jboss.logging.Logger;
+import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /**
  * <p>
@@ -59,11 +58,11 @@ import static org.hamcrest.core.IsNot.not;
  * <p>
  * When a new API version is added - when the new version
  * <ul>
- *     <li>does <b>not</b> change the functionality of the API endpoint
- *         then nothing is needed - the test will be executed with the new version as well</li>
- *     <li>changes the functionality of the API endpoint
- *         then the test needs to be limited for execution with preceding API versions
- *         and the creation of a new test to document the new behaviour should be considered</li>
+ * <li>does <b>not</b> change the functionality of the API endpoint
+ * then nothing is needed - the test will be executed with the new version as well</li>
+ * <li>changes the functionality of the API endpoint
+ * then the test needs to be limited for execution with preceding API versions
+ * and the creation of a new test to document the new behaviour should be considered</li>
  * </ul>
  * </p>
  */
@@ -119,14 +118,17 @@ public class CoordinatorApiIT extends TestBase {
             Assert.assertEquals("Expected that the call succeeds, GET/200.", Status.OK.getStatusCode(), response.getStatus());
             Assert.assertEquals("Provided API header, expected that one is returned",
                     version, response.getHeaderString(LRA_API_VERSION_HEADER_NAME));
-            data = response.readEntity(new GenericType<>() {});
+            data = response.readEntity(new GenericType<>() {
+            });
         }
 
         Optional<LRAData> lraTopOptional = data.stream().filter(record -> record.getLraId().equals(lraId1)).findFirst();
-        Assert.assertTrue("Expected to find the top-level LRA id " + lraId1 + " from REST get all call", lraTopOptional.isPresent());
+        Assert.assertTrue("Expected to find the top-level LRA id " + lraId1 + " from REST get all call",
+                lraTopOptional.isPresent());
         LRAData lraTop = lraTopOptional.get();
         Optional<LRAData> lraNestedOptional = data.stream().filter(record -> record.getLraId().equals(lraId2)).findFirst();
-        Assert.assertTrue("Expected to find the nested LRA id " + lraId2 + " from REST get all call", lraNestedOptional.isPresent());
+        Assert.assertTrue("Expected to find the nested LRA id " + lraId2 + " from REST get all call",
+                lraNestedOptional.isPresent());
         LRAData lraNested = lraNestedOptional.get();
 
         Assert.assertEquals("Expected top-level LRA '" + lraTop + "'  being active",
@@ -175,7 +177,8 @@ public class CoordinatorApiIT extends TestBase {
         try (Response response = client.target(coordinatorUrl)
                 .queryParam(STATUS_PARAM_NAME, "Active").request().get()) {
             Assert.assertEquals("Expected that the call succeeds, GET/200.", Status.OK.getStatusCode(), response.getStatus());
-            List<LRAData> data = response.readEntity(new GenericType<>() {});
+            List<LRAData> data = response.readEntity(new GenericType<>() {
+            });
             Collection<URI> returnedLraIds = data.stream().map(LRAData::getLraId).collect(Collectors.toList());
             MatcherAssert.assertThat("Expected the coordinator returns the first started top-level LRA",
                     returnedLraIds, hasItem(lraId1));
@@ -215,7 +218,8 @@ public class CoordinatorApiIT extends TestBase {
         String encodedLraId = URLEncoder.encode(lraId.toString(), StandardCharsets.UTF_8);
         try (Response response = client.target(coordinatorUrl).path(encodedLraId).path("status")
                 .request().header(LRA_API_VERSION_HEADER_NAME, version).get()) {
-            Assert.assertEquals("Expected that the get status call succeeds, GET/200.", Status.OK.getStatusCode(), response.getStatus());
+            Assert.assertEquals("Expected that the get status call succeeds, GET/200.", Status.OK.getStatusCode(),
+                    response.getStatus());
             Assert.assertEquals("Expected API header to be returned with the version provided in request",
                     version, response.getHeaderString(LRA_API_VERSION_HEADER_NAME));
             Assert.assertEquals("Expected the returned LRA status is Active",
@@ -229,7 +233,8 @@ public class CoordinatorApiIT extends TestBase {
      */
     public void getLRAStatusFailed() {
         String nonExistingLRAId = "http://localhost:1234/Non-Existing-LRA-id";
-        String nonExistingLRAIdEncodedForUrl = URLEncoder.encode("http://localhost:1234/Non-Existing-LRA-id", StandardCharsets.UTF_8);
+        String nonExistingLRAIdEncodedForUrl = URLEncoder.encode("http://localhost:1234/Non-Existing-LRA-id",
+                StandardCharsets.UTF_8);
         try (Response response = client.target(coordinatorUrl).path(nonExistingLRAIdEncodedForUrl).path("status")
                 .request().header(LRA_API_VERSION_HEADER_NAME, version).get()) {
             Assert.assertEquals("LRA ID " + nonExistingLRAIdEncodedForUrl + " was expected not being found, GET/404.",
@@ -241,11 +246,13 @@ public class CoordinatorApiIT extends TestBase {
         }
 
         String nonExistingLRAWrongUrlFormat = "Non-Existing-LRA-id";
-        try (Response response = client.target(coordinatorUrl).path(nonExistingLRAWrongUrlFormat).path("status").request().get()) {
+        try (Response response = client.target(coordinatorUrl).path(nonExistingLRAWrongUrlFormat).path("status").request()
+                .get()) {
             Assert.assertEquals("LRA id " + nonExistingLRAWrongUrlFormat + " was expected not being found , GET/404.",
                     Status.NOT_FOUND.getStatusCode(), response.getStatus());
             MatcherAssert.assertThat("Expected the failure message to contain the wrong LRA id",
-                    response.readEntity(String.class), containsString(lraClient.getCoordinatorUrl() + "/" + nonExistingLRAWrongUrlFormat));
+                    response.readEntity(String.class),
+                    containsString(lraClient.getCoordinatorUrl() + "/" + nonExistingLRAWrongUrlFormat));
         }
     }
 
@@ -261,7 +268,8 @@ public class CoordinatorApiIT extends TestBase {
         String encodedLraId = URLEncoder.encode(lraId.toString(), StandardCharsets.UTF_8);
         try (Response response = client.target(coordinatorUrl).path(encodedLraId)
                 .request().header(LRA_API_VERSION_HEADER_NAME, version).get()) {
-            Assert.assertEquals("Expected that the get status call succeeds, GET/200.", Status.OK.getStatusCode(), response.getStatus());
+            Assert.assertEquals("Expected that the get status call succeeds, GET/200.", Status.OK.getStatusCode(),
+                    response.getStatus());
             Assert.assertEquals("Expected API header to be returned with the version provided in request",
                     version, response.getHeaderString(LRA_API_VERSION_HEADER_NAME));
             LRAData data = response.readEntity(new GenericType<>() {
@@ -397,7 +405,8 @@ public class CoordinatorApiIT extends TestBase {
             lraId = URI.create(response.readEntity(String.class));
             Assert.assertNotNull("Expected non null LRA id to be returned from start call", lraId);
             lrasToAfterFinish.add(lraId);
-            Assert.assertTrue("API version header is expected on response despite no API version header was provided on request",
+            Assert.assertTrue(
+                    "API version header is expected on response despite no API version header was provided on request",
                     response.getHeaders().containsKey(LRA_API_VERSION_HEADER_NAME));
         }
 
@@ -412,7 +421,8 @@ public class CoordinatorApiIT extends TestBase {
                     Status.OK.getStatusCode(), response.getStatus());
             Assert.assertEquals("Canceling top-level LRA should return the right status.",
                     LRAStatus.Cancelled.name(), response.readEntity(String.class));
-            Assert.assertTrue("API version header is expected on response despite no API header parameter was provided on request",
+            Assert.assertTrue(
+                    "API version header is expected on response despite no API header parameter was provided on request",
                     response.getHeaders().containsKey(LRA_API_VERSION_HEADER_NAME));
         }
 
@@ -556,7 +566,7 @@ public class CoordinatorApiIT extends TestBase {
      * Joining an LRA participant via entity body.
      */
     @Test
-    @ValidTestVersions({API_VERSION_1_0, API_VERSION_1_1}) // the recovery url was unusable in previous versions
+    @ValidTestVersions({ API_VERSION_1_0, API_VERSION_1_1 }) // the recovery url was unusable in previous versions
     public void joinLRAWithBody() {
         URI lraId = lraClient.startLRA(testRule.getMethodName());
         lrasToAfterFinish.add(lraId);
@@ -587,7 +597,7 @@ public class CoordinatorApiIT extends TestBase {
     }
 
     @Test
-    @ValidTestVersions({API_VERSION_1_2}) // the recovery url is usable versions after API_VERSION_1_1
+    @ValidTestVersions({ API_VERSION_1_2 }) // the recovery url is usable versions after API_VERSION_1_1
     // Remark if the API version is incremented then the new value for the version will need adding to annotation
     public void joinLRAWithBodyWithCorrectRecoveryHeader() {
         URI lraId = lraClient.startLRA(testRule.getMethodName());
@@ -623,7 +633,7 @@ public class CoordinatorApiIT extends TestBase {
      * Joining an LRA participant via link header.
      */
     @Test
-    @ValidTestVersions({API_VERSION_1_0, API_VERSION_1_1})
+    @ValidTestVersions({ API_VERSION_1_0, API_VERSION_1_1 })
     public void joinLRAWithLinkSimple() {
         URI lraId = lraClient.startLRA(testRule.getMethodName());
         lrasToAfterFinish.add(lraId);
@@ -654,7 +664,7 @@ public class CoordinatorApiIT extends TestBase {
     }
 
     @Test
-    @ValidTestVersions({API_VERSION_1_2})
+    @ValidTestVersions({ API_VERSION_1_2 })
     public void joinLRAWithLinkSimpleWithCorrectRecoveryHeader() {
         URI lraId = lraClient.startLRA(testRule.getMethodName());
         lrasToAfterFinish.add(lraId);
@@ -702,7 +712,8 @@ public class CoordinatorApiIT extends TestBase {
                 .put(null)) {
             Assert.assertEquals("Expected joining LRA succeeded, PUT/200 is expected.",
                     Status.OK.getStatusCode(), response.getStatus());
-            Assert.assertTrue("API version header is expected on response despite no API version header was provided on request",
+            Assert.assertTrue(
+                    "API version header is expected on response despite no API version header was provided on request",
                     response.getHeaders().containsKey(LRA_API_VERSION_HEADER_NAME));
             String recoveryHeaderUrlMessage = response.getHeaderString(RECOVERY_HEADER_NAME);
             String recoveryUrlBody = response.readEntity(String.class);
@@ -892,7 +903,8 @@ public class CoordinatorApiIT extends TestBase {
         String nonExistingParticipantUrl = "http://localhost:1234/Non-Existing-participant-LRA";
         try (Response response = client.target(coordinatorUrl).path(encodedLRAId).path("remove").request()
                 .header(LRA_API_VERSION_HEADER_NAME, version).put(Entity.text(nonExistingParticipantUrl))) {
-            Assert.assertEquals("Expected that the call fails on LRA participant " + nonExistingParticipantUrl + " not found , PUT/400.",
+            Assert.assertEquals(
+                    "Expected that the call fails on LRA participant " + nonExistingParticipantUrl + " not found , PUT/400.",
                     Status.BAD_REQUEST.getStatusCode(), response.getStatus());
             Assert.assertEquals("Expected API header to be returned with the version provided in request",
                     version, response.getHeaderString(LRA_API_VERSION_HEADER_NAME));

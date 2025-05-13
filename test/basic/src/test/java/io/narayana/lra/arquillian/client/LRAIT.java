@@ -5,10 +5,20 @@
 
 package io.narayana.lra.arquillian.client;
 
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import io.narayana.lra.arquillian.Deployer;
 import io.narayana.lra.arquillian.TestBase;
 import io.narayana.lra.arquillian.resource.LRAParticipant;
 import io.narayana.lra.client.internal.NarayanaLRAClient;
+import jakarta.ws.rs.client.Invocation;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriBuilder;
+import java.net.URI;
+import java.net.URL;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
@@ -18,23 +28,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-import jakarta.ws.rs.client.Invocation;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriBuilder;
-import java.net.URI;
-import java.net.URL;
-
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 public class LRAIT extends TestBase {
 
     private static final Logger log = Logger.getLogger(LRAIT.class);
-    private static final String SHOULD_NOT_BE_ASSOCIATED =
-            "The narayana implementation (of the MP-LRA specification) still thinks that there is "
-                + "an active LRA associated with the current thread even though all LRAs should now be finished";
+    private static final String SHOULD_NOT_BE_ASSOCIATED = "The narayana implementation (of the MP-LRA specification) still thinks that there is "
+            + "an active LRA associated with the current thread even though all LRAs should now be finished";
 
     @ArquillianResource
     public URL baseURL;

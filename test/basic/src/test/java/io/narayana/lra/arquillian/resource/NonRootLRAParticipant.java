@@ -5,9 +5,6 @@
 
 package io.narayana.lra.arquillian.resource;
 
-import org.eclipse.microprofile.lra.annotation.Compensate;
-import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
-
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.PUT;
@@ -15,6 +12,8 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.eclipse.microprofile.lra.annotation.Compensate;
+import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
 
 public class NonRootLRAParticipant {
 

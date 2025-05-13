@@ -6,6 +6,12 @@
 package io.narayana.lra.arquillian.deployment.scenario;
 
 import io.narayana.lra.arquillian.deployment.Deployment;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.jboss.arquillian.config.descriptor.api.ArquillianDescriptor;
 import org.jboss.arquillian.config.descriptor.api.ContainerDef;
 import org.jboss.arquillian.config.descriptor.api.ExtensionDef;
@@ -14,26 +20,21 @@ import org.jboss.arquillian.core.api.Instance;
 import org.jboss.arquillian.core.api.annotation.Inject;
 import org.jboss.logging.Logger;
 
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 /**
  * <p>
- *     This class is composed by a collection of methods useful to classes implementing
+ * This class is composed by a collection of methods useful to classes implementing
  * the interface DeploymentScenarioGenerator. In particular, this class represents
  * a main point of control when it comes to classes that use the "extension" section
  * in the Arquillian.xml file. In fact, this class supplies basic methods to identify
  * a particular extension section and handle properties defined in it.
  * </p>
  * <p>
- *     The concept behind this class comes from the project <code>deploymentscenario</code>, which can be found
+ * The concept behind this class comes from the project <code>deploymentscenario</code>, which can be found
  * among the showcases of Arquillian.
  * </p>
- * @see <a href="https://github.com/arquillian/arquillian-showcase/tree/master/extensions/deploymentscenario">Arquillian Deployment Scenario</a>
+ *
+ * @see <a href="https://github.com/arquillian/arquillian-showcase/tree/master/extensions/deploymentscenario">Arquillian
+ *      Deployment Scenario</a>
  */
 public class ScenarioGeneratorBase {
 
@@ -45,6 +46,7 @@ public class ScenarioGeneratorBase {
     /**
      * This method return a {@link Map} representing the properties defined in the <code>extension</code>
      * section and identifiable with the parameter <code>extensionName</code>
+     *
      * @return {@link Map} representing a set of properties
      */
     Map<String, String> getExtensionProperties() {
@@ -70,6 +72,7 @@ public class ScenarioGeneratorBase {
     /**
      * This method checks that the properties in the {@link List} <code>toCheck</code>
      * are present in the {@link Map} <code>properties</code>
+     *
      * @param properties {@link Map} representing the properties of an extension
      * @param toCheck {@link List} of properties that need to be defined
      * @throws RuntimeException if a property is not found
@@ -91,6 +94,7 @@ public class ScenarioGeneratorBase {
      * This method extracts a {@link Method} that represents a deployment method that
      * should be called to create an {@link org.jboss.shrinkwrap.api.Archive} to deploy
      * in an Arquillian container
+     *
      * @param properties {@link Map} representing the properties of an extension
      * @param deploymentMethodPropertyName name of the deployment method property
      * @return {@link Method}
@@ -98,7 +102,7 @@ public class ScenarioGeneratorBase {
      * @throws RuntimeException if anything else goes wrong
      */
     Method getDeploymentMethodFromConfiguration(final Map<String, String> properties, final String deploymentMethodPropertyName)
-            throws ClassNotFoundException, RuntimeException{
+            throws ClassNotFoundException, RuntimeException {
 
         String property = properties.get(deploymentMethodPropertyName).trim();
 
@@ -141,6 +145,7 @@ public class ScenarioGeneratorBase {
     /**
      * This method checks if a container with qualifier name <code>containerName</code> is
      * listed in the Arquillian.xml file.
+     *
      * @param containerName the qualifier name of the container
      * @return {@link ContainerDef} representing the wanted container
      * @throws RuntimeException if the container is not found
@@ -172,6 +177,7 @@ public class ScenarioGeneratorBase {
     /**
      * This method checks if a container with qualifier name <code>containerName</code> is
      * listed in the group with qualifier <code>group</code>.
+     *
      * @param group the qualifier of the group
      * @param containerName the qualifier name of the container
      * @return {@link ContainerDef} representing the wanted container
@@ -184,7 +190,8 @@ public class ScenarioGeneratorBase {
                 .filter(x -> x.getContainerName().equals(containerName)).collect(Collectors.toList());
 
         if (containers.isEmpty()) {
-            String message = String.format("%s: there is not a container with qualifier %s in the group %s defined in the %s file!",
+            String message = String.format(
+                    "%s: there is not a container with qualifier %s in the group %s defined in the %s file!",
                     this.getClass().getSimpleName(),
                     containerName,
                     group.getGroupName(),
@@ -200,6 +207,7 @@ public class ScenarioGeneratorBase {
     /**
      * This method checks if a group with qualifier name <code>groupName</code> is
      * listed in the Arquillian.xml file.
+     *
      * @param groupName the qualifier name of the group
      * @return {@link GroupDef} representing the wanted group
      * @throws RuntimeException if the group is not found

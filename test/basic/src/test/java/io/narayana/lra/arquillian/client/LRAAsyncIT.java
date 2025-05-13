@@ -5,11 +5,18 @@
 
 package io.narayana.lra.arquillian.client;
 
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import io.narayana.lra.arquillian.Deployer;
+import io.narayana.lra.arquillian.TestBase;
+import io.narayana.lra.arquillian.resource.LRAParticipant;
+import jakarta.ws.rs.client.Invocation;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriBuilder;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -19,7 +26,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
@@ -28,15 +34,6 @@ import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-
-import io.narayana.lra.arquillian.Deployer;
-import io.narayana.lra.arquillian.TestBase;
-import io.narayana.lra.arquillian.resource.LRAParticipant;
-import jakarta.ws.rs.client.Invocation;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriBuilder;
-
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
 
 public class LRAAsyncIT extends TestBase {
 
@@ -130,7 +127,6 @@ public class LRAAsyncIT extends TestBase {
             invokeInTransaction(lra, LRAParticipant.END_EXISTING_LRA);
             return lra;
         };
-
 
         List<Callable<URI>> callableTasks = new ArrayList<>();
         for (int i = 0; i < NUMBER_OF_TASKS; i++)

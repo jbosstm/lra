@@ -32,10 +32,10 @@ public class LRAUnawareResource {
             // if this method propagates LRA context it will be reused in SimpleLRAParticipant
             // but if it doesn't, a new LRA will be started
             return client.target(context.getBaseUri())
-                .path(SimpleLRAParticipant.SIMPLE_PARTICIPANT_RESOURCE_PATH)
-                .path(SimpleLRAParticipant.START_LRA_PATH)
-                .request()
-                .get();
+                    .path(SimpleLRAParticipant.SIMPLE_PARTICIPANT_RESOURCE_PATH)
+                    .path(SimpleLRAParticipant.START_LRA_PATH)
+                    .request()
+                    .get();
         }
     }
 }

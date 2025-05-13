@@ -5,8 +5,16 @@
 
 package io.narayana.lra.arquillian;
 
+import static org.eclipse.microprofile.lra.annotation.LRAStatus.Closing;
+import static org.junit.Assert.fail;
+
 import io.narayana.lra.arquillian.resource.NonRootLRAParticipant;
 import io.narayana.lra.arquillian.resource.RootResource;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
@@ -16,15 +24,6 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-
-import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.Response;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-
-import static org.eclipse.microprofile.lra.annotation.LRAStatus.Closing;
-import static org.junit.Assert.fail;
 
 public class NonRootLRAParticipantIT extends TestBase {
     private static final Logger log = Logger.getLogger(NonRootLRAParticipantIT.class);
@@ -57,13 +56,14 @@ public class NonRootLRAParticipantIT extends TestBase {
         Assert.assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
         int counterValue = response.readEntity(Integer.class);
         Assert.assertEquals("Non root JAX-RS participant should have been enlisted and invoked",
-            1, counterValue);
+                1, counterValue);
     }
 
     /*
      * Test that a participant can join an LRA using the Narayana specific client API
      * Test that the LRA has the correct status of Closing if a participant
      * returns 202 Accepted when asked to complete.
+     *
      * @throws URISyntaxException if arquillian URL is invalid
      */
     @Test

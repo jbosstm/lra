@@ -21,18 +21,6 @@ import io.narayana.lra.coordinator.domain.model.LongRunningAction;
 import io.narayana.lra.coordinator.internal.Implementations;
 import io.narayana.lra.coordinator.internal.LRARecoveryModule;
 import io.narayana.lra.coordinator.tools.osb.mbean.LRAActionBean;
-
-import javax.management.Attribute;
-import javax.management.AttributeList;
-import javax.management.InstanceNotFoundException;
-import javax.management.IntrospectionException;
-import javax.management.MBeanAttributeInfo;
-import javax.management.MBeanInfo;
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectInstance;
-import javax.management.ObjectName;
-import javax.management.ReflectionException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -46,6 +34,17 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
+import javax.management.Attribute;
+import javax.management.AttributeList;
+import javax.management.InstanceNotFoundException;
+import javax.management.IntrospectionException;
+import javax.management.MBeanAttributeInfo;
+import javax.management.MBeanInfo;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectInstance;
+import javax.management.ObjectName;
+import javax.management.ReflectionException;
 
 /*
  * Browser for viewing LRA MBeans:
@@ -68,12 +67,12 @@ public abstract class BrowserCommand {
 
     private static String[][] LRA_OSB_TYPES = {
             // osTypeClassName, beanTypeClassName - see com.arjuna.ats.arjuna.tools.osb.mbean.ObjStoreBrowser
-            {LongRunningAction.getType().substring(1),
+            { LongRunningAction.getType().substring(1),
                     LongRunningAction.class.getName(),
-                    LRAActionBean.class.getName()},
-            {FailedLongRunningAction.getType().substring(1),
+                    LRAActionBean.class.getName() },
+            { FailedLongRunningAction.getType().substring(1),
                     FailedLongRunningAction.class.getName(),
-                    LRAActionBean.class.getName()}
+                    LRAActionBean.class.getName() }
     };
 
     private enum CommandName {
@@ -186,7 +185,7 @@ public abstract class BrowserCommand {
 
     public static String run(String[] args) throws Exception {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-             PrintStream printStream = new PrintStream(outputStream)) {
+                PrintStream printStream = new PrintStream(outputStream)) {
 
             parseArgs(args);
 
@@ -225,7 +224,7 @@ public abstract class BrowserCommand {
         recoveryManager.addModule(new LRARecoveryModule());
 
         osb = ObjStoreBrowser.getInstance();
-        for(String[] typeAndBean: LRA_OSB_TYPES) {
+        for (String[] typeAndBean : LRA_OSB_TYPES) {
             osb.addType(typeAndBean[0], typeAndBean[1], typeAndBean[2]);
         }
         osb.start();
@@ -233,10 +232,9 @@ public abstract class BrowserCommand {
 
     private static void setupStore(String storeDir, boolean hqstore) throws Exception {
         String storePath = new File(storeDir).getCanonicalPath();
-        ObjectStoreEnvironmentBean commsObjStoreCommsEnvBean =
-                BeanPopulator.getNamedInstance(ObjectStoreEnvironmentBean.class, "communicationStore");
-        ObjectStoreEnvironmentBean defObjStoreCommsEnvBean =
-                BeanPopulator.getDefaultInstance(ObjectStoreEnvironmentBean.class);
+        ObjectStoreEnvironmentBean commsObjStoreCommsEnvBean = BeanPopulator.getNamedInstance(ObjectStoreEnvironmentBean.class,
+                "communicationStore");
+        ObjectStoreEnvironmentBean defObjStoreCommsEnvBean = BeanPopulator.getDefaultInstance(ObjectStoreEnvironmentBean.class);
 
         if (hqstore) {
             File hornetqStoreDir = new File(storeDir);
@@ -310,9 +308,9 @@ public abstract class BrowserCommand {
                         RecoveryManager.manager().terminate(false);
                     } catch (Throwable ignore) {
                     }
-                 }
+                }
 
-                 boolean cancel() {
+                boolean cancel() {
                     finished = true;
                     try {
                         cmdSource.close();
@@ -324,7 +322,7 @@ public abstract class BrowserCommand {
                 private void processCommand(PrintStream printStream, Scanner scanner) {
                     printStream.printf("%s> ", currentType);
 
-                    List<String> args = new ArrayList<String> (Arrays.asList(scanner.nextLine().split("\\s+")));
+                    List<String> args = new ArrayList<String>(Arrays.asList(scanner.nextLine().split("\\s+")));
                     BrowserCommand command = args.size() == 0 ? getCommand(CommandName.HELP) : getCommand(args.remove(0));
 
                     try {
@@ -355,7 +353,7 @@ public abstract class BrowserCommand {
                         printStream.print(currentStoreDir);
                     else
                         printStream.printf("not supported - please restart and use the \"-s\" option (%s)", SYNTAX);
-//                    restartStore(args.get(0));
+                    //                    restartStore(args.get(0));
                 }
             },
 
@@ -430,7 +428,8 @@ public abstract class BrowserCommand {
                     }
                 }
 
-                void listMBeans(PrintStream printStream, String itype) throws MalformedObjectNameException, ReflectionException, InstanceNotFoundException, IntrospectionException {
+                void listMBeans(PrintStream printStream, String itype) throws MalformedObjectNameException, ReflectionException,
+                        InstanceNotFoundException, IntrospectionException {
                     MBeanServer mbs = JMXServer.getAgent().getServer();
                     String osMBeanName = "jboss.jta:type=ObjectStore,itype=" + itype;
                     //Set<ObjectInstance> allTransactions = mbs.queryMBeans(new ObjectName("jboss.jta:type=ObjectStore,*"), null);
@@ -442,7 +441,7 @@ public abstract class BrowserCommand {
 
                         if (!transactionId.contains("puid") && transactionId.contains("itype")) {
                             printStream.printf("Transaction: %s%n", oi.getObjectName());
-                            String participantQuery =  transactionId + ",puid=*";
+                            String participantQuery = transactionId + ",puid=*";
                             Set<ObjectInstance> participants = mbs.queryMBeans(new ObjectName(participantQuery), null);
 
                             printAtrributes(printStream, "\t", mbs, oi);
@@ -458,7 +457,7 @@ public abstract class BrowserCommand {
 
                 void printAtrributes(PrintStream printStream, String printPrefix, MBeanServer mbs, ObjectInstance oi)
                         throws IntrospectionException, InstanceNotFoundException, ReflectionException {
-                    MBeanInfo info = mbs.getMBeanInfo( oi.getObjectName() );
+                    MBeanInfo info = mbs.getMBeanInfo(oi.getObjectName());
                     MBeanAttributeInfo[] attributeArray = info.getAttributes();
                     int i = 0;
                     String[] attributeNames = new String[attributeArray.length];
@@ -470,7 +469,7 @@ public abstract class BrowserCommand {
 
                     for (Attribute attribute : attributes.asList()) {
                         Object value = attribute.getValue();
-                        String v =  value == null ? "null" : value.toString();
+                        String v = value == null ? "null" : value.toString();
 
                         printStream.printf("%s%s=%s%n", printPrefix, attribute.getName(), v);
                     }

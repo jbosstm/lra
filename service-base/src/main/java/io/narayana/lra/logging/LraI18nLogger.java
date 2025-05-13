@@ -11,7 +11,6 @@ import static org.jboss.logging.Logger.Level.WARN;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-
 import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
@@ -24,10 +23,10 @@ import org.jboss.logging.annotations.MessageLogger;
 public interface LraI18nLogger {
 
     /*
-        Message IDs are unique and non-recyclable.
-        Don't change the purpose of existing messages.
-          (tweak the message text or params for clarification if you like).
-        Allocate new messages by following instructions at the bottom of the file.
+     * Message IDs are unique and non-recyclable.
+     * Don't change the purpose of existing messages.
+     * (tweak the message text or params for clarification if you like).
+     * Allocate new messages by following instructions at the bottom of the file.
      */
     @Message(id = 25001, value = "LRA created with an unexpected status code: %d, coordinator response '%s'")
     String error_lraCreationUnexpectedStatus(int status, String response);
@@ -123,10 +122,10 @@ public interface LraI18nLogger {
     @Message(id = 25029, value = "Cannot notify AfterLRA URL at %s")
     void warn_cannotNotifyAfterLRAURI(URI target, @Cause Throwable t);
 
-    @Message(id=25030, value = "%s: Invalid link URI (%s): %s")
+    @Message(id = 25030, value = "%s: Invalid link URI (%s): %s")
     String error_invalidCompensator(URI id, String reason, String linkURI);
 
-    @Message(id=25031, value = "%s: Invalid link URI (%s): missing compensator or after LRA callback")
+    @Message(id = 25031, value = "%s: Invalid link URI (%s): missing compensator or after LRA callback")
     String error_missingCompensator(URI id, String linkURI);
 
     @Message(id = 25032, value = "LRA Record: Cannot save state (reason: %s)")
@@ -176,16 +175,16 @@ public interface LraI18nLogger {
     String warn_timelimit_too_long(long timeLimit, long newTimeLimit);
 
     /*
-        Allocate new messages directly above this notice.
-          - id: use the next id number in numeric sequence. Don't reuse ids.
-          The first two digits of the id(XXyyy) denote the module
-            all message in this file should have the same prefix.
-          - value: default (English) version of the log message.
-          - level: according to severity semantics
-
-          Debug and trace don't get i18n. Everything else MUST be i18n.
-          By convention methods with String return type have prefix get_,
-            all others are log methods and have prefix <level>_
+     * Allocate new messages directly above this notice.
+     * - id: use the next id number in numeric sequence. Don't reuse ids.
+     * The first two digits of the id(XXyyy) denote the module
+     * all message in this file should have the same prefix.
+     * - value: default (English) version of the log message.
+     * - level: according to severity semantics
+     *
+     * Debug and trace don't get i18n. Everything else MUST be i18n.
+     * By convention methods with String return type have prefix get_,
+     * all others are log methods and have prefix <level>_
      */
 
 }

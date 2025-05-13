@@ -5,8 +5,21 @@
 
 package io.narayana.lra.arquillian;
 
+import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+
 import io.narayana.lra.arquillian.resource.NestedParticipant;
 import io.narayana.lra.arquillian.spi.NarayanaLRARecovery;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriBuilder;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
 import org.eclipse.microprofile.lra.tck.service.LRAMetricType;
@@ -18,20 +31,6 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-
-import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriBuilder;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-
-import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
 
 public class NestedParticipantIT extends TestBase {
     private static final Logger log = Logger.getLogger(NestedParticipantIT.class);
@@ -76,11 +75,11 @@ public class NestedParticipantIT extends TestBase {
 
         try {
             response = client.target(UriBuilder.fromUri(baseURL.toExternalForm())
-                .path(NestedParticipant.ROOT_PATH)
-                .path(NestedParticipant.ENLIST_PATH))
-                .request()
-                .header(LRA.LRA_HTTP_CONTEXT_HEADER, parentLRA)
-                .get();
+                    .path(NestedParticipant.ROOT_PATH)
+                    .path(NestedParticipant.ENLIST_PATH))
+                    .request()
+                    .header(LRA.LRA_HTTP_CONTEXT_HEADER, parentLRA)
+                    .get();
 
             assertEquals(200, response.getStatus());
             Assert.assertTrue(response.hasEntity());
@@ -215,8 +214,8 @@ public class NestedParticipantIT extends TestBase {
         URI child = lraClient.startLRA(NestedParticipantIT.class.getName() + "#testParentContext child");
 
         try (Response response = client.target(UriBuilder.fromUri(baseURL.toExternalForm())
-                        .path(NestedParticipant.ROOT_PATH)
-                        .path(NestedParticipant.PATH))
+                .path(NestedParticipant.ROOT_PATH)
+                .path(NestedParticipant.PATH))
                 .request()
                 .get()) {
 

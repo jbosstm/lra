@@ -5,6 +5,31 @@
 
 package io.narayana.lra.client.internal;
 
+import static io.narayana.lra.LRAConstants.AFTER;
+import static io.narayana.lra.LRAConstants.CLIENT_ID_PARAM_NAME;
+import static io.narayana.lra.LRAConstants.COMPENSATE;
+import static io.narayana.lra.LRAConstants.COMPLETE;
+import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
+import static io.narayana.lra.LRAConstants.FORGET;
+import static io.narayana.lra.LRAConstants.LEAVE;
+import static io.narayana.lra.LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME;
+import static io.narayana.lra.LRAConstants.NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME;
+import static io.narayana.lra.LRAConstants.NARAYANA_LRA_PARTICIPANT_LINK_HEADER_NAME;
+import static io.narayana.lra.LRAConstants.PARENT_LRA_PARAM_NAME;
+import static io.narayana.lra.LRAConstants.RECOVERY_COORDINATOR_PATH_NAME;
+import static io.narayana.lra.LRAConstants.STATUS;
+import static io.narayana.lra.LRAConstants.TIMELIMIT_PARAM_NAME;
+import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
+import static jakarta.ws.rs.core.Response.Status.GONE;
+import static jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
+import static jakarta.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
+import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
+import static jakarta.ws.rs.core.Response.Status.NO_CONTENT;
+import static jakarta.ws.rs.core.Response.Status.OK;
+import static jakarta.ws.rs.core.Response.Status.PRECONDITION_FAILED;
+import static jakarta.ws.rs.core.Response.Status.SERVICE_UNAVAILABLE;
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_RECOVERY_HEADER;
+
 import io.narayana.lra.Current;
 import io.narayana.lra.LRAConstants;
 import io.narayana.lra.LRAData;
@@ -29,14 +54,6 @@ import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
-import org.eclipse.microprofile.lra.annotation.AfterLRA;
-import org.eclipse.microprofile.lra.annotation.Compensate;
-import org.eclipse.microprofile.lra.annotation.Complete;
-import org.eclipse.microprofile.lra.annotation.Forget;
-import org.eclipse.microprofile.lra.annotation.LRAStatus;
-import org.eclipse.microprofile.lra.annotation.Status;
-import org.eclipse.microprofile.lra.annotation.ws.rs.Leave;
-
 import java.io.Closeable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -55,33 +72,13 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import static io.narayana.lra.LRAConstants.AFTER;
-import static io.narayana.lra.LRAConstants.CLIENT_ID_PARAM_NAME;
-import static io.narayana.lra.LRAConstants.COMPENSATE;
-import static io.narayana.lra.LRAConstants.COMPLETE;
-import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
-import static io.narayana.lra.LRAConstants.FORGET;
-import static io.narayana.lra.LRAConstants.LEAVE;
-import static io.narayana.lra.LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME;
-import static io.narayana.lra.LRAConstants.NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME;
-import static io.narayana.lra.LRAConstants.NARAYANA_LRA_PARTICIPANT_LINK_HEADER_NAME;
-import static io.narayana.lra.LRAConstants.PARENT_LRA_PARAM_NAME;
-import static io.narayana.lra.LRAConstants.RECOVERY_COORDINATOR_PATH_NAME;
-import static io.narayana.lra.LRAConstants.STATUS;
-import static io.narayana.lra.LRAConstants.TIMELIMIT_PARAM_NAME;
-
-import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
-import static jakarta.ws.rs.core.Response.Status.GONE;
-import static jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
-import static jakarta.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
-import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
-import static jakarta.ws.rs.core.Response.Status.NO_CONTENT;
-import static jakarta.ws.rs.core.Response.Status.OK;
-import static jakarta.ws.rs.core.Response.Status.PRECONDITION_FAILED;
-
-import static jakarta.ws.rs.core.Response.Status.SERVICE_UNAVAILABLE;
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_RECOVERY_HEADER;
+import org.eclipse.microprofile.lra.annotation.AfterLRA;
+import org.eclipse.microprofile.lra.annotation.Compensate;
+import org.eclipse.microprofile.lra.annotation.Complete;
+import org.eclipse.microprofile.lra.annotation.Forget;
+import org.eclipse.microprofile.lra.annotation.LRAStatus;
+import org.eclipse.microprofile.lra.annotation.Status;
+import org.eclipse.microprofile.lra.annotation.ws.rs.Leave;
 
 /**
  * WARNING: NarayanaLRAClient is an internal utility class and is subject to change
@@ -128,7 +125,7 @@ public class NarayanaLRAClient implements Closeable {
      * If not defined as default value is taken {@code http://localhost:8080/lra-coordinator}.
      * The LRA recovery coordinator will be searched at the sub-path {@value LRAConstants#RECOVERY_COORDINATOR_PATH_NAME}.
      *
-     * @throws IllegalStateException  thrown when the URL taken from the system property value is not a URL format
+     * @throws IllegalStateException thrown when the URL taken from the system property value is not a URL format
      */
     public NarayanaLRAClient() {
         this(System.getProperty(NarayanaLRAClient.LRA_COORDINATOR_URL_KEY,
@@ -139,9 +136,9 @@ public class NarayanaLRAClient implements Closeable {
      * Creating LRA client where expecting LRA coordinator being available through
      * protocol <i>protocol</i> at <i>host</i>:<i>port</i>/<i>coordinatorPath</i>.
      *
-     * @param protocol  protocol used to contact the LRA coordinator
-     * @param host  hostname where the LRA coordinator will be contacted
-     * @param port  port where the LRA coordinator will be contacted
+     * @param protocol protocol used to contact the LRA coordinator
+     * @param host hostname where the LRA coordinator will be contacted
+     * @param port port where the LRA coordinator will be contacted
      * @param coordinatorPath path where the LRA coordinator will be contacted
      */
     public NarayanaLRAClient(String protocol, String host, int port, String coordinatorPath) {
@@ -153,7 +150,7 @@ public class NarayanaLRAClient implements Closeable {
      * at the provided uri.
      * The LRA recovery coordinator will be searched at the sub-path {@value LRAConstants#RECOVERY_COORDINATOR_PATH_NAME}.
      *
-     * @param coordinatorUrl  uri of the LRA coordinator
+     * @param coordinatorUrl uri of the LRA coordinator
      */
     public NarayanaLRAClient(URI coordinatorUrl) {
         this.coordinatorUrl = coordinatorUrl;
@@ -164,8 +161,8 @@ public class NarayanaLRAClient implements Closeable {
      * at the provided URL defined by String.
      * The LRA recovery coordinator will be searched at the sub-path {@value LRAConstants#RECOVERY_COORDINATOR_PATH_NAME}.
      *
-     * @param coordinatorUrl  url of the LRA coordinator
-     * @throws IllegalStateException  thrown when the provided URL String is not a URL format
+     * @param coordinatorUrl url of the LRA coordinator
+     * @throws IllegalStateException thrown when the provided URL String is not a URL format
      */
     public NarayanaLRAClient(String coordinatorUrl) {
         try {
@@ -183,7 +180,7 @@ public class NarayanaLRAClient implements Closeable {
      * It takes the provided URI and tries to derive the URL path of the coordinator responsible
      * for the LRA id. The URL is then used as endpoint for later use of this LRA Narayana client instance.
      *
-     * @param lraId  LRA id consisting of the coordinator URL and the LRA uid
+     * @param lraId LRA id consisting of the coordinator URL and the LRA uid
      */
     public void setCurrentLRA(URI lraId) {
         try {
@@ -200,18 +197,20 @@ public class NarayanaLRAClient implements Closeable {
         try {
             client = getClient();
             Response response = client.target(coordinatorUrl)
-                .request()
-                .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, LRAConstants.CURRENT_API_VERSION_STRING)
-                .async()
-                .get()
-                .get(QUERY_TIMEOUT, TimeUnit.SECONDS);
+                    .request()
+                    .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, LRAConstants.CURRENT_API_VERSION_STRING)
+                    .async()
+                    .get()
+                    .get(QUERY_TIMEOUT, TimeUnit.SECONDS);
 
             if (response.getStatus() != OK.getStatusCode()) {
-                LRALogger.logger.debugf("Error getting all LRAs from the coordinator, response status: %d", response.getStatus());
+                LRALogger.logger.debugf("Error getting all LRAs from the coordinator, response status: %d",
+                        response.getStatus());
                 throw new WebApplicationException(response);
             }
 
-            return response.readEntity(new GenericType<List<LRAData>>() {});
+            return response.readEntity(new GenericType<List<LRAData>>() {
+            });
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
                     .entity("getAllLRAs client request timed out, try again later").build());
@@ -225,9 +224,9 @@ public class NarayanaLRAClient implements Closeable {
     /**
      * Starting LRA. You provide client id determining the LRA being started.
      *
-     * @param clientID  client id determining the LRA
-     * @return  LRA id as URL
-     * @throws WebApplicationException  thrown when start of the LRA failed
+     * @param clientID client id determining the LRA
+     * @return LRA id as URL
+     * @throws WebApplicationException thrown when start of the LRA failed
      */
     public URI startLRA(String clientID) throws WebApplicationException {
         return startLRA(clientID, 0L);
@@ -237,10 +236,10 @@ public class NarayanaLRAClient implements Closeable {
      * Starting LRA. You provide client id that joins the LRA context
      * and is passed when working with the LRA.
      *
-     * @param clientID  client id determining the LRA
-     * @param timeout  timeout value in seconds, when timeout-ed the LRA will be compensated
-     * @return  LRA id as URL
-     * @throws WebApplicationException  thrown when start of the LRA failed
+     * @param clientID client id determining the LRA
+     * @param timeout timeout value in seconds, when timeout-ed the LRA will be compensated
+     * @return LRA id as URL
+     * @throws WebApplicationException thrown when start of the LRA failed
      */
     private URI startLRA(String clientID, Long timeout) throws WebApplicationException {
         return startLRA(clientID, timeout, ChronoUnit.SECONDS);
@@ -250,11 +249,11 @@ public class NarayanaLRAClient implements Closeable {
      * Starting LRA. You provide client id that joins the LRA context
      * and is passed when working with the LRA.
      *
-     * @param clientID  client id determining the LRA
-     * @param timeout  timeout value, when timeout-ed the LRA will be compensated
-     * @param unit  timeout unit, when null seconds are used
-     * @return  LRA id as URL
-     * @throws WebApplicationException  thrown when start of the LRA failed
+     * @param clientID client id determining the LRA
+     * @param timeout timeout value, when timeout-ed the LRA will be compensated
+     * @param unit timeout unit, when null seconds are used
+     * @return LRA id as URL
+     * @throws WebApplicationException thrown when start of the LRA failed
      */
     private URI startLRA(String clientID, Long timeout, ChronoUnit unit) throws WebApplicationException {
         return startLRA(getCurrent(), clientID, timeout, unit);
@@ -268,14 +267,16 @@ public class NarayanaLRAClient implements Closeable {
      * Starting LRA. You provide client id that joins the LRA context
      * and is passed when working with the LRA.
      *
-     * @param parentLRA when the newly started LRA should be nested with this LRA parent, when null the newly started LRA is top-level
-     * @param clientID  client id determining the LRA
-     * @param timeout  timeout value, when timeout-ed the LRA will be compensated
-     * @param unit  timeout unit, when null seconds are used
-     * @return  LRA id as URL
-     * @throws WebApplicationException  thrown when start of the LRA failed
+     * @param parentLRA when the newly started LRA should be nested with this LRA parent, when null the newly started LRA is
+     *        top-level
+     * @param clientID client id determining the LRA
+     * @param timeout timeout value, when timeout-ed the LRA will be compensated
+     * @param unit timeout unit, when null seconds are used
+     * @return LRA id as URL
+     * @throws WebApplicationException thrown when start of the LRA failed
      */
-    public URI startLRA(URI parentLRA, String clientID, Long timeout, ChronoUnit unit, boolean verbose) throws WebApplicationException {
+    public URI startLRA(URI parentLRA, String clientID, Long timeout, ChronoUnit unit, boolean verbose)
+            throws WebApplicationException {
         Client client = null;
         Response response = null;
         URI lra;
@@ -302,15 +303,15 @@ public class NarayanaLRAClient implements Closeable {
             client = getClient();
 
             response = client.target(coordinatorUrl)
-                .path(START_PATH)
-                .queryParam(CLIENT_ID_PARAM_NAME, clientID)
-                .queryParam(TIMELIMIT_PARAM_NAME, Duration.of(timeout, unit).toMillis())
-                .queryParam(PARENT_LRA_PARAM_NAME, encodedParentLRA)
-                .request()
-                .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, LRAConstants.CURRENT_API_VERSION_STRING)
-                .async()
-                .post(null)
-                .get(START_TIMEOUT, TimeUnit.SECONDS);
+                    .path(START_PATH)
+                    .queryParam(CLIENT_ID_PARAM_NAME, clientID)
+                    .queryParam(TIMELIMIT_PARAM_NAME, Duration.of(timeout, unit).toMillis())
+                    .queryParam(PARENT_LRA_PARAM_NAME, encodedParentLRA)
+                    .request()
+                    .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, LRAConstants.CURRENT_API_VERSION_STRING)
+                    .async()
+                    .post(null)
+                    .get(START_TIMEOUT, TimeUnit.SECONDS);
 
             // validate the HTTP status code says an LRA resource was created
             if (isUnexpectedResponseStatus(response, Response.Status.CREATED)) {
@@ -373,16 +374,17 @@ public class NarayanaLRAClient implements Closeable {
      * @throws WebApplicationException if the LRA coordinator failed to enlist the participant
      */
     public URI joinLRA(URI lraId, Long timeLimit,
-                       URI compensateUri, URI completeUri, URI forgetUri, URI leaveUri, URI afterUri, URI statusUri,
-                       String compensatorData) throws WebApplicationException {
+            URI compensateUri, URI completeUri, URI forgetUri, URI leaveUri, URI afterUri, URI statusUri,
+            String compensatorData) throws WebApplicationException {
         return enlistCompensator(lraId, timeLimit, "",
                 compensateUri, completeUri,
                 forgetUri, leaveUri, afterUri, statusUri,
                 null);
     }
+
     public URI joinLRA(URI lraId, Long timeLimit,
-                       URI compensateUri, URI completeUri, URI forgetUri, URI leaveUri, URI afterUri, URI statusUri,
-                       StringBuilder compensatorData) throws WebApplicationException {
+            URI compensateUri, URI completeUri, URI forgetUri, URI leaveUri, URI afterUri, URI statusUri,
+            StringBuilder compensatorData) throws WebApplicationException {
         return enlistCompensator(lraId, timeLimit, "",
                 compensateUri, completeUri,
                 forgetUri, leaveUri, afterUri, statusUri,
@@ -400,10 +402,9 @@ public class NarayanaLRAClient implements Closeable {
      * @throws WebApplicationException if the LRA coordinator failed to enlist the participant
      */
     public URI joinLRA(URI lraId, Long timeLimit,
-                       URI participantUri, StringBuilder compensatorData) throws WebApplicationException {
+            URI participantUri, StringBuilder compensatorData) throws WebApplicationException {
         validateURI(participantUri, false, "Invalid participant URL: %s");
-        StringBuilder linkHeaderValue
-                = makeLink(new StringBuilder(), null, "participant", participantUri.toASCIIString());
+        StringBuilder linkHeaderValue = makeLink(new StringBuilder(), null, "participant", participantUri.toASCIIString());
 
         return enlistCompensator(lraId, timeLimit, linkHeaderValue.toString(), compensatorData);
     }
@@ -416,12 +417,12 @@ public class NarayanaLRAClient implements Closeable {
             client = getClient();
 
             response = client.target(coordinatorUrl)
-                .path(String.format(LEAVE_PATH, LRAConstants.getLRAUid(lraId)))
-                .request()
-                .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, LRAConstants.CURRENT_API_VERSION_STRING)
-                .async()
-                .put(body == null ? Entity.text("") : Entity.text(body))
-                .get(LEAVE_TIMEOUT, TimeUnit.SECONDS);
+                    .path(String.format(LEAVE_PATH, LRAConstants.getLRAUid(lraId)))
+                    .request()
+                    .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, LRAConstants.CURRENT_API_VERSION_STRING)
+                    .async()
+                    .put(body == null ? Entity.text("") : Entity.text(body))
+                    .get(LEAVE_TIMEOUT, TimeUnit.SECONDS);
 
             if (OK.getStatusCode() != response.getStatus()) {
                 String logMsg = LRALogger.i18nLogger.error_lraLeaveUnexpectedStatus(lraId, response.getStatus(),
@@ -445,14 +446,14 @@ public class NarayanaLRAClient implements Closeable {
      * You get map of string and URI.
      *
      * @param compensatorClass compensator class to examine.
-     * @param uriPrefix        the uri that triggered this join request.
-     * @param timeout          how long the participant is prepared to wait for LRA
-     *                         to compensate or complete.
+     * @param uriPrefix the uri that triggered this join request.
+     * @param timeout how long the participant is prepared to wait for LRA
+     *        to compensate or complete.
      * @return map of URI
      */
     public static Map<String, String> getTerminationUris(Class<?> compensatorClass, String uriPrefix, Long timeout) {
         Map<String, String> paths = new HashMap<>();
-        final boolean[] asyncTermination = {false};
+        final boolean[] asyncTermination = { false };
 
         String timeoutValue = timeout != null ? Long.toString(timeout) : "0";
 
@@ -512,8 +513,8 @@ public class NarayanaLRAClient implements Closeable {
      * This means that {@link Suspended} annotation is available amongst the method parameters
      * while the method is annotated with {@link Complete} or {@link Compensate}.
      *
-     * @param method  method to be checked for async completion
-     * @return  true if method is to complete asynchronously, false if synchronously
+     * @param method method to be checked for async completion
+     * @return true if method is to complete asynchronously, false if synchronously
      */
     public static boolean isAsyncCompletion(Method method) {
         if (method.isAnnotationPresent(Complete.class) || method.isAnnotationPresent(Compensate.class)) {
@@ -531,18 +532,18 @@ public class NarayanaLRAClient implements Closeable {
     }
 
     private static int checkMethod(Map<String, String> paths,
-                                   Method method, String rel,
-                                   Path pathAnnotation,
-                                   Annotation annotationClass,
-                                   String uriPrefix) {
-            /*
-             * If the annotationClass is null the requested participant annotation is not present,
-             * but we also need to check for conformance with the interoperability spec,
-             * ie look for paths of the form:
-             * `<participant URL>/compensate`
-             * `<participant URL>/complete`
-             * etc
-             */
+            Method method, String rel,
+            Path pathAnnotation,
+            Annotation annotationClass,
+            String uriPrefix) {
+        /*
+         * If the annotationClass is null the requested participant annotation is not present,
+         * but we also need to check for conformance with the interoperability spec,
+         * ie look for paths of the form:
+         * `<participant URL>/compensate`
+         * `<participant URL>/complete`
+         * etc
+         */
         if (annotationClass == null) {
             // TODO support standard compenators with: && !pathAnnotation.value().endsWith(rel)) {
             // ie ones that do not use the @Compensate annotation
@@ -586,12 +587,12 @@ public class NarayanaLRAClient implements Closeable {
         try {
             client = getClient();
             response = client.target(coordinatorUrl)
-                .path(String.format(STATUS_PATH, LRAConstants.getLRAUid(uri)))
-                .request()
-                .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, LRAConstants.CURRENT_API_VERSION_STRING)
-                .async()
-                .get()
-                .get(QUERY_TIMEOUT, TimeUnit.SECONDS);
+                    .path(String.format(STATUS_PATH, LRAConstants.getLRAUid(uri)))
+                    .request()
+                    .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, LRAConstants.CURRENT_API_VERSION_STRING)
+                    .async()
+                    .get()
+                    .get(QUERY_TIMEOUT, TimeUnit.SECONDS);
 
             // TODO add tests for each of these checks
             if (response.getStatus() == NOT_FOUND.getStatusCode()) {
@@ -642,7 +643,7 @@ public class NarayanaLRAClient implements Closeable {
         }
 
         String terminationUri = uriPrefix == null ? value : String.format("%s%s", uriPrefix, value);
-        Link link =  Link.fromUri(terminationUri).title(key + " URI").rel(key).type(MediaType.TEXT_PLAIN).build();
+        Link link = Link.fromUri(terminationUri).title(key + " URI").rel(key).type(MediaType.TEXT_PLAIN).build();
 
         if (b.length() != 0) {
             b.append(',');
@@ -652,9 +653,9 @@ public class NarayanaLRAClient implements Closeable {
     }
 
     private URI enlistCompensator(URI lraUri, Long timelimit, String uriPrefix,
-                                  URI compensateUri, URI completeUri,
-                                  URI forgetUri, URI leaveUri, URI afterUri, URI statusUri,
-                                  StringBuilder compensatorData) {
+            URI compensateUri, URI completeUri,
+            URI forgetUri, URI leaveUri, URI afterUri, URI statusUri,
+            StringBuilder compensatorData) {
         validateURI(completeUri, true, "Invalid complete URL: %s");
         validateURI(compensateUri, true, "Invalid compensate URL: %s");
         validateURI(leaveUri, true, "Invalid status URL: %s");
@@ -712,13 +713,13 @@ public class NarayanaLRAClient implements Closeable {
 
                 headers.add("Link", linkHeader);
                 response = client.target(coordinatorUrl)
-                    .path(LRAConstants.getLRAUid(uri))
-                    .queryParam(TIMELIMIT_PARAM_NAME, timelimit)
-                    .request()
-                    .headers(headers)
-                    .async()
-                    .put(Entity.text(compensatorData == null ? linkHeader : data))
-                    .get(JOIN_TIMEOUT, TimeUnit.SECONDS);
+                        .path(LRAConstants.getLRAUid(uri))
+                        .queryParam(TIMELIMIT_PARAM_NAME, timelimit)
+                        .request()
+                        .headers(headers)
+                        .async()
+                        .put(Entity.text(compensatorData == null ? linkHeader : data))
+                        .get(JOIN_TIMEOUT, TimeUnit.SECONDS);
 
                 String responseEntity = response.hasEntity() ? response.readEntity(String.class) : "";
                 // remove it and create tests for PRECONDITION_FAILED and NOT_FOUND
@@ -749,12 +750,13 @@ public class NarayanaLRAClient implements Closeable {
                     recoveryUrl = response.getHeaderString(LRA_HTTP_RECOVERY_HEADER);
                     return new URI(recoveryUrl);
                 } catch (URISyntaxException e) {
-                    LRALogger.logger.infof(e,"join %s returned an invalid recovery URI '%s': %s", lraId, recoveryUrl, responseEntity);
+                    LRALogger.logger.infof(e, "join %s returned an invalid recovery URI '%s': %s", lraId, recoveryUrl,
+                            responseEntity);
                     throwGenericLRAException(null, Response.Status.SERVICE_UNAVAILABLE.getStatusCode(),
                             "join " + lraId + " returned an invalid recovery URI '" + recoveryUrl + "' : " + responseEntity, e);
                     return null;
                 }
-            // don't catch WebApplicationException, just let it propagate
+                // don't catch WebApplicationException, just let it propagate
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
                         .entity("join LRA client request timed out, try again later").build());
@@ -777,14 +779,14 @@ public class NarayanaLRAClient implements Closeable {
             String lraUid = LRAConstants.getLRAUid(lra);
             try {
                 response = client.target(coordinatorUrl)
-                    .path(confirm ? String.format(CLOSE_PATH, lraUid) : String.format(CANCEL_PATH, lraUid))
-                    .request()
-                    .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, LRAConstants.CURRENT_API_VERSION_STRING)
-                    .header(NARAYANA_LRA_PARTICIPANT_LINK_HEADER_NAME, compensator)
-                    .header(NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME, userData)
-                    .async()
-                    .put(Entity.text(""))
-                    .get(END_TIMEOUT, TimeUnit.SECONDS);
+                        .path(confirm ? String.format(CLOSE_PATH, lraUid) : String.format(CANCEL_PATH, lraUid))
+                        .request()
+                        .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, LRAConstants.CURRENT_API_VERSION_STRING)
+                        .header(NARAYANA_LRA_PARTICIPANT_LINK_HEADER_NAME, compensator)
+                        .header(NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME, userData)
+                        .async()
+                        .put(Entity.text(""))
+                        .get(END_TIMEOUT, TimeUnit.SECONDS);
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
                         .entity("end LRA client request timed out, try again later")
@@ -877,7 +879,8 @@ public class NarayanaLRAClient implements Closeable {
     public void close() {
     }
 
-    private void throwGenericLRAException(URI lraId, int statusCode, String message, Throwable cause) throws WebApplicationException {
+    private void throwGenericLRAException(URI lraId, int statusCode, String message, Throwable cause)
+            throws WebApplicationException {
         String errorMsg = String.format("%s: %s", lraId, message);
         throw new WebApplicationException(errorMsg, cause, Response.status(statusCode).entity(errorMsg).build());
     }

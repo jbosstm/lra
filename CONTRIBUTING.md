@@ -14,6 +14,8 @@ But first, read this page.
 We use a four step process for contributions:
 
 1. Fork the project repository to your own GitHub account.
+1. Make your changes.
+1. Build the project (`./mvnw clean package -DskipTests`) to apply the formatting rules.
 1. Commit your changes to your fork.
 1. Create a GitHub Pull Request for your change, following the instructions in the pull request template.
 1. Perform a Code Review with the project maintainers on the pull request.

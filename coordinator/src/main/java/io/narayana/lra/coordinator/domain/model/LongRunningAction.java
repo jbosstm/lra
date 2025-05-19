@@ -22,6 +22,7 @@ import io.narayana.lra.LRAData;
 import io.narayana.lra.logging.LRALogger;
 import io.narayana.lra.coordinator.domain.service.LRAService;
 
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 
 import jakarta.ws.rs.core.Response;
@@ -47,12 +48,16 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static io.narayana.lra.LRAConstants.ENLIST_PARTICIPANT_LOCK_TIMEOUT;
 import static jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
+import static jakarta.ws.rs.core.Response.Status.SERVICE_UNAVAILABLE;
 
 public class LongRunningAction extends BasicAction {
     private static final String LRA_TYPE = "/StateManager/BasicAction/LongRunningAction";
     private static final ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(10);
     public static final String DEACTIVATE_REASON = "deactivate failed";
+    private static final long participantEnlistTimeout = initParticipantEnlistTimeout();
+
     private URI id;
     private URI parentId;
     private String clientId;
@@ -63,6 +68,14 @@ public class LongRunningAction extends BasicAction {
     private ScheduledFuture<?> scheduledAbort;
     private final LRAService lraService;
     LRAParentAbstractRecord par;
+
+    private static long initParticipantEnlistTimeout() {
+        try {
+            return ConfigProvider.getConfig().getValue(ENLIST_PARTICIPANT_LOCK_TIMEOUT, Long.class);
+        } catch (Exception e) {
+            return 500; // the property is unset or there is no config provider so use the default value
+        }
+    }
 
     public LongRunningAction(LRAService lraService, String baseUrl, LongRunningAction parent, String clientId) throws URISyntaxException {
         super(new Uid());
@@ -442,6 +455,10 @@ public class LongRunningAction extends BasicAction {
         }
     }
 
+    protected ReentrantLock tryTimedLockTransaction(long timeout) {
+        return lraService.tryTimedLockTransaction(getId(), timeout);
+    }
+
     protected ReentrantLock tryLockTransaction() {
         return lraService.tryLockTransaction(getId());
     }
@@ -781,11 +798,11 @@ public class LongRunningAction extends BasicAction {
     public LRAParticipantRecord enlistParticipant(URI coordinatorUrl, String participantUrl, String recoveryUrlBase,
                                                   long timeLimit, String compensatorData, String version)
             throws UnsupportedEncodingException {
-        ReentrantLock lock = tryLockTransaction();
+        ReentrantLock lock = tryTimedLockTransaction(participantEnlistTimeout);
         if (lock == null) {
             String reason = LRALogger.i18nLogger.warn_enlistment();
             LRALogger.logger.warn(reason);
-            throw new ServiceUnavailableException(reason);
+            throw new WebApplicationException(reason, SERVICE_UNAVAILABLE);
         }
         else {
             try {

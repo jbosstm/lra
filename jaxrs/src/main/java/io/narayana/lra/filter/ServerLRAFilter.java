@@ -18,6 +18,7 @@ import jakarta.enterprise.context.ContextNotActiveException;
 import jakarta.ws.rs.core.Link;
 import jakarta.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.lra.annotation.AfterLRA;
 import org.eclipse.microprofile.lra.annotation.Compensate;
 import org.eclipse.microprofile.lra.annotation.Complete;
@@ -59,11 +60,13 @@ import java.util.regex.Pattern;
 import static io.narayana.lra.LRAConstants.AFTER;
 import static io.narayana.lra.LRAConstants.COMPENSATE;
 import static io.narayana.lra.LRAConstants.COMPLETE;
+import static io.narayana.lra.LRAConstants.ENLIST_PARTICIPANT_CLIENT_MAX_RETRY;
 import static io.narayana.lra.LRAConstants.FORGET;
 import static io.narayana.lra.LRAConstants.LEAVE;
 import static io.narayana.lra.LRAConstants.STATUS;
 import static io.narayana.lra.LRAConstants.TIMELIMIT_PARAM_NAME;
 import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
+import static jakarta.ws.rs.core.Response.Status.SERVICE_UNAVAILABLE;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_PARENT_CONTEXT_HEADER;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_RECOVERY_HEADER;
@@ -94,6 +97,10 @@ public class ServerLRAFilter implements ContainerRequestFilter, ContainerRespons
 
     @Inject
     LRAParticipantData data;
+
+    @Inject
+    @ConfigProperty(name = ENLIST_PARTICIPANT_CLIENT_MAX_RETRY, defaultValue = "3")
+    int enlistMaxRetries;
 
     private boolean isTxInvalid(ContainerRequestContext containerRequestContext, LRA.Type type, URI lraId,
                                 boolean shouldNotBeNull, ArrayList<Progress> progress) {
@@ -406,7 +413,19 @@ public class ServerLRAFilter implements ContainerRequestFilter, ContainerRespons
                     // store the registration link in case the participant wants to associate data with the enlistment in the LRA
                     containerRequestContext.setProperty(PARTICIPANT_LINK_PROP, compensatorLink);
 
-                    recoveryUrl = getLRAClient().enlistCompensator(lraId, timeLimit, compensatorLink, previousParticipantData);
+                    // The coordinator needs to hold a lock to enlist an participant. This lock is only waited on for a small amount of
+                    // time (potentially even zero time). This means if multiple participants try to enlist at the same time, enlistment
+                    // may fail. We therefore re-try a configurable amount of times.
+                    for (int i =0;; i++) {
+                        try {
+                            recoveryUrl = getLRAClient().enlistCompensator(lraId, timeLimit, compensatorLink, previousParticipantData);
+                            break;
+                        } catch (WebApplicationException e) {
+                            if (e.getResponse().getStatus() != SERVICE_UNAVAILABLE.getStatusCode() || i >= enlistMaxRetries) {
+                                throw e;
+                            }
+                        }
+                    }
 
                     if (previousParticipantData.length() != 0) {
                         // this participant has previously updated the LRAParticipantData bean so make it available for this invocation

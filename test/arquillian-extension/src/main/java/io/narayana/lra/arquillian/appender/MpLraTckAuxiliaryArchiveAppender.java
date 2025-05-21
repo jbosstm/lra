@@ -80,12 +80,7 @@ public class MpLraTckAuxiliaryArchiveAppender implements AuxiliaryArchiveAppende
                 // for WildFly we need dependencies to be part of the deployment's class path
                 .addAsManifestResource(new StringAsset(ManifestMF), "MANIFEST.MF");
 
-        // adding Narayana LRA filters under the client test deployment
-        String filtersAsset = String.format("%s%n%s",
-                io.narayana.lra.filter.ClientLRAResponseFilter.class.getName(),
-                io.narayana.lra.filter.ClientLRARequestFilter.class.getName());
         archive.addPackages(true, io.narayana.lra.filter.ClientLRARequestFilter.class.getPackage())
-                .addAsResource(new StringAsset(filtersAsset), "META-INF/services/jakarta.ws.rs.ext.Providers")
                 .addAsResource(new StringAsset("org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder"),
                         "META-INF/services/jakarta.ws.rs.client.ClientBuilder");
 

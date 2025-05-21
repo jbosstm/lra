@@ -62,15 +62,10 @@ public class FailingParticipantCallsIT extends TestBase {
 
             lra = URI.create(response.readEntity(String.class));
             lrasToAfterFinish.add(lra);
-        } finally {
-            if (response != null) {
-                response.close();
-            }
-        }
+            response.close();
 
-        new NarayanaLRARecovery().waitForRecovery(lra);
+            new NarayanaLRARecovery().waitForRecovery(lra);
 
-        try {
             response = client.target(UriBuilder.fromUri(baseURL.toExternalForm())
                     .path(FailingAfterLRAListener.ROOT_PATH).path("counter").build())
                     .request().get();
@@ -79,6 +74,9 @@ public class FailingParticipantCallsIT extends TestBase {
         } finally {
             if (response != null) {
                 response.close();
+            }
+            if (client != null) {
+                client.close();
             }
         }
 

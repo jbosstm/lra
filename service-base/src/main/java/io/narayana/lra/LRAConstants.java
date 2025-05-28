@@ -65,6 +65,16 @@ public final class LRAConstants {
     public static final long PARTICIPANT_TIMEOUT = 2;
     public static final String ALLOW_PARTICIPANT_DATA = "lra.participant.data";
 
+    /**
+     * Number of milliseconds for the coordinator to hold a lock for enlisting participants. Defaults to 500.
+     */
+    public static final String ENLIST_PARTICIPANT_LOCK_TIMEOUT = "lra.participant.lock.timeout";
+
+    /**
+     * Numbers of times a client participant tries to enlist with the coordinator before giving up. Defaults to 3.
+     */
+    public static final String ENLIST_PARTICIPANT_CLIENT_MAX_RETRY = "lra.participant.client.max.retry";
+
     private static final Pattern UID_REGEXP_EXTRACT_MATCHER = Pattern.compile(".*/([^/?]+).*");
 
     private LRAConstants() {

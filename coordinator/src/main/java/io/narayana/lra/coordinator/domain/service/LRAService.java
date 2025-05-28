@@ -8,6 +8,7 @@ package io.narayana.lra.coordinator.domain.service;
 import static jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
 import static jakarta.ws.rs.core.Response.Status.SERVICE_UNAVAILABLE;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
 
 import com.arjuna.ats.arjuna.common.Uid;
@@ -105,6 +106,17 @@ public class LRAService {
         ReentrantLock lock = locks.computeIfAbsent(lraId, k -> new ReentrantLock());
 
         return lock.tryLock() ? lock : null;
+    }
+
+    public synchronized ReentrantLock tryTimedLockTransaction(URI lraId, long timeout) {
+        ReentrantLock lock = locks.computeIfAbsent(lraId, k -> new ReentrantLock());
+
+        try {
+            return lock.tryLock(timeout, MILLISECONDS) ? lock : null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        }
     }
 
     public List<LRAData> getAll() {

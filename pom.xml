@@ -103,7 +103,7 @@
 
     <version.hamcrest>2.2</version.hamcrest>
     <version.httpcomponents>4.5.14</version.httpcomponents>
-    <version.io.narayana.checkstyle-config>1.0.2.Final-SNAPSHOT</version.io.narayana.checkstyle-config>
+    <version.io.narayana.checkstyle-config>1.0.1.Final</version.io.narayana.checkstyle-config>
     <version.io.netty>4.1.118.Final</version.io.netty>
 
     <version.io.smallrye.smallrye-config>3.2.0</version.io.smallrye.smallrye-config>

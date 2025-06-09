@@ -23,6 +23,23 @@
       <artifactId>microprofile-lra-api</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.eclipse.microprofile.config</groupId>
+      <artifactId>microprofile-config-api</artifactId>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.config</groupId>
+      <artifactId>smallrye-config</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.stork</groupId>
+      <artifactId>stork-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.stork</groupId>
+      <artifactId>stork-service-discovery-static-list</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.jboss.narayana.lra</groupId>
       <artifactId>lra-service-base</artifactId>
     </dependency>

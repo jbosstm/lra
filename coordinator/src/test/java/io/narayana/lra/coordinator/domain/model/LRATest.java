@@ -46,6 +46,7 @@ import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Link;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -89,6 +90,7 @@ public class LRATest extends LRATestBase {
     private Client client;
     private String coordinatorPath;
     private String recoveryPath;
+    int[] ports = { 8081, 8082 };
 
     @Rule
     public TestName testName = new TestName();
@@ -128,7 +130,26 @@ public class LRATest extends LRATestBase {
     public void before() {
         LRALogger.logger.debugf("Starting test %s", testName);
         clearObjectStore(testName);
-        server = new UndertowJaxrsServer().start();
+
+        servers = new UndertowJaxrsServer[ports.length];
+
+        StringBuilder sb = new StringBuilder();
+        String host = "localhost";
+
+        for (int i = 0; i < ports.length; i++) {
+            servers[i] = new UndertowJaxrsServer().setHostname(host).setPort(ports[i]);
+            try {
+                servers[i].start();
+            } catch (Exception e) {
+                LRALogger.logger.infof("before test %s: could not start server %s",
+                        testName.getMethodName(), e.getMessage());
+            }
+
+            sb.append(String.format("http://%s:%d/%s%s",
+                    host, ports[i], COORDINATOR_PATH_NAME, i + 1 < ports.length ? "," : ""));
+        }
+
+        System.setProperty(NarayanaLRAClient.COORDINATOR_URLS_KEY, sb.toString());
 
         lraClient = new NarayanaLRAClient();
 
@@ -139,27 +160,45 @@ public class LRATest extends LRATestBase {
         client = ClientBuilder.newClient();
         coordinatorPath = TestPortProvider.generateURL('/' + COORDINATOR_PATH_NAME);
         recoveryPath = coordinatorPath + "/recovery";
-        server.deploy(LRACoordinator.class);
-        server.deployOldStyle(LRAParticipant.class);
+
+        for (UndertowJaxrsServer server : servers) {
+            server.deploy(LRACoordinator.class);
+            server.deployOldStyle(LRAParticipant.class);
+        }
 
         service = LRARecoveryModule.getService();
 
-        assertNull(testName + ": current thread should not be associated with any LRAs", lraClient.getCurrent());
+        if (lraClient.getCurrent() != null) {
+            // clear it since it isn't caused by this test (tests do the assertNull in the @After test method)
+            LRALogger.logger.warnf("before test %s: current thread should not be associated with any LRAs",
+                    testName.getMethodName());
+            lraClient.clearCurrent(true);
+        }
     }
 
     @After
     public void after() {
-        LRALogger.logger.debugf("Finished test %s", testName);
-
-        if (lraClient.getCurrent() != null) {
-            lraClient.clearCurrent(false); // otherwise it will interfere with subsequent tests
-            fail(testName + ": current thread should not be associated with any LRAs");
+        URI uri = lraClient.getCurrent();
+        try {
+            if (uri != null) {
+                lraClient.clearCurrent(false);
+            }
+            lraClient.close();
+            client.close();
+            clearObjectStore(testName);
+        } catch (Exception e) {
+            LRALogger.logger.infof("after test %s: clean up %s", testName, e.getMessage());
+        } finally {
+            for (UndertowJaxrsServer server : servers) {
+                try {
+                    server.stop();
+                } catch (Exception e) {
+                    LRALogger.logger.infof("after test %s: could not stop server %s", testName, e.getMessage());
+                }
+            }
+            assertNull(testName.getMethodName() + ": current thread should not be associated with any LRAs",
+                    uri);
         }
-
-        lraClient.close();
-        client.close();
-        clearObjectStore(testName);
-        server.stop();
     }
 
     // test that it is safe to run periodic recovery scans on the LRARecoveryModule in parallel
@@ -802,9 +841,9 @@ public class LRATest extends LRATestBase {
                 .queryParam("cancel", childCancelEarly)
                 .request().header(LRA_HTTP_CONTEXT_HEADER, parent).put(Entity.text(parent))) {
             child = childResponse.readEntity(String.class);
+            assertNotNull("start child failed: ", child);
+            child = UriBuilder.fromUri(child).replaceQuery(null).build().toASCIIString();
         }
-
-        assertNotNull("start child failed: ", child);
 
         if (childCancelEarly) {
             // the child is canceled and the parent is active
@@ -1089,6 +1128,31 @@ public class LRATest extends LRATestBase {
     }
 
     @Test
+    public void testChild() {
+        URI parentId = lraClient.startLRA("parent");
+        URI childId = lraClient.startLRA(parentId, "child", 0L, ChronoUnit.SECONDS);
+
+        lraClient.closeLRA(parentId);
+
+        assertTrue("parent did not finish", isFinished(parentId));
+        assertTrue("child did not finish", isFinished(childId));
+
+        try {
+            LRAStatus cStatus = lraClient.getStatus(childId);
+            assertEquals("child did not close: " + cStatus, LRAStatus.Closed, cStatus);
+        } catch (NotFoundException ignore) {
+            // must have been cleaned up by the coordinator after it closed
+        }
+
+        try {
+            LRAStatus pStatus = lraClient.getStatus(parentId);
+            assertEquals("parent did not close: " + pStatus, LRAStatus.Closed, pStatus);
+        } catch (NotFoundException ignore) {
+            // must have been cleaned up by the coordinator after it closed
+        }
+    }
+
+    @Test
     public void testClose() {
         runLRA(false);
     }
@@ -1096,6 +1160,52 @@ public class LRATest extends LRATestBase {
     @Test
     public void testCancel() {
         runLRA(true);
+    }
+
+    @Test
+    public void testMultipleCoordinators() {
+        URI lra1 = lraClient.startLRA("testTwo_first");
+        Current.pop();
+        URI lra2 = lraClient.startLRA("testTwo_second");
+        Current.pop();
+
+        // verify that the two LRAs were load balanced in a round robbin fashion:
+        assertNotEquals("LRAs should have been created by different coordinators",
+                lra1.getPort(), lra2.getPort());
+
+        try {
+            lraClient.closeLRA(lra1);
+        } catch (WebApplicationException e) {
+            fail("close first LRA failed: " + e.getMessage());
+        } finally {
+            try {
+                lraClient.closeLRA(lra2);
+            } catch (WebApplicationException e2) {
+                fail("close second LRA failed: " + e2.getMessage());
+            }
+        }
+
+        LRAStatus status1 = getStatus(lra1);
+        LRAStatus status2 = getStatus(lra2);
+
+        assertTrue("1st LRA finished in wrong state", status1 == null || status1 == LRAStatus.Closed);
+        assertTrue("2nd LRA finished in wrong state", status2 == null || status2 == LRAStatus.Closed);
+    }
+
+    @Test
+    public void testLoadSharing() {
+        URI prev = null;
+
+        for (int i = 0; i < 3; i++) {
+            URI lra = lraClient.startLRA(Integer.toString(i));
+
+            lraClient.closeLRA(lra);
+
+            if (prev != null) {
+                assertNotEquals(prev.getPort(), lra.getPort());
+            }
+            prev = lra;
+        }
     }
 
     @Test
@@ -1375,7 +1485,13 @@ public class LRATest extends LRATestBase {
     }
 
     private boolean isFinished(URI lra) {
-        LRAStatus status = getStatus(lra);
+        LRAStatus status;
+
+        try {
+            status = getStatus(lra);
+        } catch (NotFoundException e) {
+            status = null; // most likely finished already
+        }
 
         return status == null
                 || status == LRAStatus.Closed || status == LRAStatus.Cancelled

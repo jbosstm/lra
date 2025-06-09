@@ -55,7 +55,7 @@ import org.junit.rules.TestName;
 
 public class LRATestBase {
 
-    protected static UndertowJaxrsServer server;
+    protected static UndertowJaxrsServer[] servers;
     static final AtomicInteger compensateCount = new AtomicInteger(0);
     static final AtomicInteger fallbackCompensateCount = new AtomicInteger(0);
     static final AtomicInteger completeCount = new AtomicInteger(0);
@@ -163,7 +163,9 @@ public class LRATestBase {
                 @DefaultValue("false") @QueryParam("cancel") Boolean cancel) {
             status = LRAStatus.Active;
 
-            server.stop(); //simulate a server crash
+            for (UndertowJaxrsServer server : servers) {
+                server.stop(); //simulate a server crash
+            }
 
             return getResult(cancel, contextId);
         }

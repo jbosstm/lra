@@ -88,8 +88,11 @@ public class LongRunningAction extends BasicAction {
         this.lraService = lraService;
 
         if (parent != null) {
-            this.id = Current.buildFullLRAUrl(String.format("%s/%s", baseUrl, get_uid().fileStringForm()), parent.getId());
             this.parentId = parent.getId();
+            // encode the parent in the child URI (by rights we'd use LRA_HTTP_PARENT_CONTEXT_HEADER)
+            // the parent is used by children to contact parents in certain scenarios
+            // BTW  this technique is historical and needs to be changed to use the header
+            this.id = Current.buildFullLRAUrl(String.format("%s/%s", baseUrl, get_uid().fileStringForm()), parent.getId());
         } else {
             this.id = new URI(String.format("%s/%s", baseUrl, get_uid().fileStringForm()));
         }

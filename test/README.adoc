@@ -37,14 +37,14 @@ The Failsafe Plugin link:../pom.xml[is configured] to run tests with names
 The module is configured to run with https://www.wildfly.org[WildFly] application runtime.
 
 The **WildFly** runtime is used through the 'arq' profile. Two instances of Wildfly are initiated:
- * The first instance is started using WildFly Maven Plugin, then the LRA coordinator is deployed using the WAR produced
- by the module `lra/lra-coordinator-war`
+ * The first instance is started using WildFly Maven Plugin, then, if the 'deploy.lra.coordinator' profile is activated,  
+ the LRA coordinator is deployed using the WAR produced by the module `lra/lra-coordinator-war`
  * The second instance is started using Arquillian, then an LRA participant is deployed
 Moreover, the testing class is hosted on separated JVM.
 
 === Running tests with WildFly
 
-To start all integration tests:
+To start all integration tests, testing with the build-in coordinator of WildFly:
 
 [source,sh]
 ----
@@ -52,8 +52,20 @@ export JBOSS_HOME=<path-to-wildfly-distribution-directory>
 mvn clean verify -Parq
 
 # single test in one module
-mvn clean verify -Parq -pl basic -Dit.test=FailedLRAIT
+mvn clean verify -Parq -pl :lra-test-basic -Dit.test=FailedLRAIT
 ----
+
+To start all integration tests, testing with the coordinator that was build by the module `lra/lra-coordinator-war`:
+
+[source,sh]
+----
+export JBOSS_HOME=<path-to-wildfly-distribution-directory>
+mvn clean verify -Parq,deploy.lra.coordinator
+
+# single test in one module
+mvn clean verify -Parq,deploy.lra.coordinator -pl :lra-test-basic -Dit.test=FailedLRAIT#testWithStatusCompensateFailed
+----
+
 
 .Configuration options of WildFly
 |===

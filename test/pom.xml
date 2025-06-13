@@ -70,7 +70,7 @@
           <redirectTestOutputToFile>${test.logs.to.file}</redirectTestOutputToFile>
           <systemPropertyVariables combine="merge">
             <jvm.args.debug>${jvm.args.debug}</jvm.args.debug>
-            <lra.coordinator.debug.params>${lra.coordinator.debug.params}</lra.coordinator.debug.params>
+            <lra.coordinator.debug.params></lra.coordinator.debug.params>
             <!-- failsafe test startup logging configuration-->
             <java.util.logging.config.file>src/test/resources/logging.properties</java.util.logging.config.file>
             <!-- host and port where to find the test application -->
@@ -100,32 +100,43 @@
       </modules>
       <properties>
         <config.to.replace>standalone.xml</config.to.replace>
+
         <!-- Qualifier of the container hosting lra-coordinator -->
         <lra.coordinator.container.qualifier>lra-coordinator-server</lra.coordinator.container.qualifier>
+
         <!-- Qualifier of the lra-coordinator of the deployment -->
         <lra.coordinator.deployment.qualifier>lra-coordinator</lra.coordinator.deployment.qualifier>
+
         <!-- The path where the Object Store of the coordinator should be saved -->
         <lra.coordinator.object.store.path>${project.build.directory}/wfly_lra_objectstore</lra.coordinator.object.store.path>
+
         <!-- the AppServerCoordinatorDeploymentObserver creates the deployment named 'lra-coordinator' and deploys it to the app server,
              the last part of the path with value 'lra-coordinator' is defined by LRA coordinator JAX-RS endpoint -->
         <lra.coordinator.url>http://${lra.coordinator.host}:${lra.coordinator.port}/lra-coordinator/lra-coordinator</lra.coordinator.url>
         <lra.coordinator.war.name>lra-coordinator.war</lra.coordinator.war.name>
+
         <!-- The following filename is used for starting the WildFly instance that hosts the LRA coordinator; this file is a copy of the
              standalone.xml file provided in WildFly (${env.JBOSS_HOME}/standalone/configuration/standalone.xml). Please, see the plugins
              section of this profile (specifically, maven-antrun-plugin) for further info -->
         <lra.coordinator.xml.filename>lra-coordinator.xml</lra.coordinator.xml.filename>
+
         <!-- Qualifier of the container hosting lra-participant -->
         <lra.participant.container.qualifier>lra-participant-server</lra.participant.container.qualifier>
+
         <!-- Qualifier of the lra-participant of the deployment -->
         <lra.participant.deployment.qualifier>lra-participant</lra.participant.deployment.qualifier>
+
         <!-- The following filename is used for starting the WildFly instance that hosts the LRA participant; this file is a copy of the
              standalone.xml file provided in WildFly (${env.JBOSS_HOME}/standalone/configuration/standalone.xml). Please, see the plugins
              section of this profile (specifically, maven-antrun-plugin) for further info -->
         <lra.participant.xml.filename>lra-participant.xml</lra.participant.xml.filename>
+
         <server.jvm.object.store.arg>-DObjectStoreEnvironmentBean.objectStoreDir=${lra.coordinator.object.store.path}</server.jvm.object.store.arg>
         <skip.wildfly.plugin>true</skip.wildfly.plugin>
+
         <!-- where the WFLY test application will be started at (the coordinator is war deployed for the same app server at the same port) -->
         <test.application.port>8080</test.application.port>
+
         <!-- this property is only used in direct submodules, if used outside this scope it needs to be redefined -->
         <wildfly.trace.logging.cli.script>${project.basedir}/../wildfly-trace-logging.cli</wildfly.trace.logging.cli.script>
       </properties>
@@ -182,15 +193,19 @@
                 </goals>
                 <phase>generate-test-resources</phase>
                 <configuration>
-                  <target>
+                  <target xmlns:if="ant:if" xmlns:unless="ant:unless">
                     <zip basedir="../../" destfile="../../ObjectStore-${project.artifactId}.zip" includes="ObjectStore" whenempty="skip"></zip>
                     <delete dir="../../ObjectStore" failonerror="false"></delete>
+
                     <!-- We overwrite the config files as the config.to.replace can be different in different modules and without overwrite being the case, then the file will not be written over -->
                     <copy file="${env.JBOSS_HOME}/standalone/configuration/${config.to.replace}" overwrite="true" tofile="${env.JBOSS_HOME}/standalone/configuration/${lra.coordinator.xml.filename}"></copy>
                     <copy file="${env.JBOSS_HOME}/standalone/configuration/${config.to.replace}" overwrite="true" tofile="${env.JBOSS_HOME}/standalone/configuration/${lra.participant.xml.filename}"></copy>
-                    <replace file="${env.JBOSS_HOME}/standalone/configuration/${lra.coordinator.xml.filename}" token="org.wildfly.extension.microprofile.jwt-smallrye" value="org.wildfly.extension.microprofile.jwt-smallrye&quot;/&gt;&#xA;&lt;extension module=&quot;org.wildfly.extension.microprofile.lra-coordinator&quot;/&gt;&#xA;&lt;extension module=&quot;org.wildfly.extension.microprofile.openapi-smallrye"></replace>
-                    <replace file="${env.JBOSS_HOME}/standalone/configuration/${lra.coordinator.xml.filename}" token="subsystem xmlns=&quot;urn:wildfly:microprofile-jwt-smallrye:1.0" value="subsystem xmlns=&quot;urn:wildfly:microprofile-jwt-smallrye:1.0&quot;/&gt;&#xA;&lt;subsystem xmlns=&quot;urn:wildfly:microprofile-lra-coordinator:1.0&quot;/&gt;&#xA;&lt;subsystem xmlns=&quot;urn:wildfly:microprofile-openapi-smallrye:1.0"></replace>
-                    <replace file="${env.JBOSS_HOME}/standalone/configuration/${lra.coordinator.xml.filename}" token="object-store path=&quot;tx-object-store" value="object-store path=&quot;wfly_lra_objectstore"></replace>
+
+                    <!-- Activate the build-in LRA coordinator in WildFly, unless we're deploying the one we just build. -->
+                    <replace file="${env.JBOSS_HOME}/standalone/configuration/${lra.coordinator.xml.filename}" unless:set="deploy.coordinator" token="org.wildfly.extension.microprofile.jwt-smallrye" value="org.wildfly.extension.microprofile.jwt-smallrye&quot;/&gt;&#xA;&lt;extension module=&quot;org.wildfly.extension.microprofile.lra-coordinator&quot;/&gt;&#xA;&lt;extension module=&quot;org.wildfly.extension.microprofile.openapi-smallrye"></replace>
+                    <replace file="${env.JBOSS_HOME}/standalone/configuration/${lra.coordinator.xml.filename}" unless:set="deploy.coordinator" token="subsystem xmlns=&quot;urn:wildfly:microprofile-jwt-smallrye:1.0" value="subsystem xmlns=&quot;urn:wildfly:microprofile-jwt-smallrye:1.0&quot;/&gt;&#xA;&lt;subsystem xmlns=&quot;urn:wildfly:microprofile-lra-coordinator:1.0&quot;/&gt;&#xA;&lt;subsystem xmlns=&quot;urn:wildfly:microprofile-openapi-smallrye:1.0"></replace>
+                    <replace file="${env.JBOSS_HOME}/standalone/configuration/${lra.coordinator.xml.filename}" unless:set="deploy.coordinator" token="object-store path=&quot;tx-object-store" value="object-store path=&quot;wfly_lra_objectstore"></replace>
+
                   </target>
                 </configuration>
               </execution>
@@ -226,17 +241,16 @@
                   <jbossHome>${env.JBOSS_HOME}</jbossHome>
                   <serverConfig>${lra.coordinator.xml.filename}</serverConfig>
                   <javaOpts>${server.jvm.args} ${server.jvm.object.store.arg} ${lra.coordinator.debug.params}</javaOpts>
-                  <force>true</force>
                 </configuration>
               </execution>
 
-              <!-- Undeploys and Shutdowns Wildfly -->
+              <!-- Shutdowns Wildfly -->
               <execution>
-                <id>undeploy</id>
+                <id>shutdown</id>
                 <goals>
                   <goal>shutdown</goal>
                 </goals>
-                <phase>post-integration-test</phase>
+                <phase>verify</phase>
               </execution>
             </executions>
           </plugin>
@@ -288,6 +302,83 @@
       </properties>
     </profile>
 
+    <!-- 
+      This profile will deploy the coordinator build by this project as a war file.
+      If not activated, the tests will use the build-in coordinator of the target WildFly instance 
+      (so whatever has been build for the coordinator would be ignored then) 
+    -->
+    <profile>
+      <id>deploy.lra.coordinator</id>
+      <activation>
+        <property>
+          <name>deploy.coordinator</name>
+        </property>
+      </activation>
+      <properties>
+        <deploy.coordinator>true</deploy.coordinator>
+      </properties>
+
+      <dependencies>
+        <dependency>
+          <groupId>org.jboss.narayana.lra</groupId>
+          <artifactId>lra-coordinator-war</artifactId>
+          <type>war</type>
+        </dependency>
+      </dependencies>
+
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.wildfly.plugins</groupId>
+            <artifactId>wildfly-maven-plugin</artifactId>
+            <version>${version.wildfly-maven-plugin}</version>
+            <configuration>
+              <skip>${skip.wildfly.plugin}</skip>
+            </configuration>
+
+            <executions>
+              <!-- Deploys to Wildfly -->
+              <execution>
+                <id>start</id>
+                <goals>
+                  <goal>deploy-artifact</goal>
+                </goals>
+                <phase>pre-integration-test</phase>
+                <configuration>
+                  <groupId>org.jboss.narayana.lra</groupId>
+                  <artifactId>lra-coordinator-war</artifactId>
+                  <name>${lra.coordinator.war.name}</name>
+                  <force>true</force>
+                </configuration>
+              </execution>
+
+              <!-- Undeploys Wildfly -->
+              <execution>
+                <id>undeploy</id>
+                <goals>
+                  <goal>undeploy</goal>
+                </goals>
+                <phase>post-integration-test</phase>
+                <configuration>
+                  <name>lra-coordinator.war</name>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <excludes>
+                <exclude>**/LRACoordinatorRecoveryIT.java</exclude>
+              </excludes>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
     <profile>
       <id>trace.lra</id>
       <activation>
@@ -323,12 +414,14 @@
         </plugins>
       </build>
     </profile>
+
     <profile>
       <id>codeCoverage</id>
       <properties>
         <server.jvm.args>${jvm.args.other} ${jvm.args.memory} ${jvm.args.jacoco} ${jvm.args.modular}</server.jvm.args>
       </properties>
     </profile>
+
     <profile>
       <id>release</id>
       <build>

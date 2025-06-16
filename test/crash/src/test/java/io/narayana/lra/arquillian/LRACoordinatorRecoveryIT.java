@@ -5,26 +5,17 @@
 
 package io.narayana.lra.arquillian;
 
+import static io.narayana.lra.arquillian.resource.LRAListener.LRA_LISTENER_UNTIMED_ACTION;
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
 import io.narayana.lra.LRAData;
 import io.narayana.lra.arquillian.resource.LRAListener;
 import io.narayana.lra.client.internal.NarayanaLRAClient;
 import io.narayana.lra.coordinator.domain.model.LongRunningAction;
 import io.narayana.lra.logging.LRALogger;
-import org.eclipse.microprofile.lra.annotation.LRAStatus;
-import org.jboss.arquillian.container.test.api.Deployment;
-import org.jboss.arquillian.container.test.api.OperateOnDeployment;
-import org.jboss.arquillian.container.test.api.RunAsClient;
-import org.jboss.arquillian.container.test.api.TargetsContainer;
-import org.jboss.arquillian.test.api.ArquillianResource;
-import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
@@ -47,12 +38,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
-
-import static io.narayana.lra.arquillian.resource.LRAListener.LRA_LISTENER_UNTIMED_ACTION;
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import org.eclipse.microprofile.lra.annotation.LRAStatus;
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.container.test.api.OperateOnDeployment;
+import org.jboss.arquillian.container.test.api.RunAsClient;
+import org.jboss.arquillian.container.test.api.TargetsContainer;
+import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestName;
 
 /**
  * This test class testes that an LRA is cancelled after lra-coordinator is restarted.
@@ -141,7 +140,8 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
     }
 
     @Test
-    public void lraCoordinatorShortTimeoutLRA(@ArquillianResource @OperateOnDeployment(LRA_PARTICIPANT_DEPLOYMENT_QUALIFIER) URL baseURL)
+    public void lraCoordinatorShortTimeoutLRA(
+            @ArquillianResource @OperateOnDeployment(LRA_PARTICIPANT_DEPLOYMENT_QUALIFIER) URL baseURL)
             throws URISyntaxException {
 
         String lraId;
@@ -180,12 +180,15 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
         // Verifies that the resource was notified that the LRA finished
         String listenerStatus = getStatusFromListener(lraListenerURI);
 
-        assertEquals(String.format("The service lra-listener should have been told that the final state of the LRA %s was cancelled", lraId),
+        assertEquals(
+                String.format("The service lra-listener should have been told that the final state of the LRA %s was cancelled",
+                        lraId),
                 LRAStatus.Cancelled.name(), listenerStatus);
     }
 
     @Test
-    public void lraCoordinatorRecoveryTwoLRAs(@ArquillianResource @OperateOnDeployment(LRA_PARTICIPANT_DEPLOYMENT_QUALIFIER) URL deploymentUrl)
+    public void lraCoordinatorRecoveryTwoLRAs(
+            @ArquillianResource @OperateOnDeployment(LRA_PARTICIPANT_DEPLOYMENT_QUALIFIER) URL deploymentUrl)
             throws URISyntaxException {
 
         URI lraListenerURI = UriBuilder.fromUri(deploymentUrl.toURI()).path(LRAListener.LRA_LISTENER_PATH).build();
@@ -235,7 +238,8 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
             try {
                 Thread.sleep(millis);
             } catch (InterruptedException ex) {
-                LRALogger.logger.errorf("An exception has been thrown while the test was trying to wait for %d milliseconds", millis);
+                LRALogger.logger.errorf("An exception has been thrown while the test was trying to wait for %d milliseconds",
+                        millis);
                 Assert.fail();
             }
         }
@@ -252,7 +256,8 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
                 .request()
                 .get()) {
 
-            Assert.assertEquals("Unexpected status from recovery call to " + lraClient.getRecoveryUrl(), 200, response.getStatus());
+            Assert.assertEquals("Unexpected status from recovery call to " + lraClient.getRecoveryUrl(), 200,
+                    response.getStatus());
 
             // The result will be a List<LRAStatusHolder> of recovering LRAs but we just need the count
             String recoveringLRAs = response.readEntity(String.class);
@@ -289,7 +294,10 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
     }
 
     /**
-     * <p>This method fetches the first LRA transaction from the File-System Object Store (ShadowNoFileLockStore).</p>
+     * <p>
+     * This method fetches the first LRA transaction from the File-System Object Store (ShadowNoFileLockStore).
+     * </p>
+     *
      * @return The ID of the first LRA transaction
      */
     String getFirstLRAFromFS() {
@@ -305,7 +313,10 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
     }
 
     /**
-     * <p>This method fetches the last LRA transaction from lra-coordinator.</p>
+     * <p>
+     * This method fetches the last LRA transaction from lra-coordinator.
+     * </p>
+     *
      * @return The ID of the last LRA transaction
      */
     String getLastLRAFromObjectStore() {
@@ -322,7 +333,8 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
     }
 
     /**
-     * <p>This method physically deletes the folder (and all its content) where the File-System Object Store is used.
+     * <p>
+     * This method physically deletes the folder (and all its content) where the File-System Object Store is used.
      */
     private void clearRecoveryLogFromFS() {
         try (Stream<Path> recoveryLogFiles = Files.walk(storeDir)) {
@@ -332,12 +344,13 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
                     .forEach(File::delete);
         } catch (IOException ioe) {
             // transaction logs will only exists after there has been a previous run
-            LRALogger.logger.debugf(ioe,"Cannot finish delete operation on recovery log dir '%s'", storeDir);
+            LRALogger.logger.debugf(ioe, "Cannot finish delete operation on recovery log dir '%s'", storeDir);
         }
     }
 
     /**
-     * <p>This method deletes LRA transactions through lra-coordinator.
+     * <p>
+     * This method deletes LRA transactions through lra-coordinator.
      */
     private void clearRecoveryLogFromObjectStore() {
 

@@ -19,7 +19,9 @@ public class Deployer {
         return ShrinkWrap.create(WebArchive.class, appName + ".war")
                 .addPackages(true,
                         "org.eclipse.microprofile.lra",
-                        "io.narayana.lra.client.internal.proxy")
+                        "io.narayana.lra.client.internal.proxy",
+                        "io.smallrye.stork",
+                        "io.smallrye.mutiny") // try to pull in everything under mutiny)
                 .addPackages(false,
                         "io.narayana.lra",
                         "io.narayana.lra.logging",
@@ -27,7 +29,14 @@ public class Deployer {
                         "io.narayana.lra.provider",
                         "io.narayana.lra.client",
                         "io.narayana.lra.client.internal",
-                        "io.narayana.lra.arquillian.spi")
+                        "io.narayana.lra.arquillian.spi",
+                        "io.smallrye.stork",
+                        "io.smallrye.mutiny", // recursive addPacakges doesn't seem to resolve the missing classes, so:
+                        "io.smallrye.mutiny.helpers",
+                        "io.smallrye.mutiny.operators.multi",
+                        "io.smallrye.mutiny.subscription",
+                        "io.smallrye.mutiny.helpers.spies",
+                        "io.smallrye.mutiny.helpers.test")
                 // adds the TestBase class, the test class itself seems to be uploaded during deployment by Arquillian
                 // then it requires the parent class as well, otherwise Weld NoClassDefFoundError is shown
                 .addClass(TestBase.class)

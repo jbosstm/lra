@@ -5,19 +5,18 @@
 
 package io.narayana.lra.arquillian.resource;
 
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
+
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Response;
+import java.net.URI;
 import org.eclipse.microprofile.lra.annotation.AfterLRA;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
-
-import java.net.URI;
-
-import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
 
 @Path(LRAListener.LRA_LISTENER_PATH)
 public class LRAListener {

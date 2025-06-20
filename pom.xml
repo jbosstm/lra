@@ -107,6 +107,7 @@
     <version.io.netty>4.1.118.Final</version.io.netty>
 
     <version.io.smallrye.smallrye-config>3.2.0</version.io.smallrye.smallrye-config>
+    <version.io.smallrye.smallrye-stork>2.7.0</version.io.smallrye.smallrye-stork>
     <version.io.undertow>2.3.18.Final</version.io.undertow>
     <version.jakarta.enterprise>4.0.0</version.jakarta.enterprise>
     <version.jakarta.inject.jakarta.inject-api>2.0.1</version.jakarta.inject.jakarta.inject-api>
@@ -290,6 +291,16 @@
             <artifactId>jakarta.enterprise.cdi-api</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>io.smallrye.stork</groupId>
+        <artifactId>stork-core</artifactId>
+        <version>${version.io.smallrye.smallrye-stork}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.smallrye.stork</groupId>
+        <artifactId>stork-service-discovery-static-list</artifactId>
+        <version>${version.io.smallrye.smallrye-stork}</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse.microprofile.fault-tolerance</groupId>

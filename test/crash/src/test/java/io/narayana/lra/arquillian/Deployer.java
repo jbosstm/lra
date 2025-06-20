@@ -31,10 +31,10 @@ public class Deployer {
                         .withoutTransitivity().asFile())
                 // Support libraries from the local store of Maven
                 .addAsLibraries(Maven.configureResolver()
-                                .workOffline()
-                                .withMavenCentralRepo(false)
-                                .withClassPathResolution(true)
-                                .resolve("org.jboss.narayana.lra:lra-service-base:" + projectVersion,
+                        .workOffline()
+                        .withMavenCentralRepo(false)
+                        .withClassPathResolution(true)
+                        .resolve("org.jboss.narayana.lra:lra-service-base:" + projectVersion,
                                 "org.jboss.narayana.lra:lra-proxy-api:" + projectVersion,
                                 "org.jboss.narayana.lra:lra-client:" + projectVersion,
                                 "org.jboss.narayana.lra:narayana-lra:" + projectVersion)
@@ -44,6 +44,6 @@ public class Deployer {
                         new StringAsset("Dependencies: org.jboss.jandex, org.jboss.logging\n"),
                         "MANIFEST.MF")
                 // Adds an empty beans.xml to activate the bean in discovery-mode set to "all"
-                .addAsWebInfResource(EmptyAsset.INSTANCE,"beans.xml");
+                .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
     }
 }

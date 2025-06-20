@@ -71,7 +71,9 @@ public class MpLraTckAuxiliaryArchiveAppender implements AuxiliaryArchiveAppende
                         "org.eclipse.microprofile.lra")
                 .addPackages(true,
                         "io.narayana.lra.client.internal.proxy",
-                        "org.eclipse.microprofile.lra.annotation")
+                        "org.eclipse.microprofile.lra.annotation",
+                        "io.smallrye.stork",
+                        "io.smallrye.mutiny.helpers")
                 // registration of LRACDIExtension as Weld extension to be booted-up
                 .addAsResource("META-INF/services/jakarta.enterprise.inject.spi.Extension")
                 // explicitly define to work with annotated beans
@@ -79,7 +81,9 @@ public class MpLraTckAuxiliaryArchiveAppender implements AuxiliaryArchiveAppende
                         "beans.xml")
                 // for WildFly we need dependencies to be part of the deployment's class path
                 .addAsManifestResource(new StringAsset(ManifestMF), "MANIFEST.MF");
-
+        // add MP config properties file
+        archive.addAsResource(new StringAsset("lra.coordinator.urls=http://localhost:50000, http://localhost:50001"),
+                "META-INF/microprofile-config.properties");
         archive.addPackages(true, io.narayana.lra.filter.ClientLRARequestFilter.class.getPackage())
                 .addAsResource(new StringAsset("org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder"),
                         "META-INF/services/jakarta.ws.rs.client.ClientBuilder");

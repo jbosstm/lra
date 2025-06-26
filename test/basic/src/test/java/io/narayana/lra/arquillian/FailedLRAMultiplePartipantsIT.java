@@ -13,6 +13,8 @@ import static io.narayana.lra.arquillian.resource.LRAMultipleParticipant1Initiat
 import static jakarta.ws.rs.core.Response.Status.NO_CONTENT;
 import static org.eclipse.microprofile.lra.annotation.LRAStatus.FailedToCancel;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import io.narayana.lra.LRAConstants;
 import io.narayana.lra.arquillian.resource.LRAMultipleParticipant1Initiator;
@@ -80,13 +82,12 @@ public class FailedLRAMultiplePartipantsIT extends TestBase {
 
         String status = getLraEndStatus(LRA_PARTICIPANT_PATH, LRA_END_STATUS, lraId);
 
+        assertEquals("FailedToCancel", status);
+
         log.infov("Received status {0} (should be FailedToCancel)", status);
 
         if (!validateStateAndRemove(lraId, FailedToCancel)) {
-            log.info("lra not in failed list (should have been)");
-
-            // TODO: fail test after fix
-            // fail("lra not in failed list");
+            fail("lra not in failed list (should have been)");
         }
     }
 

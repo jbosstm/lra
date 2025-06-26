@@ -147,6 +147,7 @@ public class LongRunningAction extends BasicAction {
                 getHttpStatus());
     }
 
+    @Override
     public boolean save_state(OutputObjectState os, int ot) {
         if (!super.save_state(os, ot)
                 || !save_list(os, ot, pendingList)) { // other lists are maintained in BasicAction
@@ -254,6 +255,7 @@ public class LongRunningAction extends BasicAction {
         return true;
     }
 
+    @Override
     public boolean restore_state(InputObjectState os, int ot) {
 
         if (!super.restore_state(os, ot)
@@ -393,6 +395,7 @@ public class LongRunningAction extends BasicAction {
         return LRA_TYPE;
     }
 
+    @Override
     public String type() {
         return getType();
     }
@@ -765,9 +768,34 @@ public class LongRunningAction extends BasicAction {
     protected boolean endStateCheck() {
         // update the status first by checking for heuristics and failed participants
         if (status == LRAStatus.Cancelling && allFinished(heuristicList, failedList)) {
-            return updateState((failedList == null || failedList.size() == 0) ? LRAStatus.Cancelled : LRAStatus.FailedToCancel);
-        } else if (status == LRAStatus.Closing && allFinished(heuristicList, failedList)) {
-            return updateState((failedList == null || failedList.size() == 0) ? LRAStatus.Closed : LRAStatus.FailedToClose);
+            return updateState(hasFailure(heuristicList, failedList) ? LRAStatus.FailedToCancel : LRAStatus.Cancelled);
+        }
+
+        if (status == LRAStatus.Closing && allFinished(heuristicList, failedList)) {
+            return updateState(hasFailure(heuristicList, failedList) ? LRAStatus.FailedToClose : LRAStatus.Closed);
+        }
+
+        return false;
+    }
+
+    private boolean hasFailure(RecordList heuristicList, RecordList failedList) {
+        if (failedList != null && failedList.size() > 0) {
+            return true;
+        }
+
+        if (heuristicList == null || heuristicList.size() == 0) {
+            return false;
+        }
+
+        RecordListIterator iterator = new RecordListIterator(heuristicList);
+        AbstractRecord participantRecord;
+
+        while ((participantRecord = iterator.iterate()) != null) {
+            if (participantRecord instanceof LRAParticipantRecord) {
+                if (((LRAParticipantRecord) participantRecord).isFailed()) {
+                    return true;
+                }
+            }
         }
 
         return false;

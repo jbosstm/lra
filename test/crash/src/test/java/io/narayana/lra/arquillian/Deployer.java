@@ -21,6 +21,9 @@ public class Deployer {
 
         return ShrinkWrap.create(WebArchive.class, appName + ".war")
 
+                .addPackages(true,
+                        "io.smallrye.stork",
+                        "io.smallrye.mutiny")
                 // Additional Services to deploy
                 .addClasses(classes)
                 // Support libraries

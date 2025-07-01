@@ -7,7 +7,6 @@ package io.narayana.lra.arquillian;
 
 import static io.narayana.lra.LRAConstants.RECOVERY_COORDINATOR_PATH_NAME;
 import static io.narayana.lra.arquillian.resource.LRAMultipleParticipant1Initiator.BASE_URL_PARAM;
-import static io.narayana.lra.arquillian.resource.LRAMultipleParticipant1Initiator.LRA_END_STATUS;
 import static io.narayana.lra.arquillian.resource.LRAMultipleParticipant1Initiator.LRA_PARTICIPANT_PATH;
 import static io.narayana.lra.arquillian.resource.LRAMultipleParticipant1Initiator.TRANSACTIONAL_START_PATH;
 import static jakarta.ws.rs.core.Response.Status.NO_CONTENT;
@@ -80,11 +79,23 @@ public class FailedLRAMultiplePartipantsIT extends TestBase {
 
         lrasToAfterFinish.add(lraId);
 
-        String status = getLraEndStatus(LRA_PARTICIPANT_PATH, LRA_END_STATUS, lraId);
+        String status1 = getLraEndStatus(
+                LRAMultipleParticipant1Initiator.LRA_PARTICIPANT_PATH,
+                LRAMultipleParticipant1Initiator.LRA_END_STATUS,
+                lraId);
 
-        assertEquals("FailedToCancel", status);
+        assertEquals("FailedToCancel", status1);
 
-        log.infov("Received status {0} (should be FailedToCancel)", status);
+        log.infov("Received status 1 {0} (should be FailedToCancel)", status1);
+
+        String status2 = getLraEndStatus(
+                LRAMultipleParticipant2.LRA_PARTICIPANT_PATH,
+                LRAMultipleParticipant2.LRA_END_STATUS,
+                lraId);
+
+        assertEquals("FailedToCancel", status2);
+
+        log.infov("Received status 2 {0} (should be FailedToCancel)", status2);
 
         if (!validateStateAndRemove(lraId, FailedToCancel)) {
             fail("lra not in failed list (should have been)");

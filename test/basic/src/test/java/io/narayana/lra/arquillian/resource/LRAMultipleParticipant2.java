@@ -19,8 +19,11 @@ import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.eclipse.microprofile.lra.annotation.AfterLRA;
 import org.eclipse.microprofile.lra.annotation.Compensate;
@@ -35,11 +38,13 @@ import org.jboss.logging.Logger;
 public class LRAMultipleParticipant2 {
     public static final String LRA_PARTICIPANT_PATH = "participant2";
     public static final String TRANSACTIONAL_START_PATH = "start-work";
+    public static final String LRA_END_STATUS = "lra-end-status";
 
     private static final Logger log = Logger.getLogger(LRAMultipleParticipant2.class);
 
     private static final AtomicInteger forgetCount = new AtomicInteger(0);
     private static final AtomicInteger compensateCount = new AtomicInteger(0);
+    private static final Map<URI, LRAStatus> status = new ConcurrentHashMap<>();
 
     @GET
     @Path(TRANSACTIONAL_START_PATH)
@@ -95,7 +100,23 @@ public class LRAMultipleParticipant2 {
     public Response after(@HeaderParam(LRA_HTTP_ENDED_CONTEXT_HEADER) URI lraId, LRAStatus lraStatus) {
         log.infov("\033[0;1m\u001B[34m@AfterLRA called for {0} with LRAStatus {1}", lraId, lraStatus);
 
+        status.put(lraId, lraStatus);
+
         return Response.ok().build();
+    }
+
+    @GET
+    @Path(LRA_END_STATUS)
+    public Response getLraStatus(@QueryParam(LRA_HTTP_CONTEXT_HEADER) URI lraId) {
+        log.infov("\033[0;1mgetLraStatus() called for {0}.", lraId);
+
+        if (!status.containsKey(lraId)) {
+            log.infov("\033[0;1mAfterLRA not yet called. Returning 202");
+            return Response.status(202).entity(lraId.toASCIIString() + "AfterLRA not yet called").build();
+        }
+
+        log.infov("\033[0;1mAfterLRA called. Returning 200 with {0} ", status.get(lraId).name());
+        return Response.ok(status.get(lraId).name()).build();
     }
 
 }

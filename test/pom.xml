@@ -202,9 +202,9 @@
                     <copy file="${env.JBOSS_HOME}/standalone/configuration/${config.to.replace}" overwrite="true" tofile="${env.JBOSS_HOME}/standalone/configuration/${lra.participant.xml.filename}"></copy>
 
                     <!-- Activate the build-in LRA coordinator in WildFly, unless we're deploying the one we just build. -->
-                    <replace file="${env.JBOSS_HOME}/standalone/configuration/${lra.coordinator.xml.filename}" unless:set="deploy.coordinator" token="org.wildfly.extension.microprofile.jwt-smallrye" value="org.wildfly.extension.microprofile.jwt-smallrye&quot;/&gt;&#xA;&lt;extension module=&quot;org.wildfly.extension.microprofile.lra-coordinator&quot;/&gt;&#xA;&lt;extension module=&quot;org.wildfly.extension.microprofile.openapi-smallrye"></replace>
-                    <replace file="${env.JBOSS_HOME}/standalone/configuration/${lra.coordinator.xml.filename}" unless:set="deploy.coordinator" token="subsystem xmlns=&quot;urn:wildfly:microprofile-jwt-smallrye:1.0" value="subsystem xmlns=&quot;urn:wildfly:microprofile-jwt-smallrye:1.0&quot;/&gt;&#xA;&lt;subsystem xmlns=&quot;urn:wildfly:microprofile-lra-coordinator:1.0&quot;/&gt;&#xA;&lt;subsystem xmlns=&quot;urn:wildfly:microprofile-openapi-smallrye:1.0"></replace>
-                    <replace file="${env.JBOSS_HOME}/standalone/configuration/${lra.coordinator.xml.filename}" unless:set="deploy.coordinator" token="object-store path=&quot;tx-object-store" value="object-store path=&quot;wfly_lra_objectstore"></replace>
+                    <replace file="${env.JBOSS_HOME}/standalone/configuration/${lra.coordinator.xml.filename}" token="org.wildfly.extension.microprofile.jwt-smallrye" value="org.wildfly.extension.microprofile.jwt-smallrye&quot;/&gt;&#xA;&lt;extension module=&quot;org.wildfly.extension.microprofile.lra-coordinator&quot;/&gt;&#xA;&lt;extension module=&quot;org.wildfly.extension.microprofile.openapi-smallrye"></replace>
+                    <replace file="${env.JBOSS_HOME}/standalone/configuration/${lra.coordinator.xml.filename}" token="subsystem xmlns=&quot;urn:wildfly:microprofile-jwt-smallrye:1.0" value="subsystem xmlns=&quot;urn:wildfly:microprofile-jwt-smallrye:1.0&quot;/&gt;&#xA;&lt;subsystem xmlns=&quot;urn:wildfly:microprofile-lra-coordinator:1.0&quot;/&gt;&#xA;&lt;subsystem xmlns=&quot;urn:wildfly:microprofile-openapi-smallrye:1.0"></replace>
+                    <replace file="${env.JBOSS_HOME}/standalone/configuration/${lra.coordinator.xml.filename}" token="object-store path=&quot;tx-object-store" value="object-store path=&quot;wfly_lra_objectstore"></replace>
 
                   </target>
                 </configuration>
@@ -364,16 +364,6 @@
                 </configuration>
               </execution>
             </executions>
-          </plugin>
-
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <configuration>
-              <excludes>
-                <exclude>**/LRACoordinatorRecoveryIT.java</exclude>
-              </excludes>
-            </configuration>
           </plugin>
         </plugins>
       </build>

@@ -11,6 +11,8 @@ import java.net.URISyntaxException;
 import java.util.regex.Pattern;
 
 public final class LRAConstants {
+    // the pathname part of the URI of the coordinator
+    // warning: the WildFly subsystem uses lra-coordinator/lra-coordinator
     public static final String COORDINATOR_PATH_NAME = "lra-coordinator";
     public static final String RECOVERY_COORDINATOR_PATH_NAME = "recovery";
 
@@ -74,6 +76,24 @@ public final class LRAConstants {
      * Numbers of times a client participant tries to enlist with the coordinator before giving up. Defaults to 3.
      */
     public static final String ENLIST_PARTICIPANT_CLIENT_MAX_RETRY = "lra.participant.client.max.retry";
+
+    // Load balancing algorithms.
+    // The values must match what Stork uses (remark Stork does not define any constants)
+    public static final String LB_METHOD_ROUND_ROBIN = "round-robin";
+    public static final String LB_METHOD_STICKY = "sticky";
+    public static final String LB_METHOD_RANDOM = "random";
+    public static final String LB_METHOD_LEAST_REQUESTS = "least-requests";
+    public static final String LB_METHOD_LEAST_RESPONSE_TIME = "least-response-time";
+    public static final String LB_METHOD_POWER_OF_TWO_CHOICES = "power-of-two-choices";
+
+    public static final String[] NARAYANA_LRA_SUPPORTED_LB_METHODS = new String[] {
+            LB_METHOD_ROUND_ROBIN,
+            LB_METHOD_STICKY,
+            LB_METHOD_RANDOM,
+            LB_METHOD_LEAST_REQUESTS,
+            LB_METHOD_LEAST_RESPONSE_TIME,
+            LB_METHOD_POWER_OF_TWO_CHOICES
+    };
 
     private static final Pattern UID_REGEXP_EXTRACT_MATCHER = Pattern.compile(".*/([^/?]+).*");
 

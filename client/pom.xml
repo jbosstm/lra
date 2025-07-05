@@ -40,6 +40,31 @@
       <artifactId>stork-service-discovery-static-list</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.smallrye.stork</groupId>
+      <artifactId>stork-load-balancer-sticky</artifactId>
+      <version>${version.io.smallrye.smallrye-stork}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.stork</groupId>
+      <artifactId>stork-load-balancer-random</artifactId>
+      <version>${version.io.smallrye.smallrye-stork}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.stork</groupId>
+      <artifactId>stork-load-balancer-least-requests</artifactId>
+      <version>${version.io.smallrye.smallrye-stork}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.stork</groupId>
+      <artifactId>stork-load-balancer-least-response-time</artifactId>
+      <version>${version.io.smallrye.smallrye-stork}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye.stork</groupId>
+      <artifactId>stork-load-balancer-power-of-two-choices</artifactId>
+      <version>${version.io.smallrye.smallrye-stork}</version>
+    </dependency>
+    <dependency>
       <groupId>org.jboss.narayana.lra</groupId>
       <artifactId>lra-service-base</artifactId>
     </dependency>

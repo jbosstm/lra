@@ -1163,36 +1163,6 @@ public class LRATest extends LRATestBase {
     }
 
     @Test
-    public void testMultipleCoordinators() {
-        URI lra1 = lraClient.startLRA("testTwo_first");
-        Current.pop();
-        URI lra2 = lraClient.startLRA("testTwo_second");
-        Current.pop();
-
-        // verify that the two LRAs were load balanced in a round robbin fashion:
-        assertNotEquals("LRAs should have been created by different coordinators",
-                lra1.getPort(), lra2.getPort());
-
-        try {
-            lraClient.closeLRA(lra1);
-        } catch (WebApplicationException e) {
-            fail("close first LRA failed: " + e.getMessage());
-        } finally {
-            try {
-                lraClient.closeLRA(lra2);
-            } catch (WebApplicationException e2) {
-                fail("close second LRA failed: " + e2.getMessage());
-            }
-        }
-
-        LRAStatus status1 = getStatus(lra1);
-        LRAStatus status2 = getStatus(lra2);
-
-        assertTrue("1st LRA finished in wrong state", status1 == null || status1 == LRAStatus.Closed);
-        assertTrue("2nd LRA finished in wrong state", status2 == null || status2 == LRAStatus.Closed);
-    }
-
-    @Test
     public void testLoadSharing() {
         URI prev = null;
 

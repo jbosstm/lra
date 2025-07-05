@@ -163,8 +163,10 @@ public class LRATestBase {
                 @DefaultValue("false") @QueryParam("cancel") Boolean cancel) {
             status = LRAStatus.Active;
 
-            for (UndertowJaxrsServer server : servers) {
-                server.stop(); //simulate a server crash
+            if (servers != null) {
+                for (UndertowJaxrsServer server : servers) {
+                    server.stop(); //simulate a server crash
+                }
             }
 
             return getResult(cancel, contextId);

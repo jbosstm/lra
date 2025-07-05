@@ -11,6 +11,7 @@ import static io.narayana.lra.LRAConstants.COMPENSATE;
 import static io.narayana.lra.LRAConstants.COMPLETE;
 import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
 import static io.narayana.lra.LRAConstants.FORGET;
+import static io.narayana.lra.LRAConstants.LB_METHOD_ROUND_ROBIN;
 import static io.narayana.lra.LRAConstants.LEAVE;
 import static io.narayana.lra.LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME;
 import static io.narayana.lra.LRAConstants.NARAYANA_LRA_PARTICIPANT_DATA_HEADER_NAME;
@@ -37,6 +38,7 @@ import io.narayana.lra.logging.LRALogger;
 import io.smallrye.stork.Stork;
 import io.smallrye.stork.api.Service;
 import io.smallrye.stork.api.ServiceDefinition;
+import io.smallrye.stork.api.config.ConfigWithType;
 import io.smallrye.stork.servicediscovery.staticlist.StaticConfiguration;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.ws.rs.DELETE;
@@ -70,9 +72,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -100,6 +104,7 @@ public class NarayanaLRAClient implements Closeable {
      */
     public static final String LRA_COORDINATOR_URL_KEY = "lra.coordinator.url";
     public static final String COORDINATOR_URLS_KEY = "lra.coordinator.urls";
+    public static final String COORDINATOR_LB_METHOD_KEY = "lra.coordinator.lb-method";
 
     // LRA Coordinator API
     private static final String START_PATH = "/start";
@@ -124,7 +129,8 @@ public class NarayanaLRAClient implements Closeable {
     private static final long QUERY_TIMEOUT = Long.getLong("lra.internal.client.query.timeout", CLIENT_TIMEOUT);
 
     private Service coordinatorService;
-    private URI coordinatorUrl;
+    private URI coordinatorUrl; // default coordinator (when load balancing is enabled a cluster coordinators is used)
+    private boolean isLoadBalancing;
 
     /**
      * Creating LRA client. The URL of the LRA coordinator will be taken
@@ -185,32 +191,66 @@ public class NarayanaLRAClient implements Closeable {
         }
     }
 
-    private void clusterConfig(URI coordinatorUrl) {
+    private String getConfigProperty(String key, String defaultValue) {
         try {
-            String coordinators = ConfigProvider.getConfig().getValue(COORDINATOR_URLS_KEY, String.class);
-
-            if (coordinators == null || coordinators.isEmpty()) {
-                // COORDINATOR_URLS_KEY property is set but empty
-                this.coordinatorUrl = coordinatorUrl;
-            } else {
-                try {
-                    Stork.initialize();
-                    var stork = Stork.getInstance()
-                            .defineIfAbsent(COORDINATOR_PATH_NAME, ServiceDefinition.of(new StaticConfiguration()
-                                    .withAddressList(coordinators)
-                                    .withShuffle("true"))); // default is round-robin, stork supports other algorithms
-                    this.coordinatorService = stork.getService(COORDINATOR_PATH_NAME); // add a hook to shut it down
-                    this.coordinatorUrl = toURI(coordinators.split(",")[0]);
-                } catch (IllegalArgumentException e) {
-                    this.coordinatorUrl = coordinatorUrl;
-                    LRALogger.logger.infof("Stork service discovery unavailable (%s), using coordinator %s",
-                            e.getMessage(), coordinatorUrl);
-                }
+            String value = ConfigProvider.getConfig().getValue(key, String.class);
+            if (value != null && !value.isEmpty()) {
+                return value;
             }
-        } catch (Exception e) {
-            // COORDINATOR_URLS_KEY property not set
-            this.coordinatorUrl = coordinatorUrl;
+        } catch (Exception ignore) {
         }
+
+        return defaultValue;
+    }
+
+    public ConfigWithType loadBalancer(String loadBalancer, Map<String, String> loadBalancerParams) {
+        return loadBalancer == null ? null : new ConfigWithType() {
+            @Override
+            public String type() {
+                return loadBalancer;
+            }
+
+            @Override
+            public Map<String, String> parameters() {
+                return Objects.requireNonNullElse(loadBalancerParams, Collections.emptyMap());
+            }
+        };
+    }
+
+    private void clusterConfig(URI coordinatorUrl) {
+        String coordinators = getConfigProperty(COORDINATOR_URLS_KEY, coordinatorUrl.toASCIIString());
+        String lbMethod = getConfigProperty(COORDINATOR_LB_METHOD_KEY, LB_METHOD_ROUND_ROBIN);
+        ConfigWithType balancer = loadBalancer(lbMethod, null);
+
+        this.coordinatorUrl = toURI(coordinators.split(",")[0]);
+
+        if (LRALogger.logger.isDebugEnabled()) {
+            LRALogger.logger.debugf("using stork with coordinator(s) %s and lbmethod %d",
+                    coordinators, lbMethod);
+        }
+
+        try {
+            Stork.initialize();
+            // Note that the NarayanaLRAClient.close method calls Stork.shutdown().
+            // If the caller forgets to call close then subsequent attempts to initialise Stork will be skipped
+            // and any config changes, such as a change of load balancer algorithm, will not take effect
+            var stork = Stork.getInstance()
+                    .defineIfAbsent(COORDINATOR_PATH_NAME, ServiceDefinition.of(new StaticConfiguration()
+                            .withAddressList(coordinators), balancer));
+
+            this.coordinatorService = stork.getService(COORDINATOR_PATH_NAME);
+            this.isLoadBalancing = true;
+        } catch (NoClassDefFoundError | IllegalArgumentException error) {
+            // missing Stork dependencies on the classpath or invalid load balancing algorithm,
+            // so fallback to using a coordinator without load balancing support and pick the first coordinator
+            this.coordinatorUrl = coordinatorUrl;
+            this.isLoadBalancing = false;
+            LRALogger.i18nLogger.warn_noLoadBalancer(coordinators, error);
+        }
+    }
+
+    public boolean isLoadBalancing() {
+        return isLoadBalancing;
     }
 
     /**
@@ -342,7 +382,7 @@ public class NarayanaLRAClient implements Closeable {
                     LRALogger.logger.debugf("Selected coordinator %s:%d%n",
                             instance.getHost(), instance.getPort());
                 }
-                coordinatorInstance = UriBuilder.fromPath(LRAConstants.COORDINATOR_PATH_NAME)
+                coordinatorInstance = UriBuilder.fromPath(coordinatorUrl.getPath())
                         .scheme(instance.isSecure() ? "https" : "http") // remark do we want to support the "storks" scheme
                         .host(instance.getHost())
                         .port(instance.getPort()).build();
@@ -885,10 +925,12 @@ public class NarayanaLRAClient implements Closeable {
     }
 
     public String getCoordinatorUrl() {
+        // only used in the tests so return the default coordinator
         return coordinatorUrl.toString();
     }
 
     public String getRecoveryUrl() {
+        // only used in the tests so use the default coordinator
         return getCoordinatorUrl() + "/" + RECOVERY_COORDINATOR_PATH_NAME;
     }
 
@@ -922,7 +964,13 @@ public class NarayanaLRAClient implements Closeable {
         }
     }
 
+    /**
+     * Shutdown any started resources (remark this method must be called if a config change is to take effect)
+     */
     public void close() {
+        if (isLoadBalancing) {
+            Stork.shutdown();
+        }
     }
 
     private void throwGenericLRAException(URI lraId, int statusCode, String message, Throwable cause)

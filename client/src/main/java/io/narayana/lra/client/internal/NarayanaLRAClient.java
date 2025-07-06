@@ -99,11 +99,16 @@ import org.eclipse.microprofile.lra.annotation.ws.rs.Leave;
 @RequestScoped
 public class NarayanaLRAClient implements Closeable {
     /**
-     * Key for looking up the config property that specifies which is the URL
-     * to connect to the Narayana LRA coordinator
+     * The config property key for configuring the URL of a Narayana LRA coordinator
      */
     public static final String LRA_COORDINATOR_URL_KEY = "lra.coordinator.url";
+    /**
+     * The config property key for configuring the URLs comprising a cluster of coordinators
+     */
     public static final String COORDINATOR_URLS_KEY = "lra.coordinator.urls";
+    /**
+     * The config property key for configuring the load balancing algorithm for a cluster of coordinators
+     */
     public static final String COORDINATOR_LB_METHOD_KEY = "lra.coordinator.lb-method";
 
     // LRA Coordinator API
@@ -203,7 +208,7 @@ public class NarayanaLRAClient implements Closeable {
         return defaultValue;
     }
 
-    public ConfigWithType loadBalancer(String loadBalancer, Map<String, String> loadBalancerParams) {
+    private ConfigWithType loadBalancer(String loadBalancer, Map<String, String> loadBalancerParams) {
         return loadBalancer == null ? null : new ConfigWithType() {
             @Override
             public String type() {

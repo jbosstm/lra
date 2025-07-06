@@ -180,7 +180,7 @@ public class LBTest extends LRATestBase {
 
         switch (lb_method) {
             case LB_METHOD_ROUND_ROBIN:
-                // verify that the two LRAs were load balanced in a round robbin fashion:
+                // verify that the two LRAs were load balanced in a round-robin fashion:
                 assertNotEquals("LRAs should have been created by different coordinators",
                         lra1.getPort(), lra2.getPort());
                 break;
@@ -190,7 +190,7 @@ public class LBTest extends LRATestBase {
                         lra1.getPort(), lra2.getPort());
                 break;
             default:
-                // other algorithms a more complex and/or are indeterminate to test - so we rely on the Stork testsuite
+                // other algorithms are more complex and/or are indeterminate to test - now rely on the Stork testsuite
                 break;
         }
 

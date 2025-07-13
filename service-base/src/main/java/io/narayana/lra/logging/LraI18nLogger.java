@@ -178,6 +178,14 @@ public interface LraI18nLogger {
     @Message(id = 25046, value = "Service discovery and load balancing of coordinators `%s` are not unavailable")
     void warn_noLoadBalancer(String coordinators, @Cause Throwable t);
 
+    @LogMessage(level = WARN)
+    @Message(id = 25047, value = "load balancer method `%s` is unsupported, using coordinator `%s` and load balancing is unavailable")
+    void warn_unsupportedLoadBalancer(String requestedMethod, String coordinator);
+
+    @Message(id = 25048, value = "cannot start LRA because multiple coordinators are configured but the load " +
+            " balancer method `%s` is unsupported")
+    String error_unsupportedLoadBalancer(String requestedMethod);
+
     /*
      * Allocate new messages directly above this notice.
      * - id: use the next id number in numeric sequence. Don't reuse ids.

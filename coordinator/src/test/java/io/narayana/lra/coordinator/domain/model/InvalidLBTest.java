@@ -5,11 +5,12 @@
 package io.narayana.lra.coordinator.domain.model;
 
 import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
+import static jakarta.ws.rs.core.Response.Status.SERVICE_UNAVAILABLE;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-import io.narayana.lra.Current;
 import io.narayana.lra.client.internal.NarayanaLRAClient;
 import io.narayana.lra.coordinator.api.Coordinator;
 import io.narayana.lra.logging.LRALogger;
@@ -155,22 +156,12 @@ public class InvalidLBTest extends LRATestBase {
         assertFalse("should not be allowed to load balance with an invalid algorithm",
                 lraClient.isLoadBalancing());
 
-        // validate that LRAs can be started without a load balancer
-        URI lra1 = lraClient.startLRA("testTwo_first");
-        Current.pop(); // to avoid the next LRA being nested
-        URI lra2 = lraClient.startLRA("testTwo_second");
-        Current.pop();
-
         try {
-            lraClient.closeLRA(lra1);
+            lraClient.startLRA("testInvalidLBAlgorithm");
+            fail("testInvalidLBAlgorithm: should not be able to start an LRA with an invalid load balancer");
         } catch (WebApplicationException e) {
-            fail("close first LRA failed: " + e.getMessage());
-        } finally {
-            try {
-                lraClient.closeLRA(lra2);
-            } catch (WebApplicationException e2) {
-                fail("close second LRA failed: " + e2.getMessage());
-            }
+            // the documentation says that starting a new LRA with an invalid load balancer should fail with a 503
+            assertEquals(SERVICE_UNAVAILABLE.getStatusCode(), e.getResponse().getStatus());
         }
     }
 }

@@ -5,8 +5,8 @@
 package io.narayana.lra.coordinator.domain.model;
 
 import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
-import static io.narayana.lra.LRAConstants.LB_METHOD_ROUND_ROBIN;
-import static io.narayana.lra.LRAConstants.LB_METHOD_STICKY;
+import static io.narayana.lra.client.internal.NarayanaLRAClient.LB_METHOD_ROUND_ROBIN;
+import static io.narayana.lra.client.internal.NarayanaLRAClient.LB_METHOD_STICKY;
 import static io.narayana.lra.client.internal.NarayanaLRAClient.LRA_COORDINATOR_URL_KEY;
 import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
 import static org.junit.Assert.assertEquals;
@@ -17,7 +17,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import io.narayana.lra.Current;
-import io.narayana.lra.LRAConstants;
 import io.narayana.lra.client.internal.NarayanaLRAClient;
 import io.narayana.lra.coordinator.api.Coordinator;
 import io.narayana.lra.logging.LRALogger;
@@ -63,7 +62,7 @@ public class LBTest extends LRATestBase {
     // parameters used for setting the lb_method field for parameterized test runs
     @Parameterized.Parameters(name = "#{index}, lb_method: {0}")
     public static Iterable<?> parameters() {
-        return Arrays.asList(LRAConstants.NARAYANA_LRA_SUPPORTED_LB_METHODS);
+        return Arrays.asList(NarayanaLRAClient.NARAYANA_LRA_SUPPORTED_LB_METHODS);
     }
 
     // the rule that populates the lb_method field for each run of a parameterized method
@@ -165,12 +164,12 @@ public class LBTest extends LRATestBase {
     // run a test multiple times parameterised by the algorithms defined by an @LBAlgorithms annotation
     @Test
     @LBAlgorithms({
-            LRAConstants.LB_METHOD_ROUND_ROBIN,
-            LRAConstants.LB_METHOD_STICKY,
-            LRAConstants.LB_METHOD_RANDOM,
-            LRAConstants.LB_METHOD_LEAST_REQUESTS,
-            LRAConstants.LB_METHOD_LEAST_RESPONSE_TIME,
-            LRAConstants.LB_METHOD_POWER_OF_TWO_CHOICES
+            NarayanaLRAClient.LB_METHOD_ROUND_ROBIN,
+            NarayanaLRAClient.LB_METHOD_STICKY,
+            NarayanaLRAClient.LB_METHOD_RANDOM,
+            NarayanaLRAClient.LB_METHOD_LEAST_REQUESTS,
+            NarayanaLRAClient.LB_METHOD_LEAST_RESPONSE_TIME,
+            NarayanaLRAClient.LB_METHOD_POWER_OF_TWO_CHOICES
     })
     public void testMultipleCoordinators() {
         URI lra1 = lraClient.startLRA("testTwo_first");
@@ -211,6 +210,61 @@ public class LBTest extends LRATestBase {
 
         assertTrue("1st LRA finished in wrong state", status1 == null || status1 == LRAStatus.Closed);
         assertTrue("2nd LRA finished in wrong state", status2 == null || status2 == LRAStatus.Closed);
+    }
+
+    // test failover of coordinators (ie if one is unavailable then the next one in the list is tried)
+    @Test
+    @LBAlgorithms({
+            LB_METHOD_ROUND_ROBIN, LB_METHOD_STICKY
+    })
+    public void testCoordinatorFailover() {
+        URI lra1 = runLRA("testCoordinatorFailover-first", true);
+        URI lra2 = runLRA("testCoordinatorFailover-second", true);
+
+        assertNotNull(lra1);
+        assertNotNull(lra2);
+
+        switch (lb_method) {
+            case LB_METHOD_ROUND_ROBIN:
+                assertNotEquals("round-robin used the same coordinator", lra1.getPort(), lra2.getPort());
+                break;
+            case LB_METHOD_STICKY:
+                assertEquals("round-robin used different coordinators", lra1.getPort(), lra2.getPort());
+                break;
+            default:
+                fail("unexpected lb method");
+        }
+
+        servers[0].stop(); // stop the first one so that we can check that the load balancer operates as expected
+
+        try {
+            URI lra3 = runLRA("testCoordinatorFailover-third", false);
+
+            if (LB_METHOD_STICKY.equals(lb_method)) {
+                assertNull("should not be able to start an LRA with sticky if the original one is down", lra3);
+            } else {
+                URI lra4 = runLRA("testCoordinatorFailover-fourth", false);
+                assertNotNull(lra3); // round-robin means that the next coordinator in the list is tried
+                assertNotNull(lra4);
+                assertEquals("different coordinators should not have been used",
+                        lra3.getPort(), lra4.getPort());
+            }
+        } finally {
+            servers[0].start(); // restart the stopped server
+        }
+    }
+
+    private URI runLRA(String clientName, boolean shouldFail) {
+        try {
+            URI lra = lraClient.startLRA(clientName);
+            lraClient.closeLRA(lra);
+            return lra;
+        } catch (WebApplicationException e) {
+            if (shouldFail) {
+                fail("Unable to run LRA using lb method " + lb_method + ": " + e.getMessage());
+            }
+            return null;
+        }
     }
 
     LRAStatus getStatus(URI lra) {

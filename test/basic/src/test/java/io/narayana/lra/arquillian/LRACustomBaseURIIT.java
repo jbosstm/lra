@@ -48,7 +48,7 @@ public class LRACustomBaseURIIT extends TestBase {
     }
 
     @Test
-    public void noLRATest() throws Exception {
+    public void configBaseURLOverrideTest() throws Exception {
         try (Response response = client.target(baseURL.toURI())
                 .path(SIMPLE_PARTICIPANT_RESOURCE_PATH)
                 .path(START_LRA_PATH)
@@ -57,7 +57,9 @@ public class LRACustomBaseURIIT extends TestBase {
 
             System.out.println(response.getHeaderString("Link"));
             assertTrue("The base URI was not overridden by the configuration",
-                    response.getHeaderString("Link").contains("http://example.com/compensate?method=jakarta.ws.rs.PUT"));
+                    response.getHeaderString("Link").contains("http://example.com/"
+                            + SimpleLRAParticipant.SIMPLE_PARTICIPANT_RESOURCE_PATH + "/compensate?method=jakarta.ws.rs.PUT"));
         }
     }
+
 }

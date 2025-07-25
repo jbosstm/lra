@@ -77,6 +77,11 @@ public final class LRAConstants {
      */
     public static final String ENLIST_PARTICIPANT_CLIENT_MAX_RETRY = "lra.participant.client.max.retry";
 
+    /**
+     * Custom base URI if the client needs to override default base URI info taken from the Jakarta REST filters.
+     */
+    public static final String NARAYANA_LRA_BASE_URI_PROPERTY_NAME = "narayana.lra.base-uri";
+
     private static final Pattern UID_REGEXP_EXTRACT_MATCHER = Pattern.compile(".*/([^/?]+).*");
 
     private LRAConstants() {

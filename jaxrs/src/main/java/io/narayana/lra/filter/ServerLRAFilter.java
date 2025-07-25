@@ -23,6 +23,7 @@ import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.Type.NESTED;
 
 import io.narayana.lra.AnnotationResolver;
 import io.narayana.lra.Current;
+import io.narayana.lra.LRAConstants;
 import io.narayana.lra.client.LRAParticipantData;
 import io.narayana.lra.client.internal.NarayanaLRAClient;
 import io.narayana.lra.client.internal.proxy.nonjaxrs.LRAParticipant;
@@ -32,6 +33,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.ContextNotActiveException;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.Path;
 import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.container.ContainerRequestContext;
@@ -180,7 +182,8 @@ public class ServerLRAFilter implements ContainerRequestFilter, ContainerRespons
             if (AnnotationResolver.isAnnotationPresent(Leave.class, method)) {
                 // leave the LRA
                 Map<String, String> terminateURIs = NarayanaLRAClient.getTerminationUris(
-                        resourceInfo.getResourceClass(), createUriPrefix(containerRequestContext), timeout);
+                        resourceInfo.getResourceClass(),
+                        createUriPrefix(containerRequestContext, resourceInfo.getResourceClass()), timeout);
                 String compensatorId = terminateURIs.get("Link");
 
                 if (compensatorId == null) {
@@ -386,7 +389,7 @@ public class ServerLRAFilter implements ContainerRequestFilter, ContainerRespons
 
         if (!endAnnotation) { // don't enlist for methods marked with Compensate, Complete or Leave
             Map<String, String> terminateURIs = NarayanaLRAClient.getTerminationUris(resourceInfo.getResourceClass(),
-                    createUriPrefix(containerRequestContext), timeout);
+                    createUriPrefix(containerRequestContext, resourceInfo.getResourceClass()), timeout);
             String timeLimitStr = terminateURIs.get(TIMELIMIT_PARAM_NAME);
             long timeLimit = timeLimitStr == null ? DEFAULT_TIMEOUT_MILLIS : Long.parseLong(timeLimitStr);
 
@@ -487,8 +490,16 @@ public class ServerLRAFilter implements ContainerRequestFilter, ContainerRespons
         Current.addActiveLRACache(lraId);
     }
 
-    private String createUriPrefix(ContainerRequestContext containerRequestContext) {
-        return ConfigProvider.getConfig().getOptionalValue("narayana.lra.base-uri", String.class)
+    private String createUriPrefix(ContainerRequestContext containerRequestContext, Class<?> resourceClass) {
+        return ConfigProvider.getConfig().getOptionalValue(LRAConstants.NARAYANA_LRA_BASE_URI_PROPERTY_NAME, String.class)
+                .map(s -> {
+                    String userUri = s.endsWith("/") ? s.substring(0, s.length() - 1) : s;
+                    if (resourceClass.isAnnotationPresent(Path.class)) {
+                        String pathValue = resourceClass.getAnnotation(Path.class).value();
+                        return userUri + (pathValue.startsWith("/") ? pathValue : "/" + pathValue);
+                    }
+                    return userUri;
+                })
                 .orElseGet(() -> {
                     UriInfo uriInfo = containerRequestContext.getUriInfo();
 

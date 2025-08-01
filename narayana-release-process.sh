@@ -90,17 +90,18 @@ fi
 
 rm -rf $PWD/localm2repo
 # uploaded artifacts go straight live without the ability to close the repo at the end, so the install is done to verify that the build will work
-./build.sh clean install -Dmaven.repo.local=${PWD}/localm2repo -DskipTests -Dorson.jar.location=$ORSON_PATH -Pcommunity
+./build.sh clean install -Dmaven.repo.local=${PWD}/localm2repo -DskipTests -Dorson.jar.location=$ORSON_PATH
 if [[ $? != 0 ]]
 then
   echo 1>&2 Could not install narayana
   exit
 fi
-# It is important in the deploy step that if you are deploying to nexus you provide a reference to your settings file as the ./build.sh overrides the default settings file discovery of Maven. Please see https://github.com/jbosstm/narayana/wiki/Narayana-Release-Process for details of the settings.xml requirements
-./build.sh clean deploy -Dmaven.repo.local=${PWD}/localm2repo -DskipTests -gs ~/.m2/settings.xml -Dorson.jar.location=$ORSON_PATH -Prelease,community -DskipNexusStagingDeployMojo=false
+# It is important in the deploy step that, if you are deploying, you provide a reference to your settings file as the ./build.sh overrides the default settings file discovery of Maven.
+# Please see https://github.com/jbosstm/narayana/wiki/Narayana-Release-Process for details of the settings.xml requirements
+./build.sh clean deploy -Dmaven.repo.local=${PWD}/localm2repo -DskipTests -gs ~/.m2/settings.xml -Dorson.jar.location=$ORSON_PATH -Prelease
 if [[ $? != 0 ]]
 then
-  echo 1>&2 Could not deploy lra to nexus
+  echo 1>&2 Could not deploy lra
   exit
 fi
 

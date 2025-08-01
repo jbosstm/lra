@@ -411,26 +411,23 @@
         <server.jvm.args>${jvm.args.other} ${jvm.args.memory} ${jvm.args.jacoco} ${jvm.args.modular}</server.jvm.args>
       </properties>
     </profile>
-
     <profile>
       <id>release</id>
       <build>
         <plugins>
           <plugin>
-            <groupId>org.sonatype.plugins</groupId>
-            <artifactId>nexus-staging-maven-plugin</artifactId>
-            <inherited>false</inherited>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
           </plugin>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-install-plugin</artifactId>
-            <inherited>false</inherited>
-            <executions>
-              <execution>
-                <id>default-install</id>
-                <phase>install</phase>
-              </execution>
-            </executions>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
           </plugin>
         </plugins>
       </build>

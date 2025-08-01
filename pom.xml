@@ -79,8 +79,7 @@
     <lra.test.timeout.factor>1.0</lra.test.timeout.factor>
 
     <maven.build.timestamp.format>yyyy/MMM/dd HH:mm</maven.build.timestamp.format>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.release>17</maven.compiler.release>
 
     <narayana.version>7.2.2.Final</narayana.version>
 

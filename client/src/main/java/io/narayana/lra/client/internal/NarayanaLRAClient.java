@@ -79,6 +79,7 @@ import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.lra.annotation.AfterLRA;
 import org.eclipse.microprofile.lra.annotation.Compensate;
@@ -149,6 +150,8 @@ public class NarayanaLRAClient implements Closeable {
     private static final long LEAVE_TIMEOUT = Long.getLong("lra.internal.client.leave.timeout", CLIENT_TIMEOUT);
     private static final long QUERY_TIMEOUT = Long.getLong("lra.internal.client.query.timeout", CLIENT_TIMEOUT);
 
+    private static final Config CONFIG = ConfigProvider.getConfig();
+
     private Service coordinatorService;
     private URI coordinatorUrl; // default coordinator (when load balancing is enabled a cluster coordinators is used)
     private long coordinatorCount;
@@ -166,8 +169,7 @@ public class NarayanaLRAClient implements Closeable {
      * @throws IllegalStateException thrown when the URL taken from the system property value is not a URL format
      */
     public NarayanaLRAClient() {
-        this(System.getProperty(NarayanaLRAClient.LRA_COORDINATOR_URL_KEY,
-                "http://localhost:8080/" + COORDINATOR_PATH_NAME));
+        this(getConfigProperty(LRA_COORDINATOR_URL_KEY, "http://localhost:8080/" + COORDINATOR_PATH_NAME));
     }
 
     /**
@@ -216,9 +218,9 @@ public class NarayanaLRAClient implements Closeable {
         }
     }
 
-    private String getConfigProperty(String key, String defaultValue) {
+    private static String getConfigProperty(String key, String defaultValue) {
         try {
-            String value = ConfigProvider.getConfig().getValue(key, String.class);
+            String value = CONFIG.getValue(key, String.class);
             if (value != null && !value.isEmpty()) {
                 return value;
             }
@@ -243,44 +245,49 @@ public class NarayanaLRAClient implements Closeable {
     }
 
     private void clusterConfig(URI coordinatorUrl) {
-        String coordinators = getConfigProperty(COORDINATOR_URLS_KEY, coordinatorUrl.toASCIIString());
-
-        this.coordinatorUrl = toURI(coordinators.split(",")[0]);
-        this.coordinatorCount = coordinators.chars().filter(ch -> ch == ',').count() + 1;
-
-        try {
-            this.lbMethod = getConfigProperty(COORDINATOR_LB_METHOD_KEY, LB_METHOD_ROUND_ROBIN);
-            this.lbMethodValid = Arrays.asList(NARAYANA_LRA_SUPPORTED_LB_METHODS).contains(lbMethod);
-            // validate whether the requested load balancer is supported
-            if (!lbMethodValid) {
-                // load balancing only applies when starting new LRAs, so log a warning rather than an error
-                LRALogger.i18nLogger.warn_unsupportedLoadBalancer(lbMethod, this.coordinatorUrl.toASCIIString());
-            } else {
-                if (LRALogger.logger.isDebugEnabled()) {
-                    LRALogger.logger.debugf("using stork with coordinator(s) %s and lb-method %d",
-                            coordinators, lbMethod);
-                }
-
-                ConfigWithType balancer = loadBalancer(lbMethod, null);
-
-                Stork.initialize();
-                // Note that the NarayanaLRAClient.close method calls Stork.shutdown().
-                // If the caller forgets to call close then subsequent attempts to initialise Stork will be skipped
-                // and any config changes, such as a change of load balancer algorithm, will not take effect
-                var stork = Stork.getInstance()
-                        .defineIfAbsent(COORDINATOR_PATH_NAME, ServiceDefinition.of(new StaticConfiguration()
-                                .withAddressList(coordinators), balancer));
-
-                this.coordinatorService = stork.getService(COORDINATOR_PATH_NAME);
-                this.supportsFailover = Objects.equals(LB_METHOD_ROUND_ROBIN, lbMethod);
-                this.storkInitialised = true;
-            }
-        } catch (NoClassDefFoundError | IllegalArgumentException error) {
-            // missing Stork dependencies on the classpath or invalid load balancing algorithm,
-            // so fallback to using a coordinator without load balancing support and pick the first coordinator
+        if (CONFIG.getOptionalValue(COORDINATOR_URLS_KEY, String.class).isEmpty()) {
             this.coordinatorUrl = coordinatorUrl;
-            this.supportsFailover = false;
-            LRALogger.i18nLogger.warn_noLoadBalancer(coordinators, error);
+            this.coordinatorCount = 1;
+        } else {
+            String coordinators = getConfigProperty(COORDINATOR_URLS_KEY, coordinatorUrl.toASCIIString());
+
+            this.coordinatorUrl = toURI(coordinators.split(",")[0]);
+            this.coordinatorCount = coordinators.chars().filter(ch -> ch == ',').count() + 1;
+
+            try {
+                this.lbMethod = getConfigProperty(COORDINATOR_LB_METHOD_KEY, LB_METHOD_ROUND_ROBIN);
+                this.lbMethodValid = Arrays.asList(NARAYANA_LRA_SUPPORTED_LB_METHODS).contains(lbMethod);
+                // validate whether the requested load balancer is supported
+                if (!lbMethodValid) {
+                    // load balancing only applies when starting new LRAs, so log a warning rather than an error
+                    LRALogger.i18nLogger.warn_unsupportedLoadBalancer(lbMethod, this.coordinatorUrl.toASCIIString());
+                } else {
+                    if (LRALogger.logger.isDebugEnabled()) {
+                        LRALogger.logger.debugf("using stork with coordinator(s) %s and lb-method %d",
+                                coordinators, lbMethod);
+                    }
+
+                    ConfigWithType balancer = loadBalancer(lbMethod, null);
+
+                    Stork.initialize();
+                    // Note that the NarayanaLRAClient.close method calls Stork.shutdown().
+                    // If the caller forgets to call close then subsequent attempts to initialise Stork will be skipped
+                    // and any config changes, such as a change of load balancer algorithm, will not take effect
+                    var stork = Stork.getInstance()
+                            .defineIfAbsent(COORDINATOR_PATH_NAME, ServiceDefinition.of(new StaticConfiguration()
+                                    .withAddressList(coordinators), balancer));
+
+                    this.coordinatorService = stork.getService(COORDINATOR_PATH_NAME);
+                    this.supportsFailover = Objects.equals(LB_METHOD_ROUND_ROBIN, lbMethod);
+                    this.storkInitialised = true;
+                }
+            } catch (NoClassDefFoundError | IllegalArgumentException error) {
+                // missing Stork dependencies on the classpath or invalid load balancing algorithm,
+                // so fallback to using a coordinator without load balancing support and pick the first coordinator
+                this.coordinatorUrl = coordinatorUrl;
+                this.supportsFailover = false;
+                LRALogger.i18nLogger.warn_noLoadBalancer(coordinators, error);
+            }
         }
     }
 

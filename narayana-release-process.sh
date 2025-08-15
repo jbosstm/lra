@@ -24,7 +24,7 @@ fi
 
 # add the upstream remote
 git remote -v | grep upstream
-if [[ $? != 0 && $ORG != jbosstm ]]; then
+if [[ $? != 0 ]]; then
   git remote add upstream git@github.com:jbosstm/lra.git
 fi
 

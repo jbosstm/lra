@@ -59,6 +59,11 @@
       <artifactId>narayana-lra</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.jboss.narayana.lra</groupId>
+      <artifactId>lra-coordinator-war</artifactId>
+      <type>war</type>
+    </dependency>
   </dependencies>
 
   <build>
@@ -251,6 +256,33 @@
                 </configuration>
               </execution>
 
+              <!-- Deploys the coordinator to Wildfly -->
+              <execution>
+                <id>deploy-coordinator</id>
+                <goals>
+                  <goal>deploy-artifact</goal>
+                </goals>
+                <phase>pre-integration-test</phase>
+                <configuration>
+                  <groupId>org.jboss.narayana.lra</groupId>
+                  <artifactId>lra-coordinator-war</artifactId>
+                  <name>${lra.coordinator.war.name}</name>
+                  <force>true</force>
+                </configuration>
+              </execution>
+
+              <!-- Undeploys the coordinator from Wildfly -->
+              <execution>
+                <id>undeploy-coordinator</id>
+                <goals>
+                  <goal>undeploy</goal>
+                </goals>
+                <phase>post-integration-test</phase>
+                <configuration>
+                  <name>lra-coordinator.war</name>
+                </configuration>
+              </execution>
+
               <!-- Shutdowns Wildfly -->
               <execution>
                 <id>shutdown</id>
@@ -309,29 +341,21 @@
       </properties>
     </profile>
 
-    <!-- 
-      This profile will deploy the coordinator build by this project as a war file.
-      If not activated, the tests will use the build-in coordinator of the target WildFly instance 
-      (so whatever has been build for the coordinator would be ignored then) 
+    <!--
+      This profile will not deploy the coordinator build by this project as a war file so it uses
+      the provided integrated subsystem in WildFly. This means that the coordinator used for the tests
+      is in the version provided by the configured WildFly server and the tests might not be compatible with it.
     -->
     <profile>
-      <id>deploy.lra.coordinator</id>
+      <id>coordinator.wildfly.subsystem</id>
       <activation>
         <property>
-          <name>deploy.coordinator</name>
+          <name>coordinator.wildfly.subsystem</name>
         </property>
       </activation>
       <properties>
-        <deploy.coordinator>true</deploy.coordinator>
+        <coordinator.wildfly.subsystem>true</coordinator.wildfly.subsystem>
       </properties>
-
-      <dependencies>
-        <dependency>
-          <groupId>org.jboss.narayana.lra</groupId>
-          <artifactId>lra-coordinator-war</artifactId>
-          <type>war</type>
-        </dependency>
-      </dependencies>
 
       <build>
         <plugins>
@@ -344,31 +368,14 @@
             </configuration>
 
             <executions>
-              <!-- Deploys to Wildfly -->
               <execution>
-                <id>start</id>
-                <goals>
-                  <goal>deploy-artifact</goal>
-                </goals>
-                <phase>pre-integration-test</phase>
-                <configuration>
-                  <groupId>org.jboss.narayana.lra</groupId>
-                  <artifactId>lra-coordinator-war</artifactId>
-                  <name>${lra.coordinator.war.name}</name>
-                  <force>true</force>
-                </configuration>
+                <id>deploy-coordinator</id>
+                <phase>none</phase>
               </execution>
 
-              <!-- Undeploys Wildfly -->
               <execution>
-                <id>undeploy</id>
-                <goals>
-                  <goal>undeploy</goal>
-                </goals>
-                <phase>post-integration-test</phase>
-                <configuration>
-                  <name>lra-coordinator.war</name>
-                </configuration>
+                <id>undeploy-coordinator</id>
+                <phase>none</phase>
               </execution>
             </executions>
           </plugin>

@@ -86,7 +86,7 @@ function init_test_options {
     [ $CODE_COVERAGE ] || CODE_COVERAGE=0
     [ x"$CODE_COVERAGE_ARGS" != "x" ] || CODE_COVERAGE_ARGS=""
     [ $ARQ_PROF ] || ARQ_PROF=arq	# IPv4 arquillian profile
-    [ $USE_LATEST_COORDINATOR] || USE_LATEST_COORDINATOR=" -Pdeploy.lra.coordinator"	# use the built coordinator
+    [ $USE_WILDFLY_SUBSYSTEM_COORDINATOR] || USE_WILDFLY_SUBSYSTEM_COORDINATOR=" -Pcoordinator.wildfly.subsystem"	# use the built-in WildFly coordinator
     [ $ENABLE_LRA_TRACE_LOGS ] || ENABLE_LRA_TRACE_LOGS=" -Dtest.logs.to.file=true -Dtrace.lra.coordinator"
 
     if ! get_pull_xargs "$PULL_DESCRIPTION_BODY" $PROFILE; then # see if the PR description overrides the profile
@@ -359,7 +359,7 @@ function lra_tests {
   echo "#0. LRA Test"
   echo "#0. Running LRA tests using $ARQ_PROF profile"
   # Ideally the following target would be test and integration-test but that doesn't seem to shutdown the server each time
-  PRESERVE_WORKING_DIR=true ./build.sh -fae -B -P$ARQ_PROF $USE_LATEST_COORDINATOR $CODE_COVERAGE_ARGS $ENABLE_LRA_TRACE_LOGS -Dlra.test.timeout.factor="${LRA_TEST_TIMEOUT_FACTOR:-1.5}" "$@" install
+  PRESERVE_WORKING_DIR=true ./build.sh -fae -B -P$ARQ_PROF $USE_WILDFLY_SUBSYSTEM_COORDINATOR $CODE_COVERAGE_ARGS $ENABLE_LRA_TRACE_LOGS -Dlra.test.timeout.factor="${LRA_TEST_TIMEOUT_FACTOR:-1.5}" "$@" install
   lra_arq=$?
   if [ $lra_arq != 0 ] ; then fatal "LRA Test failed with failures in $ARQ_PROF profile" ; fi
 }

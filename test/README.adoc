@@ -37,14 +37,17 @@ The Failsafe Plugin link:../pom.xml[is configured] to run tests with names
 The module is configured to run with https://www.wildfly.org[WildFly] application runtime.
 
 The **WildFly** runtime is used through the 'arq' profile. Two instances of Wildfly are initiated:
- * The first instance is started using WildFly Maven Plugin, then, if the 'deploy.lra.coordinator' profile is activated,  
- the LRA coordinator is deployed using the WAR produced by the module `lra/lra-coordinator-war`
- * The second instance is started using Arquillian, then an LRA participant is deployed
-Moreover, the testing class is hosted on separated JVM.
+ * The first instance is started using WildFly Maven Plugin to deploy the LRA
+   coordinator using the WAR produced by the module `lra/lra-coordinator-war`.
+   If you specify `-Pcoordinator.wildfly.subsystem` profile, then the tests use
+   the LRA coordinator provided by WildFly subsystem (which might be out of sync
+   with the current project changes).
+ * The second instance is started using Arquillian to deploy the LRA participant
+   under test. Moreover, the testing class is hosted on separated JVM.
 
 === Running tests with WildFly
 
-To start all integration tests, testing with the build-in coordinator of WildFly:
+To start all integration tests, testing with the coordinator that was build by the module `lra/lra-coordinator-war`:
 
 [source,sh]
 ----
@@ -55,15 +58,15 @@ mvn clean verify -Parq
 mvn clean verify -Parq -pl :lra-test-basic -Dit.test=FailedLRAIT
 ----
 
-To start all integration tests, testing with the coordinator that was build by the module `lra/lra-coordinator-war`:
+To start all integration tests, testing with the build-in coordinator of WildFly:
 
 [source,sh]
 ----
 export JBOSS_HOME=<path-to-wildfly-distribution-directory>
-mvn clean verify -Parq,deploy.lra.coordinator
+mvn clean verify -Parq,coordinator.wildfly.subsystem
 
 # single test in one module
-mvn clean verify -Parq,deploy.lra.coordinator -pl :lra-test-basic -Dit.test=FailedLRAIT#testWithStatusCompensateFailed
+mvn clean verify -Parq,coordinator.wildfly.subsystem -pl :lra-test-basic -Dit.test=FailedLRAIT#testWithStatusCompensateFailed
 ----
 
 

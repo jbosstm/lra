@@ -28,9 +28,7 @@ jobs:
           echo "should_skip=false" >> $GITHUB_OUTPUT
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             echo "Checking labels on PR #${{ github.event.pull_request.number }}..."
-            LABELS=$(gh pr view ${{ github.event.pull_request.number }} --json labels --jq '.labels[].name')
-            echo "Labels found: $LABELS"
-            if echo "$LABELS" | grep "skip-tests"; then
+            if [[ "${{ contains(github.event.pull_request.labels.*.name, 'skip-tests') }}" == "true" ]]; then
               echo "Label 'skip-tests' found. Skipping job."
               echo "should_skip=true" >> $GITHUB_OUTPUT
             fi

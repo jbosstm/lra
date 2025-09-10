@@ -19,7 +19,6 @@
   <description>LRA tests running LRA TCKs and Narayana LRA internal testsuite</description>
 
   <modules>
-    <module>arquillian-extension</module>
     <module>tck</module>
     <module>basic</module>
   </modules>

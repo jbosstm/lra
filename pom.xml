@@ -44,6 +44,7 @@
     <module>coordinator-war</module>
     <module>proxy</module>
     <module>jaxrs</module>
+    <module>arquillian-extension</module>
   </modules>
 
   <scm>

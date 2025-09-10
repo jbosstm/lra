@@ -3,8 +3,7 @@ name: LRA-FORMATTING
 on:
   workflow_dispatch:
   pull_request:
-    branches:
-      - main
+    types: [ opened, edited, synchronize, ready_for_review, labeled, unlabeled, reopened ]
 
 jobs:
   verify-format:

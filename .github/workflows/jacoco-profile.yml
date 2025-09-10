@@ -3,7 +3,7 @@ name: JACOCO-PROFILE
 on:
   push:
   pull_request:
-    types: [ opened, labeled, unlabeled ]
+    types: [ opened, edited, synchronize, ready_for_review, labeled, unlabeled, reopened ]
   workflow_dispatch:
 
 # Only run the latest job

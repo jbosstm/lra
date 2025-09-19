@@ -158,7 +158,7 @@
     <version.org.jboss.shrinkwrap.resolvers>3.3.4</version.org.jboss.shrinkwrap.resolvers>
     <version.org.jboss.weld>5.0.1.Final</version.org.jboss.weld>
     <version.org.sonatype.plugins.nxrm3.plugin>1.0.12</version.org.sonatype.plugins.nxrm3.plugin>
-    <version.org.wildfly.arquillian>5.0.0.Final</version.org.wildfly.arquillian>
+    <version.org.wildfly.arquillian>5.1.0.Final</version.org.wildfly.arquillian>
     <version.parsson>1.1.7</version.parsson>
     <version.smallrye-converter-api>2.7.0</version.smallrye-converter-api>
     <version.sortpom>4.0.0</version.sortpom>

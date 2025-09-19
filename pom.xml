@@ -126,7 +126,7 @@
     <version.io.smallrye.smallrye-stork>2.7.4</version.io.smallrye.smallrye-stork>
     <version.jakarta.enterprise>4.0.0</version.jakarta.enterprise>
     <version.jakarta.inject.jakarta.inject-api>2.0.1</version.jakarta.inject.jakarta.inject-api>
-    <version.jakarta.json-api>2.1.1</version.jakarta.json-api>
+    <version.jakarta.json-api>2.1.3</version.jakarta.json-api>
     <version.jakarta.servlet.jakarta-servlet-api>6.0.0</version.jakarta.servlet.jakarta-servlet-api>
     <version.jakarta.ws.rs.jakarta-ws-rs-api>3.1.0</version.jakarta.ws.rs.jakarta-ws-rs-api>
     <version.jboss-modules>1.10.2.Final</version.jboss-modules>

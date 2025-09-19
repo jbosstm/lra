@@ -1,6 +1,9 @@
 name: LRA-FORMATTING
 
 on:
+  push:
+    branches:
+      - 'main'
   workflow_dispatch:
   pull_request:
     types: [ opened, edited, synchronize, ready_for_review, labeled, unlabeled, reopened ]

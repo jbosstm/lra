@@ -162,7 +162,7 @@
     <version.parsson>1.1.7</version.parsson>
     <version.smallrye-converter-api>2.7.0</version.smallrye-converter-api>
     <version.sortpom>4.0.0</version.sortpom>
-    <version.wildfly-maven-plugin>4.1.0.Final</version.wildfly-maven-plugin>
+    <version.wildfly-maven-plugin>5.1.4.Final</version.wildfly-maven-plugin>
 
   </properties>
 

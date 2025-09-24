@@ -7,8 +7,7 @@ package io.narayana.lra.coordinator.domain.model;
 import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_PARENT_CONTEXT_HEADER;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.narayana.lra.client.internal.NarayanaLRAClient;
 import io.narayana.lra.coordinator.api.Coordinator;
@@ -22,9 +21,12 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Response;
+
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -32,17 +34,12 @@ import org.eclipse.microprofile.lra.annotation.Compensate;
 import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.jboss.resteasy.test.TestPortProvider;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.*;
 
 public class LRAWithParticipantsTest extends LRATestBase {
 
-    @Rule
-    public TestName testName = new TestName();
+    
+    public String testName;
     private UndertowJaxrsServer server;
     private NarayanaLRAClient lraClient;
     private static ReentrantLock lock = new ReentrantLock();
@@ -63,11 +60,9 @@ public class LRAWithParticipantsTest extends LRATestBase {
             }
             synchronized (lock) {
                 while (!joinAttempted) {
-                    try {
+                    Assertions.assertDoesNotThrow(() -> {
                         lock.wait();
-                    } catch (InterruptedException e) {
-                        fail("Could not wait");
-                    }
+                    }, "Could not wait");
                 }
             }
             return Response.status(Response.Status.ACCEPTED).entity(ParticipantStatus.Compensating).build();
@@ -106,13 +101,17 @@ public class LRAWithParticipantsTest extends LRATestBase {
         }
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void start() {
         System.setProperty("lra.coordinator.url", TestPortProvider.generateURL('/' + COORDINATOR_PATH_NAME));
     }
 
-    @Before
-    public void before() {
+    @BeforeEach
+    public void before(TestInfo testInfo) {
+        Optional<Method> testMethod = testInfo.getTestMethod();
+        if (testMethod.isPresent()) {
+            this.testName = testMethod.get().getName();
+        }
         LRALogger.logger.debugf("Starting test %s", testName);
         server = new UndertowJaxrsServer().start();
         clearObjectStore(testName);
@@ -123,7 +122,7 @@ public class LRAWithParticipantsTest extends LRATestBase {
         server.deployOldStyle(Service4.class);
     }
 
-    @After
+    @AfterEach
     public void after() {
         LRALogger.logger.debugf("Finished test %s", testName);
         lraClient.close();
@@ -151,19 +150,16 @@ public class LRAWithParticipantsTest extends LRATestBase {
         }
         synchronized (lock) {
             while (!compensateCalled) {
-                try {
+                Assertions.assertDoesNotThrow(() -> {
                     lock.wait();
-                } catch (InterruptedException e) {
-                    fail("Could not wait");
-                }
+                }, "Could not wait");
             }
             // Service 2 receives the /saga/compensate call and begins compensating.
             // Before compensate call is finished, Service 4 calls PUT
             // /lra-coordinator/{LraId} to attempt to join the Saga.
             // Exception is thrown because a timed-out lra cannot be joined
-            assertThrows(WebApplicationException.class, () -> {
-                lraClient.joinLRA(lraId, null, URI.create("http://localhost:8081/service4/test"), null);
-            });
+            assertThrows(WebApplicationException.class, () ->
+                lraClient.joinLRA(lraId, null, URI.create("http://localhost:8081/service4/test"), null));
             joinAttempted = true;
             lock.notify();
         }

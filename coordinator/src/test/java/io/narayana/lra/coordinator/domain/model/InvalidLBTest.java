@@ -6,10 +6,7 @@ package io.narayana.lra.coordinator.domain.model;
 
 import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
 import static jakarta.ws.rs.core.Response.Status.SERVICE_UNAVAILABLE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.narayana.lra.client.internal.NarayanaLRAClient;
 import io.narayana.lra.coordinator.api.Coordinator;
@@ -19,18 +16,23 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.core.Application;
+
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
-import org.junit.After;
-import org.junit.Before;
+import org.jboss.resteasy.test.TestPortProvider;
 import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 /**
  * Test various client side coordinator load balancing strategies.
@@ -38,28 +40,23 @@ import org.junit.runners.Parameterized;
  * The setup is similar to {@link LRATest} but it needs to {@link RunWith} Parameterized
  * (for each configured load balancing strategy) whereas LRATest requires {@link RunWith} BMUnitRunner
  */
-@RunWith(Parameterized.class)
 public class InvalidLBTest extends LRATestBase {
     private NarayanaLRAClient lraClient;
     private Client client;
     int[] ports = { 8081, 8082 };
 
     // the list of parameters to use for the test
-    @Parameterized.Parameters(name = "#{index}, lb_method: {0}")
     public static Iterable<?> parameters() {
         return List.of("invalid-lb-algorithm");
     }
-
-    // the value of the parameterized variable taken from the LBAlgorithms annotation
-    @Parameterized.Parameter
     public String lb_method;
 
     // the rule that populates the lb_method field for each run of a parameterized method
     @Rule
     public LBTestRule testRule = new LBTestRule();
 
-    @Rule
-    public TestName testName = new TestName();
+    
+    public String testName;
 
     @ApplicationPath("/")
     public static class LRACoordinator extends Application {
@@ -71,8 +68,17 @@ public class InvalidLBTest extends LRATestBase {
         }
     }
 
-    @Before
-    public void before() {
+    @BeforeAll
+    public static void start() {
+        System.setProperty("lra.coordinator.url", TestPortProvider.generateURL('/' + COORDINATOR_PATH_NAME));
+    }
+
+    @BeforeEach
+    public void before(TestInfo testInfo) {
+        Optional<Method> testMethod = testInfo.getTestMethod();
+        if (testMethod.isPresent()) {
+            this.testName = testMethod.get().getName();
+        }
         clearObjectStore(testName);
 
         servers = new UndertowJaxrsServer[ports.length];
@@ -80,13 +86,12 @@ public class InvalidLBTest extends LRATestBase {
         StringBuilder sb = new StringBuilder();
         String host = "localhost";
 
-        for (int i = 0; i < ports.length; i++) {
+        for (int i = 0;i < ports.length;i++) {
             servers[i] = new UndertowJaxrsServer().setHostname(host).setPort(ports[i]);
             try {
                 servers[i].start();
             } catch (Exception e) {
-                LRALogger.logger.infof("before test %s: could not start server %s",
-                        testName.getMethodName(), e.getMessage());
+                LRALogger.logger.infof("before test %s: could not start server %s", testName, e.getMessage());
             }
 
             sb.append(String.format("http://%s:%d/%s%s",
@@ -108,13 +113,12 @@ public class InvalidLBTest extends LRATestBase {
 
         if (lraClient.getCurrent() != null) {
             // clear it since it isn't caused by this test (tests do the assertNull in the @After test method)
-            LRALogger.logger.warnf("before test %s: current thread should not be associated with any LRAs",
-                    testName.getMethodName());
+            LRALogger.logger.warnf("before test %s: current thread should not be associated with any LRAs", testName);
             lraClient.clearCurrent(true);
         }
     }
 
-    @After
+    @AfterEach
     public void after() {
         URI uri = lraClient.getCurrent();
         try {
@@ -136,18 +140,20 @@ public class InvalidLBTest extends LRATestBase {
                     LRALogger.logger.infof("after test %s: could not stop server %s", testName, e.getMessage());
                 }
             }
-            assertNull(testName.getMethodName() + ": current thread should not be associated with any LRAs",
-                    uri);
+            assertNull(uri,
+                     testName + ": current thread should not be associated with any LRAs");
         }
     }
 
-    @Test
+    @ParameterizedTest(name = "#{index}, lb_method: {0}")
     @LBAlgorithms({
             "invalid-lb-algorithm"
     })
-    public void testInvalidLBAlgorithm() {
-        assertFalse("should not be allowed to load balance with an invalid algorithm",
-                lraClient.isLoadBalancing());
+    @MethodSource("parameters")
+    public void testInvalidLBAlgorithm(String lb_method) {
+        initInvalidLBTest(lb_method);
+        assertFalse(lraClient.isLoadBalancing(),
+                "should not be allowed to load balance with an invalid algorithm");
 
         try {
             lraClient.startLRA("testInvalidLBAlgorithm");
@@ -156,5 +162,9 @@ public class InvalidLBTest extends LRATestBase {
             // the documentation says that starting a new LRA with an invalid load balancer should fail with a 503
             assertEquals(SERVICE_UNAVAILABLE.getStatusCode(), e.getResponse().getStatus());
         }
+    }
+
+    public void initInvalidLBTest(String lb_method) {
+        this.lb_method = lb_method;
     }
 }

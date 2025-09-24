@@ -6,8 +6,8 @@
 package io.narayana.lra;
 
 import java.net.URI;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class LRAConstantsTest {
 
@@ -15,19 +15,19 @@ public class LRAConstantsTest {
     public void getCoordinatorFromUsualLRAId() {
         URI lraId = URI.create("http://localhost:8080/lra-coordinator/0_ffff0a28054b_9133_5f855916_a7?query=1#fragment");
         URI coordinatorUri = LRAConstants.getLRACoordinatorUrl(lraId);
-        Assert.assertEquals("http", coordinatorUri.getScheme());
-        Assert.assertEquals("localhost", coordinatorUri.getHost());
-        Assert.assertEquals(8080, coordinatorUri.getPort());
-        Assert.assertEquals("/lra-coordinator", coordinatorUri.getPath());
-        Assert.assertNull(coordinatorUri.getQuery());
-        Assert.assertNull(coordinatorUri.getFragment());
-        Assert.assertEquals("http://localhost:8080/lra-coordinator", coordinatorUri.toASCIIString());
+        Assertions.assertEquals("http", coordinatorUri.getScheme());
+        Assertions.assertEquals("localhost", coordinatorUri.getHost());
+        Assertions.assertEquals(8080, coordinatorUri.getPort());
+        Assertions.assertEquals("/lra-coordinator", coordinatorUri.getPath());
+        Assertions.assertNull(coordinatorUri.getQuery());
+        Assertions.assertNull(coordinatorUri.getFragment());
+        Assertions.assertEquals("http://localhost:8080/lra-coordinator", coordinatorUri.toASCIIString());
     }
 
     @Test
     public void getCoordinatorWithMultipleCoordinatorPaths() {
         URI lraId = URI.create("http://198.10.0.10:8999/lra-coordinator/lra-coordinator");
         URI coordinatorUri = LRAConstants.getLRACoordinatorUrl(lraId);
-        Assert.assertEquals("http://198.10.0.10:8999/lra-coordinator/lra-coordinator", coordinatorUri.toASCIIString());
+        Assertions.assertEquals("http://198.10.0.10:8999/lra-coordinator/lra-coordinator", coordinatorUri.toASCIIString());
     }
 }

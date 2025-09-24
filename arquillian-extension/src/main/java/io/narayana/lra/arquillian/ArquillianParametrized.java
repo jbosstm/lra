@@ -10,8 +10,8 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import org.jboss.arquillian.junit.Arquillian;
-import org.junit.Ignore;
+import org.jboss.arquillian.junit5.Arquillian;
+import org.junit.jupiter.api.Disabled;
 import org.junit.runner.Description;
 import org.junit.runner.notification.RunNotifier;
 import org.junit.runners.Parameterized;
@@ -38,7 +38,7 @@ public class ArquillianParametrized extends ParentRunner<Arquillian> {
         super(testClass);
         Parameterized.Parameters parameters = getParametersMethod().getAnnotation(
                 Parameterized.Parameters.class);
-        ignoredMethods = new ArrayList<>(getTestClass().getAnnotatedMethods(Ignore.class));
+        ignoredMethods = new ArrayList<>(getTestClass().getAnnotatedMethods(Disabled.class));
         createRunnersForParameters(allParameters(), parameters.name());
     }
 

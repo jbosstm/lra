@@ -31,13 +31,15 @@
       <groupId>org.jboss.logging</groupId>
       <artifactId>jboss-logging-annotations</artifactId>
     </dependency>
+  <dependency>
+   <groupId>org.junit.jupiter</groupId>
+   <artifactId>junit-jupiter</artifactId>
+   <version>5.13.4</version>
+   <scope>test</scope>
+  </dependency>
     <dependency>
       <groupId>org.jboss.logging</groupId>
       <artifactId>jboss-logging</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
     </dependency>
   </dependencies>
 </project>

@@ -19,19 +19,18 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.core.Application;
+
+import java.lang.reflect.Method;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.jboss.resteasy.test.TestPortProvider;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 
 public class TestBase {
 
@@ -39,8 +38,8 @@ public class TestBase {
     NarayanaLRAClient lraClient;
     Client client;
 
-    @Rule
-    public TestName testName = new TestName();
+    
+    public String testName;
 
     @ApplicationPath("/base")
     public static class LRAInfo extends Application {
@@ -64,14 +63,18 @@ public class TestBase {
         }
     }
 
-    @BeforeClass
+    @BeforeAll
     static void start() {
         System.setProperty("lra.coordinator.url", TestPortProvider.generateURL('/' + COORDINATOR_PATH_NAME));
     }
 
-    @Before
-    public void before() {
-        LRALogger.logger.debugf("Starting test %s", testName.getMethodName());
+    @BeforeEach
+    public void before(TestInfo testInfo) {
+        Optional<Method> testMethod = testInfo.getTestMethod();
+        if (testMethod.isPresent()) {
+            this.testName = testMethod.get().getName();
+        }
+        LRALogger.logger.debugf("Starting test %s", testName);
 
         lraClient = new NarayanaLRAClient();
 
@@ -82,9 +85,9 @@ public class TestBase {
         server.deploy(TestBase.LRAInfo.class);
     }
 
-    @After
+    @AfterEach
     public void after() {
-        LRALogger.logger.debugf("Finished test %s", testName.getMethodName());
+        LRALogger.logger.debugf("Finished test %s", testName);
 
         lraClient.close();
         client.close();

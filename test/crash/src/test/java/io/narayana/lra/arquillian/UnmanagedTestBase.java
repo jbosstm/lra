@@ -8,7 +8,7 @@ package io.narayana.lra.arquillian;
 import io.narayana.lra.logging.LRALogger;
 import org.jboss.arquillian.container.test.api.ContainerController;
 import org.jboss.arquillian.container.test.api.Deployer;
-import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.arquillian.junit5.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.junit.runner.RunWith;
 

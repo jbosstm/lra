@@ -155,7 +155,6 @@
     <!-- Needed for WildflyLRACoordinatorDeployment class -->
     <version.org.jboss.resteasy>7.0.0.Final</version.org.jboss.resteasy>
     <version.org.jboss.shrinkwrap.resolvers>3.3.4</version.org.jboss.shrinkwrap.resolvers>
-    <version.org.jboss.weld>5.0.1.Final</version.org.jboss.weld>
     <version.org.sonatype.plugins.nxrm3.plugin>1.0.13</version.org.sonatype.plugins.nxrm3.plugin>
     <version.org.wildfly.arquillian>5.1.0.Final</version.org.wildfly.arquillian>
     <version.parsson>1.1.7</version.parsson>
@@ -436,13 +435,6 @@
         <groupId>org.jboss.narayana.lra</groupId>
         <artifactId>lra-test-arquillian-extension</artifactId>
         <version>${project.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.jboss.weld.se</groupId>
-        <artifactId>weld-se-shaded</artifactId>
-        <version>${version.org.jboss.weld}</version>
         <scope>test</scope>
       </dependency>
 

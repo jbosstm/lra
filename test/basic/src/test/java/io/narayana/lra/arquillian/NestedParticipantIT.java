@@ -14,14 +14,12 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
-
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
-
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
 import org.eclipse.microprofile.lra.tck.service.LRAMetricType;
@@ -41,7 +39,6 @@ public class NestedParticipantIT extends TestBase {
     @ArquillianResource
     public URL baseURL;
 
-    
     public String testName;
 
     @Deployment
@@ -50,9 +47,8 @@ public class NestedParticipantIT extends TestBase {
     }
 
     @BeforeEach
-    @Override
-    public void before() {
-        super.before();
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
         log.info("Running test " + testName);
 
         Response response = client.target(UriBuilder.fromUri(baseURL.toExternalForm())
@@ -222,7 +218,8 @@ public class NestedParticipantIT extends TestBase {
                 .request()
                 .get()) {
 
-            assertEquals(200, response.getStatus(), "parent context was not propagated correctly: " + response.readEntity(String.class));
+            assertEquals(200, response.getStatus(),
+                    "parent context was not propagated correctly: " + response.readEntity(String.class));
         } finally {
             lraClient.closeLRA(parent);
             assertNull(lraClient.getCurrent(), "testParentContext: close LRA is still on the current thread");

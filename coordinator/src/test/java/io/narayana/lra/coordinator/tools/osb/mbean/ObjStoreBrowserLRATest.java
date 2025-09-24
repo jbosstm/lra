@@ -113,7 +113,8 @@ public class ObjStoreBrowserLRATest {
             assertTrue(logRecord instanceof LRAParticipantRecordWrapper, "The log wrapper needs to be from LRA");
             LRAParticipantRecordWrapper lraRecord = (LRAParticipantRecordWrapper) logRecord;
             Assertions.assertEquals(LRAStatus.Active.name(), lraRecord.getLRAStatus(), "Participant should be active");
-            Assertions.assertEquals(participantUrl + "/compensate", lraRecord.getCompensator(), "Compensator URI is expected as it was registered with '/compensate' suffix");
+            Assertions.assertEquals(participantUrl + "/compensate", lraRecord.getCompensator(),
+                    "Compensator URI is expected as it was registered with '/compensate' suffix");
         } finally {
             // this removal is part of the test where we check that remove on OS bean works in later check
             lraOSEntryBean.remove(false);
@@ -145,7 +146,8 @@ public class ObjStoreBrowserLRATest {
         assertTrue(lraOSEntryBean instanceof LRAActionBean, "The provided jmx mbean should wrap LRAActionBean");
         LRAActionBean lraActionBean = (LRAActionBean) lraOSEntryBean;
 
-        Assertions.assertEquals(noSlash(lraActionBean.type()), noSlash(FailedLongRunningAction.FAILED_LRA_TYPE), "The probed action bean should be of type 'Failed LRA'");
+        Assertions.assertEquals(noSlash(lraActionBean.type()), noSlash(FailedLongRunningAction.FAILED_LRA_TYPE),
+                "The probed action bean should be of type 'Failed LRA'");
 
         assertFalse(LRARecoveryModule.getInstance().removeCommitted(uidWrapper.getUid()),
                 "Expected the recovery module cannot remove the failed LRA by Uid");

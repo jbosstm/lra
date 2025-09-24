@@ -7,9 +7,9 @@ package io.narayana.lra.arquillian;
 
 import static io.narayana.lra.arquillian.resource.LRAListener.LRA_LISTENER_UNTIMED_ACTION;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import io.narayana.lra.LRAData;
 import io.narayana.lra.arquillian.resource.LRAListener;
@@ -24,6 +24,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -45,12 +46,12 @@ import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.container.test.api.TargetsContainer;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 /**
  * This test class testes that an LRA is cancelled after lra-coordinator is restarted.
@@ -75,10 +76,9 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
     private static final Long SHORT_TIMEOUT = 10000L; // 10 seconds
     private static final Map<String, String> containerDeploymentMap = new HashMap<>();
 
-    @Rule
-    public TestName testName = new TestName();
+    public String testName;
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() {
 
         storeDir = Paths.get(String.format("%s/standalone/data/wfly_lra_objectstore", System.getenv("JBOSS_HOME")));
@@ -102,8 +102,12 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
         containerDeploymentMap.put(LRA_PARTICIPANT_CONTAINER_QUALIFIER, LRA_PARTICIPANT_DEPLOYMENT_QUALIFIER);
     }
 
-    @Before
-    public void before() {
+    @BeforeEach
+    public void before(TestInfo testInfo) {
+        Optional<Method> testMethod = testInfo.getTestMethod();
+        if (testMethod.isPresent()) {
+            this.testName = testMethod.get().getName();
+        }
         LRALogger.logger.debugf("Starting test %s", testName);
 
         client = ClientBuilder.newClient();
@@ -116,7 +120,7 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
         }
     }
 
-    @After
+    @AfterEach
     public void after() {
         if (client != null) {
             client.close();
@@ -154,12 +158,12 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
                 .request()
                 .put(null);
 
-        Assert.assertEquals("LRA participant action", 200, response.getStatus());
+        Assertions.assertEquals(200, response.getStatus(), "LRA participant action");
 
         // getting the lra ID before a recovery is done
         // The LRA transaction could have been started via lraClient but it is useful to test the filters as well
         lraId = getFirstLRAFromFS();
-        assertNotNull("A new LRA should have been added to the object store before the JVM was halted.", lraId);
+        assertNotNull(lraId, "A new LRA should have been added to the object store before the JVM was halted.");
         lraId = String.format("%s/%s", lraClient.getCoordinatorUrl(), lraId);
         // Restarts lra-coordinator to simulate a crash
         stopContainer(LRA_COORDINATOR_CONTAINER_QUALIFIER, "");
@@ -173,16 +177,16 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
 
         // null status is also accepted because the lra has already been cancelled and
         // removed
-        Assert.assertTrue(String.format("LRA %s should have cancelled but was %s", lraId, status),
-                status == null || status == LRAStatus.Cancelled);
+        Assertions.assertTrue(status == null || status == LRAStatus.Cancelled,
+                String.format("LRA %s should have cancelled but was %s", lraId, status));
 
         // Verifies that the resource was notified that the LRA finished
         String listenerStatus = getStatusFromListener(lraListenerURI);
 
         assertEquals(
+                LRAStatus.Cancelled.name(), listenerStatus,
                 String.format("The service lra-listener should have been told that the final state of the LRA %s was cancelled",
-                        lraId),
-                LRAStatus.Cancelled.name(), listenerStatus);
+                        lraId));
     }
 
     @Test
@@ -204,11 +208,10 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
         LRAStatus longStatus = getStatus(longLRA);
         LRAStatus shortStatus = getStatus(shortLRA);
 
-        Assert.assertEquals("LRA with long timeout should still be active",
-                LRAStatus.Active.name(), longStatus.name());
-        Assert.assertTrue("LRA with short timeout should not be active",
-                shortStatus == null ||
-                        LRAStatus.Cancelled.equals(shortStatus) || LRAStatus.Cancelling.equals(shortStatus));
+        Assertions.assertEquals(LRAStatus.Active.name(), longStatus.name(), "LRA with long timeout should still be active");
+        Assertions.assertTrue(shortStatus == null ||
+                LRAStatus.Cancelled.equals(shortStatus) || LRAStatus.Cancelling.equals(shortStatus),
+                "LRA with short timeout should not be active");
 
         // Using lra-participant, a new LRA transaction is started as sub-transaction of the long LRA transaction
         // started directly through lra-coordinator from the test class. lra-participant will keep track of the
@@ -218,7 +221,7 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
                 .header(LRA_HTTP_CONTEXT_HEADER, longLRA)
                 .put(Entity.text(""))) {
 
-            Assert.assertEquals("LRA participant action", 200, response.getStatus());
+            Assertions.assertEquals(200, response.getStatus(), "LRA participant action");
         }
 
         lraClient.closeLRA(longLRA);
@@ -226,8 +229,8 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
         // Checks that lra-participant was notified when the long LRA transaction was closed
         String listenerStatus = getStatusFromListener(lraListenerURI);
 
-        assertEquals("LRA listener should have been told that the final state of the LRA was closed",
-                LRAStatus.Closed.name(), listenerStatus);
+        assertEquals(LRAStatus.Closed.name(), listenerStatus,
+                "LRA listener should have been told that the final state of the LRA was closed");
     }
 
     // Private methods
@@ -239,7 +242,7 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
             } catch (InterruptedException ex) {
                 LRALogger.logger.errorf("An exception has been thrown while the test was trying to wait for %d milliseconds",
                         millis);
-                Assert.fail();
+                Assertions.fail();
             }
         }
     }
@@ -255,8 +258,9 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
                 .request()
                 .get()) {
 
-            Assert.assertEquals("Unexpected status from recovery call to " + lraClient.getRecoveryUrl(), 200,
-                    response.getStatus());
+            Assertions.assertEquals(200,
+                    response.getStatus(),
+                    "Unexpected status from recovery call to " + lraClient.getRecoveryUrl());
 
             // The result will be a List<LRAStatusHolder> of recovering LRAs but we just need the count
             String recoveringLRAs = response.readEntity(String.class);
@@ -286,7 +290,7 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
                 .request()
                 .get()) {
 
-            Assert.assertEquals("LRA participant HTTP status", 200, response.getStatus());
+            Assertions.assertEquals(200, response.getStatus(), "LRA participant HTTP status");
 
             return response.readEntity(String.class);
         }

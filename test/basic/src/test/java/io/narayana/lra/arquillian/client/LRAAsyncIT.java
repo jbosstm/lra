@@ -14,7 +14,6 @@ import io.narayana.lra.arquillian.resource.LRAParticipant;
 import jakarta.ws.rs.client.Invocation;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
-
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
@@ -51,13 +50,11 @@ public class LRAAsyncIT extends TestBase {
     @ArquillianResource
     public URL baseURL;
 
-    
     public String testName;
 
     @BeforeEach
-    @Override
-    public void before() {
-        super.before();
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
         log.info("Running test " + testName);
     }
 

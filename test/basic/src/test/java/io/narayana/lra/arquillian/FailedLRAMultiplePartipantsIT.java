@@ -30,7 +30,6 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
-
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
@@ -54,13 +53,10 @@ public class FailedLRAMultiplePartipantsIT extends TestBase {
     @ArquillianResource
     public URL baseURL;
 
-    
     public String testName;
 
-    @BeforeEach
-    @Override
-    public void before() {
-        super.before();
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
         log.info("Running test " + testName);
     }
 
@@ -150,7 +146,8 @@ public class FailedLRAMultiplePartipantsIT extends TestBase {
             String entity = response.readEntity(String.class);
 
             Assertions.assertEquals(
-                    expectedStatus, response.getStatus(), "response from " + resourcePrefix + "/" + resourcePath + " was " + entity);
+                    expectedStatus, response.getStatus(),
+                    "response from " + resourcePrefix + "/" + resourcePath + " was " + entity);
 
             return new URI(entity);
         } catch (URISyntaxException e) {

@@ -11,12 +11,10 @@ import io.narayana.lra.arquillian.resource.LRAUnawareResource;
 import io.narayana.lra.arquillian.resource.SimpleLRAParticipant;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
-
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
 import java.util.Optional;
-
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.logging.Logger;
@@ -32,13 +30,11 @@ public class LRAPropagationIT extends TestBase {
     @ArquillianResource
     public URL baseURL;
 
-    
     public String testName;
 
     @BeforeEach
-    @Override
-    public void before() {
-        super.before();
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
         log.info("Running test " + testName);
     }
 
@@ -57,7 +53,8 @@ public class LRAPropagationIT extends TestBase {
                 Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
 
         assertNotEquals(
-                lraId, returnedLraId, "While calling non-LRA method the resource should not propagate the LRA id when mp.lra.propagation.active=false");
+                lraId, returnedLraId,
+                "While calling non-LRA method the resource should not propagate the LRA id when mp.lra.propagation.active=false");
 
         lraClient.closeLRA(lraId);
     }

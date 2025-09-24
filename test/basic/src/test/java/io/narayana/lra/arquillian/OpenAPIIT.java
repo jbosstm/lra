@@ -10,13 +10,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import jakarta.ws.rs.core.Response;
-
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Optional;
-
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
@@ -27,13 +25,11 @@ import org.junit.jupiter.api.TestInfo;
 public class OpenAPIIT extends TestBase {
     private static final Logger log = Logger.getLogger(OpenAPIIT.class);
 
-    
     public String testName;
 
     @BeforeEach
-    @Override
-    public void before() {
-        super.before();
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
         log.info("Running test " + testName);
     }
 

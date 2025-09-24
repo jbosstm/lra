@@ -12,13 +12,11 @@ import io.narayana.lra.arquillian.resource.NonRootLRAParticipant;
 import io.narayana.lra.arquillian.resource.RootResource;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
-
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Optional;
-
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
@@ -35,13 +33,11 @@ public class NonRootLRAParticipantIT extends TestBase {
     @ArquillianResource
     public URL baseURL;
 
-    
     public String testName;
 
     @BeforeEach
-    @Override
-    public void before() {
-        super.before();
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
         log.info("Running test " + testName);
     }
 

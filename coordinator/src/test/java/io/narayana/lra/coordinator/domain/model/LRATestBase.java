@@ -35,11 +35,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.net.URI;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -53,8 +51,6 @@ import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
 import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.jboss.resteasy.test.TestPortProvider;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.TestInfo;
 
 public class LRATestBase {
 
@@ -503,13 +499,5 @@ public class LRATestBase {
         }
 
         return count;
-    }
-
-    @BeforeEach
-    public void setup(TestInfo testInfo) {
-        Optional<Method> testMethod = testInfo.getTestMethod();
-        if (testMethod.isPresent()) {
-            this.testName = testMethod.get().getName();
-        }
     }
 }

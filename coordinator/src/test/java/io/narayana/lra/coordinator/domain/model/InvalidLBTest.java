@@ -16,23 +16,19 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.core.Application;
-
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.jboss.resteasy.test.TestPortProvider;
-import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Test various client side coordinator load balancing strategies.
@@ -45,17 +41,6 @@ public class InvalidLBTest extends LRATestBase {
     private Client client;
     int[] ports = { 8081, 8082 };
 
-    // the list of parameters to use for the test
-    public static Iterable<?> parameters() {
-        return List.of("invalid-lb-algorithm");
-    }
-    public String lb_method;
-
-    // the rule that populates the lb_method field for each run of a parameterized method
-    @Rule
-    public LBTestRule testRule = new LBTestRule();
-
-    
     public String testName;
 
     @ApplicationPath("/")
@@ -86,7 +71,7 @@ public class InvalidLBTest extends LRATestBase {
         StringBuilder sb = new StringBuilder();
         String host = "localhost";
 
-        for (int i = 0;i < ports.length;i++) {
+        for (int i = 0; i < ports.length; i++) {
             servers[i] = new UndertowJaxrsServer().setHostname(host).setPort(ports[i]);
             try {
                 servers[i].start();
@@ -100,8 +85,7 @@ public class InvalidLBTest extends LRATestBase {
 
         System.setProperty(NarayanaLRAClient.LRA_COORDINATOR_URL_KEY, sb.toString());
 
-        if (lb_method != null)
-            System.setProperty(NarayanaLRAClient.COORDINATOR_LB_METHOD_KEY, lb_method);
+        System.setProperty(NarayanaLRAClient.COORDINATOR_LB_METHOD_KEY, "invalid-lb-algorithm");
 
         lraClient = new NarayanaLRAClient();
 
@@ -141,17 +125,13 @@ public class InvalidLBTest extends LRATestBase {
                 }
             }
             assertNull(uri,
-                     testName + ": current thread should not be associated with any LRAs");
+                    testName + ": current thread should not be associated with any LRAs");
         }
     }
 
     @ParameterizedTest(name = "#{index}, lb_method: {0}")
-    @LBAlgorithms({
-            "invalid-lb-algorithm"
-    })
-    @MethodSource("parameters")
+    @ValueSource(strings = { "invalid-lb-algorithm" })
     public void testInvalidLBAlgorithm(String lb_method) {
-        initInvalidLBTest(lb_method);
         assertFalse(lraClient.isLoadBalancing(),
                 "should not be allowed to load balance with an invalid algorithm");
 
@@ -162,9 +142,5 @@ public class InvalidLBTest extends LRATestBase {
             // the documentation says that starting a new LRA with an invalid load balancer should fail with a 503
             assertEquals(SERVICE_UNAVAILABLE.getStatusCode(), e.getResponse().getStatus());
         }
-    }
-
-    public void initInvalidLBTest(String lb_method) {
-        this.lb_method = lb_method;
     }
 }

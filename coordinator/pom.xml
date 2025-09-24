@@ -39,7 +39,7 @@
     </dependency>
     <dependency>
       <groupId>org.jboss.byteman</groupId>
-      <artifactId>byteman-bmunit</artifactId>
+      <artifactId>byteman-bmunit5</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -146,12 +146,11 @@
       <artifactId>resteasy-undertow</artifactId>
       <scope>test</scope>
     </dependency>
-  <dependency>
-   <groupId>org.junit.jupiter</groupId>
-   <artifactId>junit-jupiter</artifactId>
-   <version>5.13.4</version>
-   <scope>test</scope>
-  </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>

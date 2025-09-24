@@ -130,7 +130,7 @@
     <version.jakarta.servlet.jakarta-servlet-api>6.0.0</version.jakarta.servlet.jakarta-servlet-api>
     <version.jakarta.ws.rs.jakarta-ws-rs-api>3.1.0</version.jakarta.ws.rs.jakarta-ws-rs-api>
     <version.jboss-modules>2.2.0.Final</version.jboss-modules>
-    <version.junit>4.13.1</version.junit>
+    <version.junit>5.13.4</version.junit>
     <version.maven.antrun-plugin>3.0.0</version.maven.antrun-plugin>
     <version.maven.checkstyle-plugin>3.6.0</version.maven.checkstyle-plugin>
     <version.maven.jandex-plugin>3.5.3</version.maven.jandex-plugin>
@@ -349,7 +349,7 @@
       <!-- test dependencies -->
       <dependency>
         <groupId>org.jboss.byteman</groupId>
-        <artifactId>byteman-bmunit</artifactId>
+        <artifactId>byteman-bmunit5</artifactId>
         <version>${version.org.jboss.byteman}</version>
         <scope>test</scope>
       </dependency>
@@ -357,12 +357,6 @@
         <groupId>com.h2database</groupId>
         <artifactId>h2</artifactId>
         <version>${version.com.h2database}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.arquillian.protocol</groupId>
-        <artifactId>arquillian-protocol-servlet-jakarta</artifactId>
-        <version>${version.org.jboss.arquillian.core}</version>
         <scope>test</scope>
       </dependency>
 
@@ -419,8 +413,8 @@
         <scope>test</scope>
       </dependency>
       <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
         <version>${version.junit}</version>
         <scope>test</scope>
       </dependency>

@@ -7,12 +7,10 @@ package io.narayana.lra.arquillian.client;
 
 import io.narayana.lra.LRAData;
 import io.narayana.lra.arquillian.TestBase;
-
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
-
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,13 +21,11 @@ public class NarayanaLRAClientIT extends TestBase {
 
     private static final Logger log = Logger.getLogger(NarayanaLRAClientIT.class);
 
-    
     public String testName;
 
     @BeforeEach
-    @Override
-    public void before() {
-        super.before();
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
         log.info("Running test " + testName);
     }
 

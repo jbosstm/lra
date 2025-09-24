@@ -19,11 +19,13 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.core.Application;
-
 import java.lang.reflect.Method;
 import java.net.URI;
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.jboss.resteasy.test.TestPortProvider;
@@ -38,7 +40,6 @@ public class TestBase {
     NarayanaLRAClient lraClient;
     Client client;
 
-    
     public String testName;
 
     @ApplicationPath("/base")

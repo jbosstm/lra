@@ -21,7 +21,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Response;
-
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.time.temporal.ChronoUnit;
@@ -34,11 +33,15 @@ import org.eclipse.microprofile.lra.annotation.Compensate;
 import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.jboss.resteasy.test.TestPortProvider;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 public class LRAWithParticipantsTest extends LRATestBase {
 
-    
     public String testName;
     private UndertowJaxrsServer server;
     private NarayanaLRAClient lraClient;
@@ -158,8 +161,8 @@ public class LRAWithParticipantsTest extends LRATestBase {
             // Before compensate call is finished, Service 4 calls PUT
             // /lra-coordinator/{LraId} to attempt to join the Saga.
             // Exception is thrown because a timed-out lra cannot be joined
-            assertThrows(WebApplicationException.class, () ->
-                lraClient.joinLRA(lraId, null, URI.create("http://localhost:8081/service4/test"), null));
+            assertThrows(WebApplicationException.class,
+                    () -> lraClient.joinLRA(lraId, null, URI.create("http://localhost:8081/service4/test"), null));
             joinAttempted = true;
             lock.notify();
         }

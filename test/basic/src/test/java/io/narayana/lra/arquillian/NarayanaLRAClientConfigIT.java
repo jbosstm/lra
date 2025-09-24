@@ -78,7 +78,8 @@ public class NarayanaLRAClientConfigIT extends TestBase {
                 .path(TestClientResource.PATH)
                 .request().get()) {
             assertEquals(Response.Status.OK.getStatusCode(), response.getStatus(), "Unexpected returned status code");
-            assertEquals("http://example-coordinator.com:35553/lra-coordinator", response.readEntity(String.class), "The coordinator URL was not overridden by the configuration");
+            assertEquals("http://example-coordinator.com:35553/lra-coordinator", response.readEntity(String.class),
+                    "The coordinator URL was not overridden by the configuration");
         }
     }
 

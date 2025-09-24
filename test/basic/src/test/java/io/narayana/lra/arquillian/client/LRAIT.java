@@ -15,12 +15,10 @@ import io.narayana.lra.client.internal.NarayanaLRAClient;
 import jakarta.ws.rs.client.Invocation;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
-
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
 import java.util.Optional;
-
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
@@ -39,13 +37,11 @@ public class LRAIT extends TestBase {
     @ArquillianResource
     public URL baseURL;
 
-    
     public String testName;
 
     @BeforeEach
-    @Override
-    public void before() {
-        super.before();
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
         log.info("Running test " + testName);
     }
 
@@ -69,7 +65,8 @@ public class LRAIT extends TestBase {
         // (note that the method LRAParticipant.CREATE_OR_CONTINUE_LRA also invokes other resource methods)
         URI lra1 = invokeInTransaction(null, LRAParticipant.CREATE_OR_CONTINUE_LRA);
         lrasToAfterFinish.add(lra1);
-        assertEquals(LRAStatus.Active, lraClient.getStatus(lra1), "LRA should still be active. The identifier of the LRA was " + lra1);
+        assertEquals(LRAStatus.Active, lraClient.getStatus(lra1),
+                "LRA should still be active. The identifier of the LRA was " + lra1);
 
         // end the LRA
         invokeInTransaction(lra1, LRAParticipant.END_EXISTING_LRA);
@@ -139,7 +136,8 @@ public class LRAIT extends TestBase {
         assertEquals(lra3, lraClient.getCurrent(), "lra3 is not associated with the current thread");
 
         lraClient.closeLRA(lra3);
-        assertEquals(lra1, lraClient.getCurrent(), "closing the current LRA (lra3) should have made the previous one (lra1) active");
+        assertEquals(lra1, lraClient.getCurrent(),
+                "closing the current LRA (lra3) should have made the previous one (lra1) active");
 
         // check that closing the last LRA will leave none active
         lraClient.closeLRA(lra1);
@@ -166,7 +164,7 @@ public class LRAIT extends TestBase {
 
             assertTrue(response.hasEntity(),
                     "This test expects that the invoked resource returns the identifier of the LRA " +
-                    "that was active during the invocation or an error message.");
+                            "that was active during the invocation or an error message.");
 
             String responseMessage = response.readEntity(String.class);
 

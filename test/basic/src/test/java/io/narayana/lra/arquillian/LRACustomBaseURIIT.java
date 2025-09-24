@@ -12,11 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.narayana.lra.arquillian.filter.LinkCapturingFilter;
 import io.narayana.lra.arquillian.resource.SimpleLRAParticipant;
 import jakarta.ws.rs.core.Response;
-
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.Optional;
-
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.logging.Logger;
@@ -35,13 +33,11 @@ public class LRACustomBaseURIIT extends TestBase {
     @ArquillianResource
     public URL baseURL;
 
-    
     public String testName;
 
     @BeforeEach
-    @Override
-    public void before() {
-        super.before();
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
         log.info("Running test " + testName);
     }
 
@@ -62,7 +58,7 @@ public class LRACustomBaseURIIT extends TestBase {
 
             System.out.println(response.getHeaderString("Link"));
             assertTrue(response.getHeaderString("Link").contains("http://example.com/"
-                            + SimpleLRAParticipant.SIMPLE_PARTICIPANT_RESOURCE_PATH + "/compensate?method=jakarta.ws.rs.PUT"),
+                    + SimpleLRAParticipant.SIMPLE_PARTICIPANT_RESOURCE_PATH + "/compensate?method=jakarta.ws.rs.PUT"),
                     "The base URI was not overridden by the configuration");
         }
     }

@@ -49,7 +49,7 @@ public class JDBCObjectStoreTest extends TestBase {
         LRALogger.logger.infof("%s: the Object Store type is set to: %s", testName, objectStoreType);
 
         // Starts a new LRA
-        URI lraIdUri = lraClient.startLRA( testName + "#newLRA");
+        URI lraIdUri = lraClient.startLRA(testName + "#newLRA");
         // Checks that the LRA transaction has been created
         assertNotNull(lraIdUri, "An LRA should have been added to the object store");
         // Using NarayanaLRAClient, the following statement checks that the status of the new LRA is active

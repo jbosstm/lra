@@ -93,7 +93,7 @@
     <!-- The full remote maven repo URL; can be overridden via -D for special use cases -->
     <maven.repository.url>${maven.repository.protocol}://repository.jboss.org/nexus/content/groups/public/</maven.repository.url>
 
-    <narayana.version>7.2.2.Final</narayana.version>
+    <narayana.version>7.3.0.Final</narayana.version>
 
     <!-- Nexus Settings -->
     <nexus.repository.release>narayana</nexus.repository.release>

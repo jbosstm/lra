@@ -8,7 +8,7 @@ package io.narayana.lra.participant;
 import static io.narayana.lra.proxy.test.api.LRAMgmtEgController.GET_ACTIVITY_PATH;
 import static io.narayana.lra.proxy.test.api.LRAMgmtEgController.LRAM_PATH;
 import static io.narayana.lra.proxy.test.api.LRAMgmtEgController.LRAM_WORK;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.narayana.lra.client.internal.NarayanaLRAClient;
 import jakarta.ws.rs.WebApplicationException;
@@ -19,10 +19,10 @@ import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.net.URL;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SpecTest {
     private static URL MICROSERVICE_BASE_URL;
@@ -34,7 +34,7 @@ public class SpecTest {
 
     private WebTarget msTarget;
 
-    @BeforeClass
+    @BeforeAll
     public static void setupClass() throws Exception {
         System.out.println("Getting ready to connect - waiting for coordinator to startup...");
         int servicePort = Integer.getInteger("service.http.port", TEST_PORT);
@@ -46,13 +46,13 @@ public class SpecTest {
         msClient = ClientBuilder.newClient();
     }
 
-    @Before
+    @BeforeEach
     public void setupTest() throws Exception {
         setupClass();
         msTarget = msClient.target(URI.create(new URL(MICROSERVICE_BASE_URL, "/").toExternalForm()));
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (lraClient != null) {
             lraClient.close();

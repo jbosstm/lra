@@ -5,8 +5,8 @@
 
 package io.narayana.lra.coordinator.domain.model.objectstore;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.arjuna.ats.arjuna.common.ObjectStoreEnvironmentBean;
 import com.arjuna.ats.internal.arjuna.objectstore.VolatileStore;
@@ -15,12 +15,12 @@ import io.narayana.lra.LRAData;
 import io.narayana.lra.logging.LRALogger;
 import java.net.URI;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class VolatileObjectStoreTest extends TestBase {
 
-    @BeforeClass
+    @BeforeAll
     public static void start() {
         TestBase.start();
         System.setProperty("com.arjuna.ats.arjuna.common.propertiesFile", "alt-jbossts-properties.xml");
@@ -36,25 +36,26 @@ public class VolatileObjectStoreTest extends TestBase {
 
         String objectStoreType = BeanPopulator.getDefaultInstance(ObjectStoreEnvironmentBean.class).getObjectStoreType();
         // This test fails if the Object Store is not set to Volatile
-        assertEquals("The Object Store type should have been set to VolatileStore", VolatileStore.class.getName(),
-                objectStoreType);
+        assertEquals(VolatileStore.class.getName(),
+                objectStoreType,
+                "The Object Store type should have been set to VolatileStore");
 
-        LRALogger.logger.infof("%s: the Object Store type is set to: %s", testName.getMethodName(), objectStoreType);
+        LRALogger.logger.infof("%s: the Object Store type is set to: %s", testName, objectStoreType);
 
         // Starts a new LRA
-        URI lraIdUri = lraClient.startLRA(testName.getMethodName() + "#newLRA");
+        URI lraIdUri = lraClient.startLRA(testName + "#newLRA");
         // Checks that the LRA transaction has been created
-        assertNotNull("An LRA should have been added to the object store", lraIdUri);
+        assertNotNull(lraIdUri, "An LRA should have been added to the object store");
         // Using NarayanaLRAClient, the following statement checks that the status of the new LRA is active
-        assertEquals("Expected Active", LRAStatus.Active, getStatus(lraIdUri));
+        assertEquals(LRAStatus.Active, getStatus(lraIdUri), "Expected Active");
 
         // Extracts the id from the URI
         String lraId = convertLraUriToString(lraIdUri).replace('_', ':');
 
         LRAData lraData = getLastCreatedLRA();
         assertEquals(
-                "Expected that the LRA transaction just started matches the LRA transaction fetched through the Narayana LRA client",
                 lraData.getLraId(),
-                lraIdUri);
+                lraIdUri,
+                "Expected that the LRA transaction just started matches the LRA transaction fetched through the Narayana LRA client");
     }
 }

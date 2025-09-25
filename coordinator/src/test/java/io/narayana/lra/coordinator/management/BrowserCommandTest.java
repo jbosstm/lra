@@ -12,8 +12,8 @@ import java.io.InputStream;
 import java.net.URL;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class BrowserCommandTest {
     private static final String TEST_STORE = "test-store";
@@ -27,16 +27,16 @@ public class BrowserCommandTest {
         StringBuilder sb = new StringBuilder();
         InputStream cmdSource = new ByteArrayInputStream(sb.toString().getBytes());
         URL resource = getClass().getClassLoader().getResource(TEST_STORE);
-        Assert.assertNotNull(resource);
+        Assertions.assertNotNull(resource);
         String storeDir = resource.getFile();
         URL commands = getClass().getClassLoader().getResource(TEST_COMMANDS);
-        Assert.assertNotNull(commands);
+        Assertions.assertNotNull(commands);
         String testCommands = commands.getFile();
 
         File f1 = new File(storeDir);
-        Assert.assertTrue(f1.exists() && f1.isDirectory());
+        Assertions.assertTrue(f1.exists() && f1.isDirectory());
         File f2 = new File(testCommands);
-        Assert.assertTrue(f2.exists() && f2.isFile());
+        Assertions.assertTrue(f2.exists() && f2.isFile());
 
         String[] args = new String[] {
                 "-s", storeDir,
@@ -46,24 +46,24 @@ public class BrowserCommandTest {
         String output = BrowserCommand.run(args);
 
         // the store in the test resources directory contains an LRA in state Cancelling
-        Assert.assertTrue(output.contains(LongRunningAction.getType()
+        Assertions.assertTrue(output.contains(LongRunningAction.getType()
                 .substring(1))); // TODO find out where and why the instrumentation strips the initial slash
 
-        Assert.assertTrue(output.contains(LRA_UID));
-        Assert.assertTrue(output.contains(LRAStatus.Cancelling.name()));
+        Assertions.assertTrue(output.contains(LRA_UID));
+        Assertions.assertTrue(output.contains(LRAStatus.Cancelling.name()));
 
         // because one of the participants is still Compensating
-        Assert.assertTrue(output.contains(ParticipantStatus.Compensating.name()));
+        Assertions.assertTrue(output.contains(ParticipantStatus.Compensating.name()));
 
         // and the store in the test resources directory contains an LRA in state FailedToCancel
-        Assert.assertTrue(output.contains(FailedLongRunningAction.getType()
+        Assertions.assertTrue(output.contains(FailedLongRunningAction.getType()
                 .substring(1)));
 
-        Assert.assertTrue(output.contains(FAILED_LRA_UID));
-        Assert.assertTrue(output.contains(LRAStatus.FailedToCancel.name()));
+        Assertions.assertTrue(output.contains(FAILED_LRA_UID));
+        Assertions.assertTrue(output.contains(LRAStatus.FailedToCancel.name()));
 
         // because one of the participants FailedToCompensate
-        Assert.assertTrue(output.contains(ParticipantStatus.FailedToCompensate.name()));
+        Assertions.assertTrue(output.contains(ParticipantStatus.FailedToCompensate.name()));
 
         System.out.printf(output); // the actual output from the browser
     }

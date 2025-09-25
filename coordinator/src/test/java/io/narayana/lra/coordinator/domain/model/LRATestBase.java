@@ -9,7 +9,7 @@ import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_PARENT_CONTEXT_HEADER;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_RECOVERY_HEADER;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.arjuna.ats.arjuna.common.Uid;
 import com.arjuna.ats.arjuna.common.arjPropertyManager;
@@ -51,7 +51,6 @@ import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
 import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.jboss.resteasy.test.TestPortProvider;
-import org.junit.rules.TestName;
 
 public class LRATestBase {
 
@@ -196,7 +195,7 @@ public class LRATestBase {
 
                 try (Client client = ClientBuilder.newClient()) {
                     try (Response response = client.target(recoveryPath).request().get()) {
-                        assertEquals("unable to trigger a recovery scan", 200, response.getStatus());
+                        assertEquals(200, response.getStatus(), "unable to trigger a recovery scan");
                         response.getEntity(); // clean up by reading the response stream ignoring the result
 
                         // now the next request should fail with a 412 code since the LRA should no longer be active
@@ -457,14 +456,14 @@ public class LRATestBase {
         }
     }
 
-    protected void clearObjectStore(TestName testName) {
+    protected void clearObjectStore(String testName) {
         final String objectStorePath = arjPropertyManager.getObjectStoreEnvironmentBean().getObjectStoreDir();
         final File objectStoreDirectory = new File(objectStorePath);
 
         clearDirectory(objectStoreDirectory, testName);
     }
 
-    protected void clearDirectory(final File directory, TestName testName) {
+    protected void clearDirectory(final File directory, String testName) {
         final File[] files = directory.listFiles();
 
         if (files != null) {

@@ -120,7 +120,7 @@
     <version.hamcrest>3.0</version.hamcrest>
     <version.httpcomponents>4.5.14</version.httpcomponents>
     <version.io.narayana.checkstyle-config>1.0.1.Final</version.io.narayana.checkstyle-config>
-    <version.io.netty>4.2.6.Final</version.io.netty>
+    <version.io.netty>4.2.7.Final</version.io.netty>
 
     <version.io.smallrye.smallrye-config>3.14.1</version.io.smallrye.smallrye-config>
     <version.io.smallrye.smallrye-stork>2.7.6</version.io.smallrye.smallrye-stork>

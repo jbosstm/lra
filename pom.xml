@@ -112,7 +112,7 @@
     <test.logs.to.file>false</test.logs.to.file>
     <!-- The surefire/failsafe test execution logs goes to a file by default -->
     <testLogToFile>true</testLogToFile>
-    <version.com.github.spotbugs.spotbugs-maven-plugin>4.9.6.0</version.com.github.spotbugs.spotbugs-maven-plugin>
+    <version.com.github.spotbugs.spotbugs-maven-plugin>4.9.7.0</version.com.github.spotbugs.spotbugs-maven-plugin>
     <version.com.h2database>2.4.240</version.com.h2database>
     <version.doxia>1.11.1</version.doxia>
     <version.formatter.plugin>2.29.0</version.formatter.plugin>

@@ -188,34 +188,6 @@ function comment_on_pull
     fi
 }
 
-function check_if_pull_closed
-{
-    if [ "$PULL_NUMBER" != "" ]
-    then
-      if [[ $PULL_DESCRIPTION =~ "\"state\": \"closed\"" ]]
-      then
-          echo "pull closed"
-          exit 0
-      else
-          echo "pull open"
-      fi
-    fi
-}
-
-function check_if_pull_noci_label
-{
-    if [ "$PULL_NUMBER" != "" ]
-    then
-        if [[ $PULL_DESCRIPTION =~ "\"name\": \"NoCI\"" ]]
-        then
-            echo "pull request $PULL_NUMBER is defined with NoCI label, exiting this CI execution"
-            exit 0
-        else
-            echo "NoCI label is not present at the pull request $PULL_NUMBER"
-        fi
-    fi
-}
-
 function build_narayana {
   echo "Checking if need SPI PR"
   if [ -n "$SPI_BRANCH" ]; then
@@ -330,7 +302,6 @@ function tests_as {
 function init_jboss_home {
   [ -d $JBOSS_HOME ] || fatal "missing AS - $JBOSS_HOME is not a directory"
   echo "JBOSS_HOME=$JBOSS_HOME"
-  cp ${JBOSS_HOME}/docs/examples/configs/standalone-xts.xml ${JBOSS_HOME}/standalone/configuration
   cp ${JBOSS_HOME}/docs/examples/configs/standalone-rts.xml ${JBOSS_HOME}/standalone/configuration
   # configuring bigger connection timeout for jboss cli (WFLY-13385)
   CONF="${JBOSS_HOME}/bin/jboss-cli.xml"
@@ -367,7 +338,7 @@ function lra_tests {
 
 
 function enable_as_trace {
-    CONF=${1:-"${JBOSS_HOME}/standalone/configuration/standalone-xts.xml"}
+    CONF=${1:-"${JBOSS_HOME}/standalone/configuration/standalone.xml"}
     echo "Enable trace logs for file '$CONF'"
 
     sed -e '/<logger category="com.arjuna">$/N;s/<logger category="com.arjuna">\n *<level name="WARN"\/>/<logger category="com.arjuna"><level name="TRACE"\/><\/logger><logger category="org.jboss.narayana"><level name="TRACE"\/><\/logger><logger category="org.jboss.jbossts"><level name="TRACE"\/><\/logger><logger category="org.jboss.jbossts.txbridge"><level name="TRACE"\/>/' $CONF > "$CONF.tmp" && mv "$CONF.tmp" "$CONF"
@@ -413,20 +384,10 @@ ulimit -c unlimited
 ulimit -a
 
 initGithubVariables
-check_if_pull_closed
-check_if_pull_noci_label
 
 init_test_options
 
-# if QA_BUILD_ARGS is unset then get the db drivers form the file system otherwise get them from the
-# default location (see build.xml). Note ${var+x} substitutes null for the parameter if var is undefined
-[ -z "${QA_BUILD_ARGS+x}" ] && QA_BUILD_ARGS="-Ddriver.url=file:///home/jenkins/dbdrivers"
-
-# Note: set QA_TARGET if you want to override the QA test ant target
-
 # for IPv6 testing use export ARQ_PROF=arqIPv6
-# if you don't want to run all the XTS tests set WSTX_MODULES to the ones you want, eg:
-# export WSTX_MODULES="WSAS,WSCF,WSTX,WS-C,WS-T,xtstest,crash-recovery-tests"
 
 [ -z "${WORKSPACE}" ] && fatal "UNSET WORKSPACE"
 
@@ -447,11 +408,6 @@ kill_qa_suite_processes $MainClassPatterns
 
 export MEM_SIZE=1024m
 [ -z ${MAVEN_OPTS+x} ] && export MAVEN_OPTS="-Xms$MEM_SIZE -Xmx$MEM_SIZE"
-export ANT_OPTS="-Xms$MEM_SIZE -Xmx$MEM_SIZE"
-export EXTRA_QA_SYSTEM_PROPERTIES="-Xms$MEM_SIZE -Xmx$MEM_SIZE -XX:ParallelGCThreads=2"
-
-# if we are building with IPv6 tell ant about it
-export ANT_OPTS="$ANT_OPTS $IPV6_OPTS"
 
 # run the job
 

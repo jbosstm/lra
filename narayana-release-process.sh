@@ -15,7 +15,7 @@ else
   ORG=$3
 fi
 
-echo "You will need: VPN, credentials for jbosstm host, jira admin, github permissions on all $ORG repo and nexus permissions." 
+echo "You will need: VPN, credentials for jbosstm host, github permissions on all $ORG repo and nexus permissions." 
 echo "Please check the configuration in ~/.m2/settings.xml with repository 'jboss-releases-repository' and correct username/password." 
 read -p "Have you done these steps? y/n " STEPSOK
 if [[ $STEPSOK == n* ]]; then

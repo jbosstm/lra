@@ -222,48 +222,17 @@ function build_narayana {
 }
 
 function clone_as {
-  echo "Cloning AS sources from https://github.com/jbosstm/jboss-as.git"
+  echo "Cloning WildFly main"
 
   cd ${WORKSPACE}
-  if [ -d jboss-as ]; then
-    echo "Using existing checkout of WildFly. If a fresh build should be used, delete the folder ${WORKSPACE}/jboss-as"
-    cd jboss-as
-    git fetch jbosstm
-    [ $? -eq 0 ] || fatal "Fetching from jbosstm remote did not work"
-    echo "Rebasing the local branch on top of jbosstm/main"
-    git pull --rebase jbosstm main
-    [ $? -eq 0 ] || fatal "git rebase jbosstm failed"
-  else
-    echo "First time checkout of WildFly"
-    git clone https://github.com/jbosstm/jboss-as.git -o jbosstm
-    [ $? -eq 0 ] || fatal "git clone https://github.com/jbosstm/jboss-as.git failed"
 
-    cd jboss-as
-
-    git remote add upstream https://github.com/wildfly/wildfly.git
-
-    [ -z "$AS_BRANCH" ] || git fetch jbosstm +refs/pull/*/head:refs/remotes/jbosstm/pull/*/head
-    [ $? -eq 0 ] || fatal "git fetch of pulls failed"
-    [ -z "$AS_BRANCH" ] || git checkout $AS_BRANCH
-    [ $? -eq 0 ] || fatal "git fetch of pull branch failed"
-    [ -z "$AS_BRANCH" ] || echo "Using non-default AS_BRANCH: $AS_BRANCH"
-  fi
-
-  git fetch upstream
-  echo "This is the JBoss-AS commit"
-  echo $(git rev-parse upstream/main)
-  echo "This is the AS_BRANCH $AS_BRANCH commit"
-  echo $(git rev-parse HEAD)
-
-  echo "Rebasing the wildfly upstream/main on top of the AS_BRANCH $AS_BRANCH"
-  git pull --rebase upstream main
-  [ $? -eq 0 ] || fatal "git rebase failed"
+  git clone --depth=1 --branch main https://github.com/wildfly/wildfly.git
 
   if [ $REDUCE_SPACE = 1 ]; then
     echo "Deleting git dir to reduce disk usage"
     rm -rf .git
   fi
-
+  cd wildfly
   WILDFLY_CLONED_REPO=$(pwd)
   cd $WORKSPACE
 }

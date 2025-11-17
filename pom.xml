@@ -248,7 +248,6 @@
         <artifactId>resteasy-undertow</artifactId>
         <version>${version.org.jboss.resteasy}</version>
       </dependency>
-       <!-- https://mvnrepository.com/artifact/io.undertow/undertow-core -->
       <dependency>
         <groupId>io.undertow</groupId>
         <artifactId>undertow-core</artifactId>

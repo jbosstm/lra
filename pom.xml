@@ -251,7 +251,7 @@
       <dependency>
         <groupId>io.undertow</groupId>
         <artifactId>undertow-core</artifactId>
-        <version>${version.undertow-core}</version>
+        <version>${version.undertow.core}</version>
       </dependency>
       <!-- end undertow with RestEasy -->
 

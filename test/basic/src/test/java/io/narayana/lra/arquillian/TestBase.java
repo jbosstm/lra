@@ -22,43 +22,44 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.jboss.arquillian.container.test.api.RunAsClient;
-import org.jboss.arquillian.junit.Arquillian;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.runner.RunWith;
+import org.jboss.arquillian.junit5.ArquillianExtension;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 @RunAsClient
-@RunWith(Arquillian.class)
+@ExtendWith(ArquillianExtension.class)
 public abstract class TestBase {
 
     public static NarayanaLRAClient lraClient;
     public static String coordinatorUrl;
-    public Client client;
-    public List<URI> lrasToAfterFinish;
+    public static Client client;
+    public static List<URI> lrasToAfterFinish;
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() {
         lraClient = new NarayanaLRAClient();
         coordinatorUrl = lraClient.getCoordinatorUrl();
-    }
-
-    @Before
-    public void before() {
         client = ClientBuilder.newClient();
         lrasToAfterFinish = new ArrayList<>();
     }
 
-    @After
+    @AfterEach
     public void after() {
         List<URI> lraURIList = lraClient.getAllLRAs().stream().map(LRAData::getLraId).collect(Collectors.toList());
-        for (URI lraToFinish : lrasToAfterFinish) {
-            if (lraURIList.contains(lraToFinish)) {
-                lraClient.cancelLRA(lraToFinish);
+        if (lrasToAfterFinish != null) {
+            for (URI lraToFinish : lrasToAfterFinish) {
+                if (lraURIList.contains(lraToFinish)) {
+                    lraClient.cancelLRA(lraToFinish);
+                }
             }
         }
+    }
 
+    @AfterAll
+    public static void afterAll() {
         if (client != null) {
             client.close();
         }
@@ -68,7 +69,7 @@ public abstract class TestBase {
         String coordinatorUrl = LRAConstants.getLRACoordinatorUrl(lra) + "/";
 
         try (Response response = client.target(coordinatorUrl).path("").request().get()) {
-            Assert.assertTrue("Missing response body when querying for all LRAs", response.hasEntity());
+            Assertions.assertTrue(response.hasEntity(), "Missing response body when querying for all LRAs");
             String allLRAs = response.readEntity(String.class);
 
             JsonReader jsonReader = Json.createReader(new StringReader(allLRAs));
@@ -83,18 +84,18 @@ public abstract class TestBase {
                 .request()
                 .get()) {
 
-            Assert.assertTrue(
+            Assertions.assertTrue(
+                    response.hasEntity(),
                     "Expecting a non empty body in response from "
                             + io.narayana.lra.arquillian.resource.LRAUnawareResource.ROOT_PATH + "/"
-                            + io.narayana.lra.arquillian.resource.LRAUnawareResource.RESOURCE_PATH,
-                    response.hasEntity());
+                            + io.narayana.lra.arquillian.resource.LRAUnawareResource.RESOURCE_PATH);
 
             String entity = response.readEntity(String.class);
 
-            Assert.assertEquals(
+            Assertions.assertEquals(
+                    expectedStatus, response.getStatus(),
                     "response from " + io.narayana.lra.arquillian.resource.LRAUnawareResource.ROOT_PATH + "/"
-                            + io.narayana.lra.arquillian.resource.LRAUnawareResource.RESOURCE_PATH + " was " + entity,
-                    expectedStatus, response.getStatus());
+                            + io.narayana.lra.arquillian.resource.LRAUnawareResource.RESOURCE_PATH + " was " + entity);
 
             return new URI(entity);
         } catch (URISyntaxException e) {

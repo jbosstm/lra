@@ -103,10 +103,6 @@ public class NarayanaLRAClient implements Closeable {
      */
     public static final String LRA_COORDINATOR_URL_KEY = "lra.coordinator.url";
     /**
-     * The config property key for configuring the URLs comprising a cluster of coordinators
-     */
-    public static final String COORDINATOR_URLS_KEY = "lra.coordinator.urls";
-    /**
      * The config property key for configuring the load balancing algorithm for a cluster of coordinators
      */
     public static final String COORDINATOR_LB_METHOD_KEY = "lra.coordinator.lb-method";
@@ -169,7 +165,7 @@ public class NarayanaLRAClient implements Closeable {
      * @throws IllegalStateException thrown when the URL taken from the system property value is not a URL format
      */
     public NarayanaLRAClient() {
-        this(getConfigProperty(LRA_COORDINATOR_URL_KEY, "http://localhost:8080/" + COORDINATOR_PATH_NAME));
+        clusterConfig(null);
     }
 
     /**
@@ -181,6 +177,7 @@ public class NarayanaLRAClient implements Closeable {
      * @param port port where the LRA coordinator will be contacted
      * @param coordinatorPath path where the LRA coordinator will be contacted
      */
+    @Deprecated(since = "1.0.3.Final", forRemoval = true)
     public NarayanaLRAClient(String protocol, String host, int port, String coordinatorPath) {
         clusterConfig(UriBuilder.fromPath(coordinatorPath).scheme(protocol).host(host).port(port).build());
     }
@@ -245,14 +242,20 @@ public class NarayanaLRAClient implements Closeable {
     }
 
     private void clusterConfig(URI coordinatorUrl) {
-        if (CONFIG.getOptionalValue(COORDINATOR_URLS_KEY, String.class).isEmpty()) {
+        if (coordinatorUrl != null) {
             this.coordinatorUrl = coordinatorUrl;
             this.coordinatorCount = 1;
         } else {
-            String coordinators = getConfigProperty(COORDINATOR_URLS_KEY, coordinatorUrl.toASCIIString());
+            // check LRA_COORDINATOR_URL_KEY or use http://localhost:8080/lra-coordinator as the default
+            String coordinators = getConfigProperty(LRA_COORDINATOR_URL_KEY, "http://localhost:8080/" + COORDINATOR_PATH_NAME);
 
             this.coordinatorUrl = toURI(coordinators.split(",")[0]);
             this.coordinatorCount = coordinators.chars().filter(ch -> ch == ',').count() + 1;
+
+            // if there is only one coordinator, we don't need to initialize stork
+            if (this.coordinatorCount == 1) {
+                return;
+            }
 
             try {
                 this.lbMethod = getConfigProperty(COORDINATOR_LB_METHOD_KEY, LB_METHOD_ROUND_ROBIN);

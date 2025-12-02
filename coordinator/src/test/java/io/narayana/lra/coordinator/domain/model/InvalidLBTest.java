@@ -24,10 +24,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
-import org.jboss.resteasy.test.TestPortProvider;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -73,11 +71,6 @@ public class InvalidLBTest extends LRATestBase {
         }
     }
 
-    @BeforeClass
-    public static void start() {
-        System.setProperty("lra.coordinator.url", TestPortProvider.generateURL('/' + COORDINATOR_PATH_NAME));
-    }
-
     @Before
     public void before() {
         clearObjectStore(testName);
@@ -100,7 +93,7 @@ public class InvalidLBTest extends LRATestBase {
                     host, ports[i], COORDINATOR_PATH_NAME, i + 1 < ports.length ? "," : ""));
         }
 
-        System.setProperty(NarayanaLRAClient.COORDINATOR_URLS_KEY, sb.toString());
+        System.setProperty(NarayanaLRAClient.LRA_COORDINATOR_URL_KEY, sb.toString());
 
         if (lb_method != null)
             System.setProperty(NarayanaLRAClient.COORDINATOR_LB_METHOD_KEY, lb_method);

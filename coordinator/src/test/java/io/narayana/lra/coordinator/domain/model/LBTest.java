@@ -7,7 +7,6 @@ package io.narayana.lra.coordinator.domain.model;
 import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
 import static io.narayana.lra.client.internal.NarayanaLRAClient.LB_METHOD_ROUND_ROBIN;
 import static io.narayana.lra.client.internal.NarayanaLRAClient.LB_METHOD_STICKY;
-import static io.narayana.lra.client.internal.NarayanaLRAClient.LRA_COORDINATOR_URL_KEY;
 import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -32,10 +31,8 @@ import java.util.HashSet;
 import java.util.Set;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
-import org.jboss.resteasy.test.TestPortProvider;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -82,11 +79,6 @@ public class LBTest extends LRATestBase {
         }
     }
 
-    @BeforeClass
-    public static void start() {
-        System.setProperty(LRA_COORDINATOR_URL_KEY, TestPortProvider.generateURL('/' + COORDINATOR_PATH_NAME));
-    }
-
     @Before
     public void before() {
         clearObjectStore(testName);
@@ -109,7 +101,7 @@ public class LBTest extends LRATestBase {
                     host, ports[i], COORDINATOR_PATH_NAME, i + 1 < ports.length ? "," : ""));
         }
 
-        System.setProperty(NarayanaLRAClient.COORDINATOR_URLS_KEY, sb.toString());
+        System.setProperty(NarayanaLRAClient.LRA_COORDINATOR_URL_KEY, sb.toString());
 
         if (lb_method != null) {
             System.setProperty(NarayanaLRAClient.COORDINATOR_LB_METHOD_KEY, lb_method);

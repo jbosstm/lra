@@ -74,7 +74,6 @@ import org.jboss.resteasy.test.TestPortProvider;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -121,11 +120,6 @@ public class LRATest extends LRATestBase {
         }
     }
 
-    @BeforeClass
-    public static void start() {
-        System.setProperty("lra.coordinator.url", TestPortProvider.generateURL('/' + COORDINATOR_PATH_NAME));
-    }
-
     @Before
     public void before() {
         LRALogger.logger.debugf("Starting test %s", testName);
@@ -149,7 +143,7 @@ public class LRATest extends LRATestBase {
                     host, ports[i], COORDINATOR_PATH_NAME, i + 1 < ports.length ? "," : ""));
         }
 
-        System.setProperty(NarayanaLRAClient.COORDINATOR_URLS_KEY, sb.toString());
+        System.setProperty(NarayanaLRAClient.LRA_COORDINATOR_URL_KEY, sb.toString());
 
         lraClient = new NarayanaLRAClient();
 

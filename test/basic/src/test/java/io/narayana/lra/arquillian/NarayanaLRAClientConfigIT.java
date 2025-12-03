@@ -5,7 +5,7 @@
 
 package io.narayana.lra.arquillian;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.narayana.lra.arquillian.resource.TestClientResource;
 import jakarta.ws.rs.core.Response;
@@ -19,7 +19,7 @@ import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Test that the Narayana LRA client base coordinator URL can be overridden by configuration.
@@ -77,9 +77,9 @@ public class NarayanaLRAClientConfigIT extends TestBase {
         try (Response response = client.target(baseURL.toURI())
                 .path(TestClientResource.PATH)
                 .request().get()) {
-            assertEquals("Unexpected returned status code", Response.Status.OK.getStatusCode(), response.getStatus());
-            assertEquals("The coordinator URL was not overridden by the configuration",
-                    "http://example-coordinator.com:35553/lra-coordinator", response.readEntity(String.class));
+            assertEquals(Response.Status.OK.getStatusCode(), response.getStatus(), "Unexpected returned status code");
+            assertEquals("http://example-coordinator.com:35553/lra-coordinator", response.readEntity(String.class),
+                    "The coordinator URL was not overridden by the configuration");
         }
     }
 

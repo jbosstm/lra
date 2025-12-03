@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright The Narayana Authors
+  SPDX short identifier: Apache-2.0
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.jboss.narayana.lra</groupId>
+    <artifactId>lra-parent</artifactId>
+    <version>1.0.4.Final-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <groupId>org.jboss.narayana.lra</groupId>
+  <artifactId>lra-documentation</artifactId>
+  <packaging>pom</packaging>
+  <name>Narayana LRA: Documentation</name>
+  <description>Narayana LRA: Documentation</description>
+
+  <properties>
+    <buildproperty.date>${maven.build.timestamp}</buildproperty.date>
+    <maven.build.timestamp.format>yyyy/MMM/dd HH:mm</maven.build.timestamp.format>
+    <org.asciidoctor.asciidoctor-maven-plugin>3.0.0</org.asciidoctor.asciidoctor-maven-plugin>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <version.sortpom>3.2.0</version.sortpom>
+    <skip.release>true</skip.release>
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.asciidoctor</groupId>
+        <artifactId>asciidoctor-maven-plugin</artifactId>
+        <version>${org.asciidoctor.asciidoctor-maven-plugin}</version>
+        <executions>
+          <execution>
+            <id>convert-to-html</id>
+            <goals>
+              <goal>process-asciidoc</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <backend>html5</backend>
+              <sourceDirectory>src/main/asciidoc</sourceDirectory>
+              <preserveDirectories>true</preserveDirectories>
+              <outputDirectory>${project.build.directory}/html</outputDirectory>
+              <attributes>
+                <!-- should double check how should be used -->
+                <source-highlighter>coderay</source-highlighter>
+                <toc>left</toc>
+                <toclevel>2</toclevel>
+                <icons>font</icons>
+              </attributes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

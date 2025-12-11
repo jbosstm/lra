@@ -47,7 +47,7 @@ jobs:
 
       - name: Cache Maven dependencies
         if: steps.check-label.outputs.should_skip != 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.m2/repository/*/*

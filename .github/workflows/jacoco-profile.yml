@@ -66,7 +66,7 @@ jobs:
         env:
           LRA_TCK_TIMEOUT_FACTOR: 1
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: steps.check-label.outputs.should_skip != 'true' && always()
         with:
           name: core-logs-jdk${{ matrix.java-version }}

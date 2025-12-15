@@ -33,10 +33,8 @@ import java.util.Optional;
 import java.util.Set;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
-import org.jboss.resteasy.test.TestPortProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -71,11 +69,6 @@ public class LBTest extends LRATestBase {
             classes.add(Coordinator.class);
             return classes;
         }
-    }
-
-    @BeforeAll
-    public static void start() {
-        System.setProperty(LRA_COORDINATOR_URL_KEY, TestPortProvider.generateURL('/' + COORDINATOR_PATH_NAME));
     }
 
     @BeforeEach

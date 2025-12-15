@@ -73,7 +73,6 @@ import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.jboss.resteasy.test.TestPortProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
@@ -116,11 +115,6 @@ public class LRATest extends LRATestBase {
             classes.add(Coordinator.class);
             return classes;
         }
-    }
-
-    @BeforeAll
-    public static void start() {
-        System.setProperty("lra.coordinator.url", TestPortProvider.generateURL('/' + COORDINATOR_PATH_NAME));
     }
 
     @BeforeEach

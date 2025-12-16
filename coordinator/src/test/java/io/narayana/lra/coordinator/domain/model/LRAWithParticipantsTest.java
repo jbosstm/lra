@@ -112,9 +112,7 @@ public class LRAWithParticipantsTest extends LRATestBase {
     @BeforeEach
     public void before(TestInfo testInfo) {
         Optional<Method> testMethod = testInfo.getTestMethod();
-        if (testMethod.isPresent()) {
-            this.testName = testMethod.get().getName();
-        }
+        this.testName = testMethod.get().getName();
         LRALogger.logger.debugf("Starting test %s", testName);
         server = new UndertowJaxrsServer().start();
         clearObjectStore(testName);

@@ -74,9 +74,7 @@ public class LBTest extends LRATestBase {
     @BeforeEach
     public void before(TestInfo testInfo) {
         Optional<Method> testMethod = testInfo.getTestMethod();
-        if (testMethod.isPresent()) {
-            this.testName = testMethod.get().getName();
-        }
+        this.testName = testMethod.get().getName();
         clearObjectStore(testName);
 
         servers = new UndertowJaxrsServer[ports.length];

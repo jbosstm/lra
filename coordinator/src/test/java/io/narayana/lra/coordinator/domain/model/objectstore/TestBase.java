@@ -72,9 +72,7 @@ public class TestBase {
     @BeforeEach
     public void before(TestInfo testInfo) {
         Optional<Method> testMethod = testInfo.getTestMethod();
-        if (testMethod.isPresent()) {
-            this.testName = testMethod.get().getName();
-        }
+        this.testName = testMethod.get().getName();
         LRALogger.logger.debugf("Starting test %s", testName);
 
         lraClient = new NarayanaLRAClient();

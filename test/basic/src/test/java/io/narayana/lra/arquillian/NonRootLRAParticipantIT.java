@@ -91,8 +91,6 @@ public class NonRootLRAParticipantIT extends TestBase {
     @BeforeEach
     public void setup(TestInfo testInfo) {
         Optional<Method> testMethod = testInfo.getTestMethod();
-        if (testMethod.isPresent()) {
-            this.testName = testMethod.get().getName();
-        }
+        this.testName = testMethod.get().getName();
     }
 }

@@ -120,9 +120,7 @@ public class LRATest extends LRATestBase {
     @BeforeEach
     public void before(TestInfo testInfo) {
         Optional<Method> testMethod = testInfo.getTestMethod();
-        if (testMethod.isPresent()) {
-            this.testName = testMethod.get().getName();
-        }
+        this.testName = testMethod.get().getName();
         LRALogger.logger.debugf("Starting test %s", testName);
         clearObjectStore(testName);
 
@@ -189,8 +187,7 @@ public class LRATest extends LRATestBase {
                     LRALogger.logger.infof("after test %s: could not stop server %s", testName, e.getMessage());
                 }
             }
-            assertNull(uri,
-                    testName + ": current thread should not be associated with any LRAs");
+            assertNull(uri, testName + ": current thread should not be associated with any LRAs");
         }
     }
 

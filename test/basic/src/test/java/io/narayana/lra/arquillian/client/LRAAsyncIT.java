@@ -6,7 +6,10 @@
 package io.narayana.lra.arquillian.client;
 
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import io.narayana.lra.arquillian.Deployer;
 import io.narayana.lra.arquillian.TestBase;
@@ -178,8 +181,6 @@ public class LRAAsyncIT extends TestBase {
     @BeforeEach
     public void setup(TestInfo testInfo) {
         Optional<Method> testMethod = testInfo.getTestMethod();
-        if (testMethod.isPresent()) {
-            this.testName = testMethod.get().getName();
-        }
+        this.testName = testMethod.get().getName();
     }
 }

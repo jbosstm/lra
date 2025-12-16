@@ -6,7 +6,10 @@ package io.narayana.lra.coordinator.domain.model;
 
 import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
 import static jakarta.ws.rs.core.Response.Status.SERVICE_UNAVAILABLE;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import io.narayana.lra.client.internal.NarayanaLRAClient;
 import io.narayana.lra.coordinator.api.Coordinator;
@@ -54,9 +57,7 @@ public class InvalidLBTest extends LRATestBase {
     @BeforeEach
     public void before(TestInfo testInfo) {
         Optional<Method> testMethod = testInfo.getTestMethod();
-        if (testMethod.isPresent()) {
-            this.testName = testMethod.get().getName();
-        }
+        this.testName = testMethod.get().getName();
         clearObjectStore(testName);
 
         servers = new UndertowJaxrsServer[ports.length];

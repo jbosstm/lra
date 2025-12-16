@@ -6,7 +6,9 @@
 package io.narayana.lra.arquillian;
 
 import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import io.narayana.lra.arquillian.resource.NestedParticipant;
 import io.narayana.lra.arquillian.spi.NarayanaLRARecovery;
@@ -245,8 +247,6 @@ public class NestedParticipantIT extends TestBase {
     @BeforeEach
     public void setup(TestInfo testInfo) {
         Optional<Method> testMethod = testInfo.getTestMethod();
-        if (testMethod.isPresent()) {
-            this.testName = testMethod.get().getName();
-        }
+        this.testName = testMethod.get().getName();
     }
 }

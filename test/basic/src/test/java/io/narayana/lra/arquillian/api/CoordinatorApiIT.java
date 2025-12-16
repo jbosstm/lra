@@ -609,7 +609,7 @@ public class CoordinatorApiIT extends TestBase {
      * Joining an LRA participant via entity body.
      */
     @ParameterizedTest(name = "#{index}, version: {0}")
-    @ValueSource(strings = { API_VERSION_1_0, API_VERSION_1_1 })
+    @ValueSource(strings = { API_VERSION_1_0, API_VERSION_1_1 }) // the recovery url was unusable in previous versions
     public void joinLRAWithBody(String version) {
         initCoordinatorApiIT(version);
         URI lraId = lraClient.startLRA(testName);

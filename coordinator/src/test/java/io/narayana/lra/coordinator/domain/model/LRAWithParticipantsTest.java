@@ -8,6 +8,7 @@ import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_PARENT_CONTEXT_HEADER;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import io.narayana.lra.client.internal.NarayanaLRAClient;
 import io.narayana.lra.coordinator.api.Coordinator;
@@ -34,7 +35,6 @@ import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.jboss.resteasy.test.TestPortProvider;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,9 +63,11 @@ public class LRAWithParticipantsTest extends LRATestBase {
             }
             synchronized (lock) {
                 while (!joinAttempted) {
-                    Assertions.assertDoesNotThrow(() -> {
+                    try {
                         lock.wait();
-                    }, "Could not wait");
+                    } catch (InterruptedException e) {
+                        fail("Could not wait");
+                    }
                 }
             }
             return Response.status(Response.Status.ACCEPTED).entity(ParticipantStatus.Compensating).build();
@@ -151,9 +153,11 @@ public class LRAWithParticipantsTest extends LRATestBase {
         }
         synchronized (lock) {
             while (!compensateCalled) {
-                Assertions.assertDoesNotThrow(() -> {
+                try {
                     lock.wait();
-                }, "Could not wait");
+                } catch (InterruptedException e) {
+                    fail("Could not wait");
+                }
             }
             // Service 2 receives the /saga/compensate call and begins compensating.
             // Before compensate call is finished, Service 4 calls PUT

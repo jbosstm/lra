@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import com.arjuna.ats.arjuna.exceptions.ObjectStoreException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -483,9 +484,11 @@ public class LRATest extends LRATestBase {
                 fail("could not read json array: " + e.getMessage());
             }
         } finally {
-            Assertions.assertDoesNotThrow(() -> {
+            try {
                 lraClient.cancelLRA(lraId);
-            }, "Could not clean up: ");
+            } catch (WebApplicationException e) {
+                fail("Could not clean up: " + e);
+            }
         }
     }
 
@@ -523,9 +526,11 @@ public class LRATest extends LRATestBase {
             }
         } finally {
             // clean up
-            Assertions.assertDoesNotThrow(() -> {
+            try {
                 lraClient.cancelLRA(lraId);
-            }, "Could not clean up: ");
+            } catch (WebApplicationException e) {
+                fail("Could not clean up: " + e);
+            }
         }
     }
 
@@ -563,9 +568,11 @@ public class LRATest extends LRATestBase {
             }
         } finally {
             // clean up
-            Assertions.assertDoesNotThrow(() -> {
+            try {
                 lraClient.cancelLRA(lraId);
-            }, "Could not clean up: ");
+            } catch (WebApplicationException e) {
+                fail("Could not clean up: " + e);
+            }
         }
     }
 
@@ -1292,9 +1299,11 @@ public class LRATest extends LRATestBase {
         }
 
         // verify that nothing was written to the store
-        Assertions.assertDoesNotThrow(() -> {
+        try {
             assertEquals(0, countRecords(), "LRA record should not have been created");
-        }, "Unable to read the store: ");
+        } catch (ObjectStoreException e) {
+            fail("Unable to read the store: " + e.getMessage());
+        }
     }
 
     @Test

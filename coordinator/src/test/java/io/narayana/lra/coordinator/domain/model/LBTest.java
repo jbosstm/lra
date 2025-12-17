@@ -34,7 +34,6 @@ import java.util.Set;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -162,9 +161,11 @@ public class LBTest extends LRATestBase {
         } catch (WebApplicationException e) {
             fail("close first LRA failed: " + e.getMessage());
         } finally {
-            Assertions.assertDoesNotThrow(() -> {
+            try {
                 lraClient.closeLRA(lra2);
-            }, "close second LRA failed: ");
+            } catch (WebApplicationException e2) {
+                fail("close second LRA failed: " + e2.getMessage());
+            }
         }
 
         LRAStatus status1 = getStatus(lra1);

@@ -16,18 +16,20 @@ import io.narayana.lra.arquillian.spi.NarayanaLRARecovery;
 import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Optional;
 import org.eclipse.microprofile.lra.tck.service.spi.LRACallbackException;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 /**
  * There is a spec requirement to report failed LRAs but the spec only requires that a failure message is reported
@@ -42,13 +44,12 @@ public class ParticipantDataIT extends TestBase {
     @ArquillianResource
     public URL baseURL;
 
-    @Rule
-    public TestName testName = new TestName();
+    public String testName;
 
-    @Override
-    public void before() {
-        super.before();
-        log.info("Running test " + testName.getMethodName());
+    @BeforeEach
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
+        log.info("Running test " + testName);
     }
 
     @Deployment
@@ -73,10 +74,10 @@ public class ParticipantDataIT extends TestBase {
         String calls = invoke(null, ParticipantDataResource.SIMPLE_PARTICIPANT_RESOURCE_PATH,
                 ParticipantDataResource.CALLS_PATH, Response.Status.OK.getStatusCode(), null);
 
-        Assert.assertTrue("missing Complete callback: " + calls, calls.contains("@Complete"));
-        Assert.assertTrue("missing Status callback: " + calls, calls.contains("@Status"));
-        Assert.assertTrue("missing Forget callback: " + calls, calls.contains("@Forget"));
-        Assert.assertTrue("missing AfterLRA callback: " + calls, calls.contains("@AfterLRA"));
+        Assertions.assertTrue(calls.contains("@Complete"), "missing Complete callback: " + calls);
+        Assertions.assertTrue(calls.contains("@Status"), "missing Status callback: " + calls);
+        Assertions.assertTrue(calls.contains("@Forget"), "missing Forget callback: " + calls);
+        Assertions.assertTrue(calls.contains("@AfterLRA"), "missing AfterLRA callback: " + calls);
     }
 
     @Test
@@ -91,7 +92,7 @@ public class ParticipantDataIT extends TestBase {
 
         lrasToAfterFinish.add(lraId);
 
-        Assert.assertEquals("wrong data in bean on second call", ParticipantDataResource2.START_DATA, data);
+        Assertions.assertEquals(ParticipantDataResource2.START_DATA, data, "wrong data in bean on second call");
     }
 
     private String invoke(URI lraId, String resourcePrefix, String resourcePath, int expectedStatus, String data) {
@@ -110,16 +111,22 @@ public class ParticipantDataIT extends TestBase {
                 .headers(headers)
                 .get()) {
 
-            Assert.assertEquals(
-                    "Unexpected response status from " + resourcePrefix + "/" + resourcePath + " was ",
-                    expectedStatus, response.getStatus());
+            Assertions.assertEquals(
+                    expectedStatus, response.getStatus(),
+                    "Unexpected response status from " + resourcePrefix + "/" + resourcePath + " was ");
 
-            Assert.assertTrue("Expecting a non empty body in response from " + resourcePrefix + "/" + resourcePath,
-                    response.hasEntity());
+            Assertions.assertTrue(response.hasEntity(),
+                    "Expecting a non empty body in response from " + resourcePrefix + "/" + resourcePath);
 
             return response.readEntity(String.class);
         } catch (URISyntaxException e) {
             throw new IllegalStateException("response cannot be converted to URI: " + e.getMessage());
         }
+    }
+
+    @BeforeEach
+    public void setup(TestInfo testInfo) {
+        Optional<Method> testMethod = testInfo.getTestMethod();
+        this.testName = testMethod.get().getName();
     }
 }

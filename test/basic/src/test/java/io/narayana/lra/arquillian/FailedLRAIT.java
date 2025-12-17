@@ -12,8 +12,8 @@ import static io.narayana.lra.arquillian.resource.SimpleLRAParticipant.START_LRA
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import io.narayana.lra.LRAConstants;
 import io.narayana.lra.arquillian.resource.LRAParticipantWithStatusURI;
@@ -27,20 +27,22 @@ import jakarta.json.JsonReader;
 import jakarta.json.JsonValue;
 import jakarta.ws.rs.core.Response;
 import java.io.StringReader;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 /**
  * There is a spec requirement to report failed LRAs but the spec only requires that a failure message is reported
@@ -55,13 +57,12 @@ public class FailedLRAIT extends TestBase {
     @ArquillianResource
     public URL baseURL;
 
-    @Rule
-    public TestName testName = new TestName();
+    public String testName;
 
-    @Override
-    public void before() {
-        super.before();
-        log.info("Running test " + testName.getMethodName());
+    @BeforeEach
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
+        log.info("Running test " + testName);
     }
 
     @Deployment
@@ -146,10 +147,10 @@ public class FailedLRAIT extends TestBase {
 
         // verify that deleting the LRA log fails as it's with "Cancelling" status
         int status1 = removeFailedLRA(lraId);
-        assertEquals("deleting a cancelling LRA should fail with error code 412", 412, status1);
+        assertEquals(412, status1, "deleting a cancelling LRA should fail with error code 412");
 
         int status2 = removeFailedLRA(getRecoveryUrl(lraId), "Invalid URI Syntax");
-        assertEquals("used an invalid (wrong URI syntax) LRA id and precondition failed is expected", 412, status2);
+        assertEquals(412, status2, "used an invalid (wrong URI syntax) LRA id and precondition failed is expected");
 
         int status3 = removeFailedLRA(getRecoveryUrl(lraId), "http://example.com");
         // there is a difference on handling this url format in different REST Easy versions
@@ -158,12 +159,12 @@ public class FailedLRAIT extends TestBase {
                 status3, anyOf(equalTo(404), equalTo(405)));
 
         int status4 = removeFailedLRA(getRecoveryUrl(lraId), URLEncoder.encode("http://example.com", StandardCharsets.UTF_8));
-        assertEquals("using correct URI format but such that has empty path component and thus non-existent, " +
-                "expecting internal server error", 500, status4);
+        assertEquals(500, status4, "using correct URI format but such that has empty path component and thus non-existent, " +
+                "expecting internal server error");
 
         int status5 = removeFailedLRA(getRecoveryUrl(lraId), "a:b.c");
-        assertEquals("using correct URI format but such that has no path component and thus non-existent, " +
-                "expecting internal server error", 500, status5);
+        assertEquals(500, status5, "using correct URI format but such that has no path component and thus non-existent, " +
+                "expecting internal server error");
 
         // tell the participant compensate method to return an end state on the next compensate request
         invokeInTransaction(SIMPLE_PARTICIPANT_RESOURCE_PATH, RESET_ACCEPTED_PATH, 200);
@@ -173,7 +174,7 @@ public class FailedLRAIT extends TestBase {
 
         // the participant should now be in a failed state so the record can be deleted
         int statusDeleted = removeFailedLRA(lraId);
-        assertEquals("deleting a failed LRA", 204, statusDeleted);
+        assertEquals(204, statusDeleted, "deleting a failed LRA");
     }
 
     /**
@@ -229,14 +230,14 @@ public class FailedLRAIT extends TestBase {
                 .request()
                 .get()) {
 
-            Assert.assertTrue("Expecting a non empty body in response from " + resourcePrefix + "/" + resourcePath,
-                    response.hasEntity());
+            Assertions.assertTrue(response.hasEntity(),
+                    "Expecting a non empty body in response from " + resourcePrefix + "/" + resourcePath);
 
             String entity = response.readEntity(String.class);
 
-            Assert.assertEquals(
-                    "response from " + resourcePrefix + "/" + resourcePath + " was " + entity,
-                    expectedStatus, response.getStatus());
+            Assertions.assertEquals(
+                    expectedStatus, response.getStatus(),
+                    "response from " + resourcePrefix + "/" + resourcePath + " was " + entity);
 
             return new URI(entity);
         } catch (URISyntaxException e) {
@@ -261,9 +262,9 @@ public class FailedLRAIT extends TestBase {
                 String status = failedLRA.asJsonObject().getString("status");
                 if (status.equals(state.name())) {
                     // remove the failed LRA
-                    Assert.assertEquals("Could not remove log",
-                            Response.Status.NO_CONTENT.getStatusCode(),
-                            removeFailedLRA(lra));
+                    Assertions.assertEquals(Response.Status.NO_CONTENT.getStatusCode(),
+                            removeFailedLRA(lra),
+                            "Could not remove log");
                     return true;
                 }
             }
@@ -277,7 +278,7 @@ public class FailedLRAIT extends TestBase {
         String recoveryUrl = getRecoveryUrl(lra);
 
         try (Response response = client.target(recoveryUrl).path("failed").request().get()) {
-            Assert.assertTrue("Missing response body when querying for failed LRAs", response.hasEntity());
+            Assertions.assertTrue(response.hasEntity(), "Missing response body when querying for failed LRAs");
             String failedLRAs = response.readEntity(String.class);
 
             JsonReader jsonReader = Json.createReader(new StringReader(failedLRAs));
@@ -298,5 +299,11 @@ public class FailedLRAIT extends TestBase {
         try (Response response = client.target(recoveryUrl).path(lra).request().delete()) {
             return response.getStatus();
         }
+    }
+
+    @BeforeEach
+    public void setup(TestInfo testInfo) {
+        Optional<Method> testMethod = testInfo.getTestMethod();
+        this.testName = testMethod.get().getName();
     }
 }

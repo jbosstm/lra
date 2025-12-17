@@ -6,24 +6,26 @@
 package io.narayana.lra.arquillian;
 
 import static org.eclipse.microprofile.lra.annotation.LRAStatus.Closing;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import io.narayana.lra.arquillian.resource.NonRootLRAParticipant;
 import io.narayana.lra.arquillian.resource.RootResource;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Optional;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 public class NonRootLRAParticipantIT extends TestBase {
     private static final Logger log = Logger.getLogger(NonRootLRAParticipantIT.class);
@@ -31,13 +33,12 @@ public class NonRootLRAParticipantIT extends TestBase {
     @ArquillianResource
     public URL baseURL;
 
-    @Rule
-    public TestName testName = new TestName();
+    public String testName;
 
-    @Override
-    public void before() {
-        super.before();
-        log.info("Running test " + testName.getMethodName());
+    @BeforeEach
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
+        log.info("Running test " + testName);
     }
 
     @Deployment
@@ -50,13 +51,12 @@ public class NonRootLRAParticipantIT extends TestBase {
 
         Response response = client.target(baseURL.toExternalForm() + "root/participant/lra").request().get();
 
-        Assert.assertEquals(Response.Status.PRECONDITION_FAILED.getStatusCode(), response.getStatus());
+        Assertions.assertEquals(Response.Status.PRECONDITION_FAILED.getStatusCode(), response.getStatus());
 
         response = client.target(baseURL.toExternalForm() + "root/participant/counter").request().get();
-        Assert.assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        Assertions.assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
         int counterValue = response.readEntity(Integer.class);
-        Assert.assertEquals("Non root JAX-RS participant should have been enlisted and invoked",
-                1, counterValue);
+        Assertions.assertEquals(1, counterValue, "Non root JAX-RS participant should have been enlisted and invoked");
     }
 
     /*
@@ -81,10 +81,16 @@ public class NonRootLRAParticipantIT extends TestBase {
         try {
             LRAStatus status = lraClient.getStatus(lraId);
 
-            Assert.assertEquals("wrong state", Closing, status);
+            Assertions.assertEquals(Closing, status, "wrong state");
         } catch (WebApplicationException e) {
             fail("testFinishLRA: received unexpected response code (" + e.getResponse().getStatus()
                     + ") getting LRA status " + e.getMessage());
         }
+    }
+
+    @BeforeEach
+    public void setup(TestInfo testInfo) {
+        Optional<Method> testMethod = testInfo.getTestMethod();
+        this.testName = testMethod.get().getName();
     }
 }

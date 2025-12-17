@@ -5,10 +5,10 @@
 
 package io.narayana.lra.coordinator.domain.model.objectstore;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.arjuna.ats.arjuna.common.ObjectStoreEnvironmentBean;
 import com.arjuna.ats.internal.arjuna.objectstore.jdbc.JDBCStore;
@@ -25,13 +25,13 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class JDBCObjectStoreTest extends TestBase {
 
-    @BeforeClass
+    @BeforeAll
     public static void start() {
         TestBase.start();
         System.setProperty("com.arjuna.ats.arjuna.common.propertiesFile", "h2jbossts-properties.xml");
@@ -47,34 +47,34 @@ public class JDBCObjectStoreTest extends TestBase {
 
         String objectStoreType = BeanPopulator.getDefaultInstance(ObjectStoreEnvironmentBean.class).getObjectStoreType();
         // This test fails if the Object Store is not set to JDBCStore
-        assertEquals("The Object Store type should have been set to JDBCStore", JDBCStore.class.getName(), objectStoreType);
+        assertEquals(JDBCStore.class.getName(), objectStoreType, "The Object Store type should have been set to JDBCStore");
 
-        LRALogger.logger.infof("%s: the Object Store type is set to: %s", testName.getMethodName(), objectStoreType);
+        LRALogger.logger.infof("%s: the Object Store type is set to: %s", testName, objectStoreType);
 
         // Starts a new LRA
-        URI lraIdUri = lraClient.startLRA(testName.getMethodName() + "#newLRA");
+        URI lraIdUri = lraClient.startLRA(testName + "#newLRA");
         // Checks that the LRA transaction has been created
-        assertNotNull("An LRA should have been added to the object store", lraIdUri);
+        assertNotNull(lraIdUri, "An LRA should have been added to the object store");
         // Using NarayanaLRAClient, the following statement checks that the status of the new LRA is active
-        assertEquals("Expected Active", LRAStatus.Active, getStatus(lraIdUri));
+        assertEquals(LRAStatus.Active, getStatus(lraIdUri), "Expected Active");
 
         // Extracts the id from the URI
         String lraId = convertLraUriToString(lraIdUri).replace('_', ':');
 
         LRAData lraData = getLastCreatedLRA();
         assertEquals(
-                "Expected that the LRA transaction just started matches the LRA transaction fetched through the Narayana LRA client",
                 lraData.getLraId(),
-                lraIdUri);
+                lraIdUri,
+                "Expected that the LRA transaction just started matches the LRA transaction fetched through the Narayana LRA client");
 
         // Connecting to the database to double check that everything is fine
         String jdbcAccess = BeanPopulator.getDefaultInstance(ObjectStoreEnvironmentBean.class).getJdbcAccess();
         Pattern pattern = Pattern.compile(".*URL=(.*);User=(.*);Password=(.*).*");
         Matcher matcher = pattern.matcher(jdbcAccess);
         // In case the RegEx pattern does not work
-        Assert.assertTrue(
-                String.format("The Arjuna's JDBCAccess string:\n %s\n is not formatted as it should", jdbcAccess),
-                matcher.find());
+        Assertions.assertTrue(
+                matcher.find(),
+                String.format("The Arjuna's JDBCAccess string:\n %s\n is not formatted as it should", jdbcAccess));
 
         try (Connection conn = DriverManager.getConnection(matcher.group(1), matcher.group(2), matcher.group(3))) {
 
@@ -93,22 +93,22 @@ public class JDBCObjectStoreTest extends TestBase {
             String dbLraId = resultSet.getString(4); // Column where the LRA ID is
 
             // Checks that the status of the LRA found in the database is ACTIVE
-            assertTrue("Expected that the database holds a Long Running Action transaction",
-                    dbLraType.contains("LongRunningAction"));
+            assertTrue(dbLraType.contains("LongRunningAction"),
+                    "Expected that the database holds a Long Running Action transaction");
 
             // Checks that the ID of the LRA created previously is equal to the ID of the LRA found in the database
             assertEquals(
-                    String.format("Expected that the database holds an LRA with ID %s", lraId),
                     dbLraId,
-                    lraId);
+                    lraId,
+                    String.format("Expected that the database holds an LRA with ID %s", lraId));
 
             // Checks that the status of the LRA found in the database is ACTIVE
-            assertEquals("Expected that the database holds an active LRA",
-                    LRAStatus.Active.ordinal(),
-                    dbLraStatus);
+            assertEquals(LRAStatus.Active.ordinal(),
+                    dbLraStatus,
+                    "Expected that the database holds an active LRA");
 
         } catch (SQLException sqlException) {
-            LRALogger.logger.errorf("%s: %s", testName.getMethodName(), sqlException.getMessage());
+            LRALogger.logger.errorf("%s: %s", testName, sqlException.getMessage());
             fail(sqlException.getMessage());
         }
     }

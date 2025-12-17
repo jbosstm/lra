@@ -8,15 +8,15 @@ package io.narayana.lra.arquillian;
 import io.narayana.lra.logging.LRALogger;
 import org.jboss.arquillian.container.test.api.ContainerController;
 import org.jboss.arquillian.container.test.api.Deployer;
-import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.arquillian.junit5.ArquillianExtension;
 import org.jboss.arquillian.test.api.ArquillianResource;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * This class is the test base to manually manage Arquillian containers.
  * All test classes in this modules should extend this class.
  */
-@RunWith(Arquillian.class)
+@ExtendWith(ArquillianExtension.class)
 public abstract class UnmanagedTestBase {
 
     @ArquillianResource

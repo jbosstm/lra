@@ -7,20 +7,22 @@ package io.narayana.lra.arquillian;
 
 import static io.narayana.lra.arquillian.resource.SimpleLRAParticipant.SIMPLE_PARTICIPANT_RESOURCE_PATH;
 import static io.narayana.lra.arquillian.resource.SimpleLRAParticipant.START_LRA_PATH;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.narayana.lra.arquillian.filter.LinkCapturingFilter;
 import io.narayana.lra.arquillian.resource.SimpleLRAParticipant;
 import jakarta.ws.rs.core.Response;
+import java.lang.reflect.Method;
 import java.net.URL;
+import java.util.Optional;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 /**
  * Test that the Link header sent to coordinator can be changed with the custom base URI.
@@ -31,13 +33,12 @@ public class LRACustomBaseURIIT extends TestBase {
     @ArquillianResource
     public URL baseURL;
 
-    @Rule
-    public TestName testName = new TestName();
+    public String testName;
 
-    @Override
-    public void before() {
-        super.before();
-        log.info("Running test " + testName.getMethodName());
+    @BeforeEach
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
+        log.info("Running test " + testName);
     }
 
     @Deployment
@@ -56,10 +57,16 @@ public class LRACustomBaseURIIT extends TestBase {
                 .get()) {
 
             System.out.println(response.getHeaderString("Link"));
-            assertTrue("The base URI was not overridden by the configuration",
-                    response.getHeaderString("Link").contains("http://example.com/"
-                            + SimpleLRAParticipant.SIMPLE_PARTICIPANT_RESOURCE_PATH + "/compensate?method=jakarta.ws.rs.PUT"));
+            assertTrue(response.getHeaderString("Link").contains("http://example.com/"
+                    + SimpleLRAParticipant.SIMPLE_PARTICIPANT_RESOURCE_PATH + "/compensate?method=jakarta.ws.rs.PUT"),
+                    "The base URI was not overridden by the configuration");
         }
+    }
+
+    @BeforeEach
+    public void setup(TestInfo testInfo) {
+        Optional<Method> testMethod = testInfo.getTestMethod();
+        this.testName = testMethod.get().getName();
     }
 
 }

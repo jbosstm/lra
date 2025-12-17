@@ -5,11 +5,11 @@
 
 package io.narayana.lra.coordinator.tools.osb.mbean;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.arjuna.ats.arjuna.common.recoveryPropertyManager;
 import com.arjuna.ats.arjuna.tools.osb.mbean.ActionBean;
@@ -27,10 +27,10 @@ import io.narayana.lra.coordinator.internal.LRARecoveryModule;
 import java.io.File;
 import java.net.URI;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ObjStoreBrowserLRATest {
     private RecoveryManagerImple recoveryManager;
@@ -43,7 +43,7 @@ public class ObjStoreBrowserLRATest {
                     LRAActionBean.class.getName() }
     };
 
-    @Before
+    @BeforeEach
     public void setUp() {
         recoveryPropertyManager.getRecoveryEnvironmentBean().setRecoveryBackoffPeriod(1);
         Implementations.install();
@@ -60,7 +60,7 @@ public class ObjStoreBrowserLRATest {
         osb.start();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         recoveryManager.removeAllModules(false);
         recoveryManager.stop(false);
@@ -78,15 +78,14 @@ public class ObjStoreBrowserLRATest {
 
         osb.probe();
         UidWrapper uidWrapper = osb.findUid(lra.get_uid());
-        assertEquals("Probed LRA uid has to be equal to what the LRA was created with",
-                lra.get_uid(), uidWrapper.getUid());
+        assertEquals(lra.get_uid(), uidWrapper.getUid(), "Probed LRA uid has to be equal to what the LRA was created with");
 
         LRARecoveryModule.getService()
                 .endLRA(lra.getId(), false, false);
 
         osb.probe();
         uidWrapper = osb.findUid(lra.get_uid());
-        assertNull("Expected the LRA records were removed", uidWrapper);
+        assertNull(uidWrapper, "Expected the LRA records were removed");
 
         osb.stop();
     }
@@ -106,20 +105,20 @@ public class ObjStoreBrowserLRATest {
             osb.probe();
 
             UidWrapper uidWrapper = osb.findUid(lra.get_uid());
-            assertNotNull("Expected the LRA MBean uid was probed", uidWrapper);
+            assertNotNull(uidWrapper, "Expected the LRA MBean uid was probed");
             lraOSEntryBean = uidWrapper.getMBean();
-            assertNotNull("Expecting the UID to contain the LRA mbean", lraOSEntryBean);
+            assertNotNull(lraOSEntryBean, "Expecting the UID to contain the LRA mbean");
             assertTrue(
-                    "The mbean should wrap " + ActionBean.class.getName() + " but it's " + lraOSEntryBean.getClass().getName(),
-                    lraOSEntryBean instanceof ActionBean);
+                    lraOSEntryBean instanceof ActionBean,
+                    "The mbean should wrap " + ActionBean.class.getName() + " but it's " + lraOSEntryBean.getClass().getName());
             ActionBean actionBean = (ActionBean) lraOSEntryBean;
-            assertEquals("One participant was enlisted", 1, actionBean.getParticipants().size());
+            assertEquals(1, actionBean.getParticipants().size(), "One participant was enlisted");
             LogRecordWrapper logRecord = actionBean.getParticipants().iterator().next();
-            assertTrue("The log wrapper needs to be from LRA", logRecord instanceof LRAParticipantRecordWrapper);
+            assertTrue(logRecord instanceof LRAParticipantRecordWrapper, "The log wrapper needs to be from LRA");
             LRAParticipantRecordWrapper lraRecord = (LRAParticipantRecordWrapper) logRecord;
-            Assert.assertEquals("Participant should be active", LRAStatus.Active.name(), lraRecord.getLRAStatus());
-            Assert.assertEquals("Compensator URI is expected as it was registered with '/compensate' suffix",
-                    participantUrl + "/compensate", lraRecord.getCompensator());
+            Assertions.assertEquals(LRAStatus.Active.name(), lraRecord.getLRAStatus(), "Participant should be active");
+            Assertions.assertEquals(participantUrl + "/compensate", lraRecord.getCompensator(),
+                    "Compensator URI is expected as it was registered with '/compensate' suffix");
         } finally {
             // this removal is part of the test where we check that remove on OS bean works in later check
             lraOSEntryBean.remove(false);
@@ -128,7 +127,7 @@ public class ObjStoreBrowserLRATest {
         osb.probe();
 
         UidWrapper uidWrapper = osb.findUid(lra.get_uid());
-        assertNull("Expected the LRA records were removed", uidWrapper);
+        assertNull(uidWrapper, "Expected the LRA records were removed");
     }
 
     @Test
@@ -144,25 +143,24 @@ public class ObjStoreBrowserLRATest {
 
         osb.probe();
         UidWrapper uidWrapper = osb.findUid(lra.get_uid());
-        assertEquals("Probed LRA uid has to be equal to what the LRA was created with",
-                lra.get_uid(), uidWrapper.getUid());
+        assertEquals(lra.get_uid(), uidWrapper.getUid(), "Probed LRA uid has to be equal to what the LRA was created with");
 
         OSEntryBean lraOSEntryBean = uidWrapper.getMBean();
-        assertNotNull("Expecting the UID wrapper to contain the LRA mbean", lraOSEntryBean);
-        assertTrue("The provided jmx mbean should wrap LRAActionBean", lraOSEntryBean instanceof LRAActionBean);
+        assertNotNull(lraOSEntryBean, "Expecting the UID wrapper to contain the LRA mbean");
+        assertTrue(lraOSEntryBean instanceof LRAActionBean, "The provided jmx mbean should wrap LRAActionBean");
         LRAActionBean lraActionBean = (LRAActionBean) lraOSEntryBean;
 
-        Assert.assertEquals("The probed action bean should be of type 'Failed LRA'",
-                noSlash(lraActionBean.type()), noSlash(FailedLongRunningAction.FAILED_LRA_TYPE));
+        Assertions.assertEquals(noSlash(lraActionBean.type()), noSlash(FailedLongRunningAction.FAILED_LRA_TYPE),
+                "The probed action bean should be of type 'Failed LRA'");
 
-        assertFalse("Expected the recovery module cannot remove the failed LRA by Uid",
-                LRARecoveryModule.getInstance().removeCommitted(uidWrapper.getUid()));
+        assertFalse(LRARecoveryModule.getInstance().removeCommitted(uidWrapper.getUid()),
+                "Expected the recovery module cannot remove the failed LRA by Uid");
         uidWrapper = osb.findUid(lra.get_uid());
-        assertNotNull("Failed LRA record should exist in log", uidWrapper);
+        assertNotNull(uidWrapper, "Failed LRA record should exist in log");
 
         lraOSEntryBean.remove(true);
         uidWrapper = osb.findUid(lra.get_uid());
-        assertNull("After removal the Failed LRA record should not exist in log anymore", uidWrapper);
+        assertNull(uidWrapper, "After removal the Failed LRA record should not exist in log anymore");
     }
 
     private String noSlash(String type) {

@@ -12,8 +12,8 @@ import static io.narayana.lra.arquillian.resource.LRAMultipleParticipant1Initiat
 import static jakarta.ws.rs.core.Response.Status.NO_CONTENT;
 import static org.eclipse.microprofile.lra.annotation.LRAStatus.FailedToCancel;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import io.narayana.lra.LRAConstants;
 import io.narayana.lra.arquillian.resource.LRAMultipleParticipant1Initiator;
@@ -23,20 +23,22 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonValue;
 import jakarta.ws.rs.core.Response;
 import java.io.StringReader;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 /**
  * There is a spec requirement to report failed LRAs but the spec only requires that a failure message is reported
@@ -51,13 +53,11 @@ public class FailedLRAMultiplePartipantsIT extends TestBase {
     @ArquillianResource
     public URL baseURL;
 
-    @Rule
-    public TestName testName = new TestName();
+    public String testName;
 
-    @Override
-    public void before() {
-        super.before();
-        log.info("Running test " + testName.getMethodName());
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
+        log.info("Running test " + testName);
     }
 
     @Deployment
@@ -111,8 +111,8 @@ public class FailedLRAMultiplePartipantsIT extends TestBase {
                     .request()
                     .get()) {
 
-                Assert.assertTrue("Expecting a non empty body in response from " + resourcePrefix + "/" + resourcePath,
-                        response.hasEntity());
+                Assertions.assertTrue(response.hasEntity(),
+                        "Expecting a non empty body in response from " + resourcePrefix + "/" + resourcePath);
 
                 if (response.getStatus() != 202) {
                     return response.readEntity(String.class);
@@ -140,14 +140,14 @@ public class FailedLRAMultiplePartipantsIT extends TestBase {
                 .request()
                 .get()) {
 
-            Assert.assertTrue("Expecting a non empty body in response from " + resourcePrefix + "/" + resourcePath,
-                    response.hasEntity());
+            Assertions.assertTrue(response.hasEntity(),
+                    "Expecting a non empty body in response from " + resourcePrefix + "/" + resourcePath);
 
             String entity = response.readEntity(String.class);
 
-            Assert.assertEquals(
-                    "response from " + resourcePrefix + "/" + resourcePath + " was " + entity,
-                    expectedStatus, response.getStatus());
+            Assertions.assertEquals(
+                    expectedStatus, response.getStatus(),
+                    "response from " + resourcePrefix + "/" + resourcePath + " was " + entity);
 
             return new URI(entity);
         } catch (URISyntaxException e) {
@@ -173,9 +173,9 @@ public class FailedLRAMultiplePartipantsIT extends TestBase {
                 if (failedLRA.asJsonObject().getString("status").equals(state.name())) {
 
                     // Remove the failed LRA
-                    Assert.assertEquals("Could not remove log",
-                            NO_CONTENT.getStatusCode(),
-                            removeFailedLRA(lra));
+                    Assertions.assertEquals(NO_CONTENT.getStatusCode(),
+                            removeFailedLRA(lra),
+                            "Could not remove log");
 
                     return true;
                 }
@@ -190,7 +190,7 @@ public class FailedLRAMultiplePartipantsIT extends TestBase {
         String recoveryUrl = getRecoveryUrl(lra);
 
         try (Response response = client.target(recoveryUrl).path("failed").request().get()) {
-            Assert.assertTrue("Missing response body when querying for failed LRAs", response.hasEntity());
+            Assertions.assertTrue(response.hasEntity(), "Missing response body when querying for failed LRAs");
             String failedLRAs = response.readEntity(String.class);
 
             return Json.createReader(new StringReader(failedLRAs)).readArray();
@@ -210,5 +210,11 @@ public class FailedLRAMultiplePartipantsIT extends TestBase {
         try (Response response = client.target(recoveryUrl).path(lra).request().delete()) {
             return response.getStatus();
         }
+    }
+
+    @BeforeEach
+    public void setup(TestInfo testInfo) {
+        Optional<Method> testMethod = testInfo.getTestMethod();
+        this.testName = testMethod.get().getName();
     }
 }

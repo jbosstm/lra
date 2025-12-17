@@ -6,9 +6,9 @@
 package io.narayana.lra.arquillian.client;
 
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.narayana.lra.arquillian.Deployer;
 import io.narayana.lra.arquillian.TestBase;
@@ -17,16 +17,18 @@ import io.narayana.lra.client.internal.NarayanaLRAClient;
 import jakarta.ws.rs.client.Invocation;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
+import java.util.Optional;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 public class LRAIT extends TestBase {
 
@@ -37,13 +39,12 @@ public class LRAIT extends TestBase {
     @ArquillianResource
     public URL baseURL;
 
-    @Rule
-    public TestName testName = new TestName();
+    public String testName;
 
-    @Override
-    public void before() {
-        super.before();
-        log.info("Running test " + testName.getMethodName());
+    @BeforeEach
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
+        log.info("Running test " + testName);
     }
 
     @Deployment
@@ -66,13 +67,13 @@ public class LRAIT extends TestBase {
         // (note that the method LRAParticipant.CREATE_OR_CONTINUE_LRA also invokes other resource methods)
         URI lra1 = invokeInTransaction(null, LRAParticipant.CREATE_OR_CONTINUE_LRA);
         lrasToAfterFinish.add(lra1);
-        assertEquals("LRA should still be active. The identifier of the LRA was " + lra1,
-                LRAStatus.Active, lraClient.getStatus(lra1));
+        assertEquals(LRAStatus.Active, lraClient.getStatus(lra1),
+                "LRA should still be active. The identifier of the LRA was " + lra1);
 
         // end the LRA
         invokeInTransaction(lra1, LRAParticipant.END_EXISTING_LRA);
 
-        assertNull(SHOULD_NOT_BE_ASSOCIATED, lraClient.getCurrent());
+        assertNull(lraClient.getCurrent(), SHOULD_NOT_BE_ASSOCIATED);
     }
 
     /**
@@ -84,15 +85,15 @@ public class LRAIT extends TestBase {
 
         URI lra1 = invokeInTransaction(null, LRAParticipant.START_NEW_LRA);
         lrasToAfterFinish.add(lra1);
-        assertNull(SHOULD_NOT_BE_ASSOCIATED, lraClient.getCurrent());
+        assertNull(lraClient.getCurrent(), SHOULD_NOT_BE_ASSOCIATED);
         URI lra2 = invokeInTransaction(null, LRAParticipant.START_NEW_LRA);
         lrasToAfterFinish.add(lra2);
-        assertNull(SHOULD_NOT_BE_ASSOCIATED, lraClient.getCurrent());
+        assertNull(lraClient.getCurrent(), SHOULD_NOT_BE_ASSOCIATED);
 
         invokeInTransaction(lra1, LRAParticipant.END_EXISTING_LRA);
-        assertNull(SHOULD_NOT_BE_ASSOCIATED, lraClient.getCurrent());
+        assertNull(lraClient.getCurrent(), SHOULD_NOT_BE_ASSOCIATED);
         invokeInTransaction(lra2, LRAParticipant.END_EXISTING_LRA);
-        assertNull(SHOULD_NOT_BE_ASSOCIATED, lraClient.getCurrent());
+        assertNull(lraClient.getCurrent(), SHOULD_NOT_BE_ASSOCIATED);
     }
 
     /**
@@ -105,7 +106,7 @@ public class LRAIT extends TestBase {
         URI lra1 = invokeInTransaction(null, LRAParticipant.CREATE_OR_CONTINUE_LRA2);
         lrasToAfterFinish.add(lra1);
         invokeInTransaction(lra1, LRAParticipant.END_EXISTING_LRA);
-        assertNull(SHOULD_NOT_BE_ASSOCIATED, lraClient.getCurrent());
+        assertNull(lraClient.getCurrent(), SHOULD_NOT_BE_ASSOCIATED);
     }
 
     /**
@@ -122,32 +123,28 @@ public class LRAIT extends TestBase {
         // start two LRAs on the current thread
         URI lra1 = lraClient.startLRA("lra1");
         lrasToAfterFinish.add(lra1);
-        assertEquals("lra1 is not associated with the current thread",
-                lra1, lraClient.getCurrent());
+        assertEquals(lra1, lraClient.getCurrent(), "lra1 is not associated with the current thread");
         URI lra2 = lraClient.startLRA("lra2");
         lrasToAfterFinish.add(lra2);
-        assertEquals("lra2 is not associated with the current thread",
-                lra2, lraClient.getCurrent());
+        assertEquals(lra2, lraClient.getCurrent(), "lra2 is not associated with the current thread");
 
         // a) closing the current one should make the previous one active
         lraClient.closeLRA(lra2);
-        assertEquals("closing the current LRA should have made the previous one active",
-                lra1, lraClient.getCurrent());
+        assertEquals(lra1, lraClient.getCurrent(), "closing the current LRA should have made the previous one active");
 
         // b) verify that creating another LRA still works fine
         URI lra3 = lraClient.startLRA("lra3");
         lrasToAfterFinish.add(lra3);
-        assertEquals("lra3 is not associated with the current thread",
-                lra3, lraClient.getCurrent());
+        assertEquals(lra3, lraClient.getCurrent(), "lra3 is not associated with the current thread");
 
         lraClient.closeLRA(lra3);
-        assertEquals("closing the current LRA (lra3) should have made the previous one (lra1) active",
-                lra1, lraClient.getCurrent());
+        assertEquals(lra1, lraClient.getCurrent(),
+                "closing the current LRA (lra3) should have made the previous one (lra1) active");
 
         // check that closing the last LRA will leave none active
         lraClient.closeLRA(lra1);
-        assertNull("all LRAs are closed so none should be associated with the calling thread",
-                lraClient.getCurrent());
+        assertNull(lraClient.getCurrent(),
+                "all LRAs are closed so none should be associated with the calling thread");
 
         lraClient.close();
     }
@@ -167,13 +164,13 @@ public class LRAIT extends TestBase {
 
             response = builder.get();
 
-            assertTrue("This test expects that the invoked resource returns the identifier of the LRA " +
-                    "that was active during the invocation or an error message.",
-                    response.hasEntity());
+            assertTrue(response.hasEntity(),
+                    "This test expects that the invoked resource returns the identifier of the LRA " +
+                            "that was active during the invocation or an error message.");
 
             String responseMessage = response.readEntity(String.class);
 
-            assertEquals(responseMessage, 200, response.getStatus());
+            assertEquals(200, response.getStatus(), responseMessage);
 
             return URI.create(responseMessage);
         } finally {
@@ -181,5 +178,11 @@ public class LRAIT extends TestBase {
                 response.close();
             }
         }
+    }
+
+    @BeforeEach
+    public void setup(TestInfo testInfo) {
+        Optional<Method> testMethod = testInfo.getTestMethod();
+        this.testName = testMethod.get().getName();
     }
 }

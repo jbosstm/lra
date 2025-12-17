@@ -130,13 +130,13 @@
     <version.jakarta.servlet.jakarta-servlet-api>6.0.0</version.jakarta.servlet.jakarta-servlet-api>
     <version.jakarta.ws.rs.jakarta-ws-rs-api>3.1.0</version.jakarta.ws.rs.jakarta-ws-rs-api>
     <version.jboss-modules>2.2.0.Final</version.jboss-modules>
-    <version.junit>4.13.1</version.junit>
+    <version.junit>5.13.4</version.junit>
     <version.maven.antrun-plugin>3.0.0</version.maven.antrun-plugin>
     <version.maven.checkstyle-plugin>3.6.0</version.maven.checkstyle-plugin>
     <version.maven.jandex-plugin>3.5.3</version.maven.jandex-plugin>
     <version.maven.jar-plugin>3.2.0</version.maven.jar-plugin>
     <version.maven.shade-plugin>3.2.4</version.maven.shade-plugin>
-    <version.maven.surefire-plugin>2.22.2</version.maven.surefire-plugin>
+    <version.maven.surefire-plugin>3.1.2</version.maven.surefire-plugin>
     <version.microprofile.config-api>3.1</version.microprofile.config-api>
     <version.microprofile.fault-tolerance>4.1.2</version.microprofile.fault-tolerance>
 
@@ -147,7 +147,7 @@
     <version.org.eclipse.microprofile.openapi>4.1.1</version.org.eclipse.microprofile.openapi>
 
     <version.org.jacoco>0.8.14</version.org.jacoco>
-    <version.org.jboss.arquillian.core>1.7.0.Final</version.org.jboss.arquillian.core>
+    <version.org.jboss.arquillian.core>1.10.0.Final</version.org.jboss.arquillian.core>
     <version.org.jboss.as.plugins.jboss-as-maven-plugin>7.9.Final</version.org.jboss.as.plugins.jboss-as-maven-plugin>
     <version.org.jboss.byteman>4.0.25</version.org.jboss.byteman>
     <version.org.jboss.logging.jboss-logging>3.6.1.Final</version.org.jboss.logging.jboss-logging>
@@ -155,7 +155,6 @@
     <!-- Needed for WildflyLRACoordinatorDeployment class -->
     <version.org.jboss.resteasy>7.0.0.Final</version.org.jboss.resteasy>
     <version.org.jboss.shrinkwrap.resolvers>3.3.4</version.org.jboss.shrinkwrap.resolvers>
-    <version.org.jboss.weld>5.0.1.Final</version.org.jboss.weld>
     <version.org.sonatype.plugins.nxrm3.plugin>1.0.13</version.org.sonatype.plugins.nxrm3.plugin>
     <version.org.wildfly.arquillian>5.1.0.Final</version.org.wildfly.arquillian>
     <version.parsson>1.1.7</version.parsson>
@@ -350,7 +349,7 @@
       <!-- test dependencies -->
       <dependency>
         <groupId>org.jboss.byteman</groupId>
-        <artifactId>byteman-bmunit</artifactId>
+        <artifactId>byteman-bmunit5</artifactId>
         <version>${version.org.jboss.byteman}</version>
         <scope>test</scope>
       </dependency>
@@ -358,12 +357,6 @@
         <groupId>com.h2database</groupId>
         <artifactId>h2</artifactId>
         <version>${version.com.h2database}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.arquillian.protocol</groupId>
-        <artifactId>arquillian-protocol-servlet-jakarta</artifactId>
-        <version>${version.org.jboss.arquillian.core}</version>
         <scope>test</scope>
       </dependency>
 
@@ -395,8 +388,8 @@
         <scope>test</scope>
       </dependency>
       <dependency>
-        <groupId>org.jboss.arquillian.junit</groupId>
-        <artifactId>arquillian-junit-container</artifactId>
+        <groupId>org.jboss.arquillian.junit5</groupId>
+        <artifactId>arquillian-junit5-container</artifactId>
         <version>${version.org.jboss.arquillian.core}</version>
         <scope>test</scope>
       </dependency>
@@ -420,8 +413,8 @@
         <scope>test</scope>
       </dependency>
       <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
         <version>${version.junit}</version>
         <scope>test</scope>
       </dependency>
@@ -436,13 +429,6 @@
         <groupId>org.jboss.narayana.lra</groupId>
         <artifactId>lra-test-arquillian-extension</artifactId>
         <version>${project.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.jboss.weld.se</groupId>
-        <artifactId>weld-se-shaded</artifactId>
-        <version>${version.org.jboss.weld}</version>
         <scope>test</scope>
       </dependency>
 
@@ -492,7 +478,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
-          <version>${version.maven.shade-plugin}</version>
           <configuration>
             <dependencyReducedPomLocation>${project.build.directory}/dependency-reduced-pom.xml</dependencyReducedPomLocation>
           </configuration>
@@ -525,7 +510,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>${version.compiler.plugin}</version>
           <!-- Remove this when org.jboss.logging becomes Jakarta compatible -->
           <configuration>
             <compilerArgs>
@@ -585,7 +569,6 @@
         <plugin>
           <groupId>org.eclipse.m2e</groupId>
           <artifactId>lifecycle-mapping</artifactId>
-          <version>1.0.0</version>
           <configuration>
             <lifecycleMappingMetadata>
               <pluginExecutions>
@@ -693,7 +676,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>${version.maven.checkstyle-plugin}</version>
         <configuration>
           <configLocation>narayana-checkstyle/checkstyle.xml</configLocation>
           <suppressionsLocation>narayana-checkstyle/suppressions.xml</suppressionsLocation>

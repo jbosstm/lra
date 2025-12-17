@@ -8,12 +8,12 @@ import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
 import static io.narayana.lra.client.internal.NarayanaLRAClient.LB_METHOD_ROUND_ROBIN;
 import static io.narayana.lra.client.internal.NarayanaLRAClient.LB_METHOD_STICKY;
 import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import io.narayana.lra.Current;
 import io.narayana.lra.client.internal.NarayanaLRAClient;
@@ -25,19 +25,20 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.core.Application;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Test various coordinator load balancing strategies.
@@ -46,28 +47,18 @@ import org.junit.runners.Parameterized;
  * (on the various load balancing strategies) whereas LRATest requires {@link RunWith} BMUnitRunner.
  * Also, these tests do not need to deploy participants.
  */
-@RunWith(Parameterized.class)
 public class LBTest extends LRATestBase {
     private NarayanaLRAClient lraClient;
     private Client client;
     int[] ports = { 8081, 8082 };
-
-    // the value of the parameterized variable to be set according to the values in the LBAlgorithms annotation
-    @Parameterized.Parameter
     public String lb_method;
 
     // parameters used for setting the lb_method field for parameterized test runs
-    @Parameterized.Parameters(name = "#{index}, lb_method: {0}")
     public static Iterable<?> parameters() {
         return Arrays.asList(NarayanaLRAClient.NARAYANA_LRA_SUPPORTED_LB_METHODS);
     }
 
-    // the rule that populates the lb_method field for each run of a parameterized method
-    @Rule
-    public LBTestRule testRule = new LBTestRule();
-
-    @Rule
-    public TestName testName = new TestName();
+    public String testName;
 
     @ApplicationPath("/")
     public static class LRACoordinator extends Application {
@@ -79,8 +70,10 @@ public class LBTest extends LRATestBase {
         }
     }
 
-    @Before
-    public void before() {
+    @BeforeEach
+    public void before(TestInfo testInfo) {
+        Optional<Method> testMethod = testInfo.getTestMethod();
+        this.testName = testMethod.get().getName();
         clearObjectStore(testName);
 
         servers = new UndertowJaxrsServer[ports.length];
@@ -93,8 +86,7 @@ public class LBTest extends LRATestBase {
             try {
                 servers[i].start();
             } catch (Exception e) {
-                LRALogger.logger.infof("before test %s: could not start server %s",
-                        testName.getMethodName(), e.getMessage());
+                LRALogger.logger.infof("before test %s: could not start server %s", testName, e.getMessage());
             }
 
             sb.append(String.format("http://%s:%d/%s%s",
@@ -107,27 +99,14 @@ public class LBTest extends LRATestBase {
             System.setProperty(NarayanaLRAClient.COORDINATOR_LB_METHOD_KEY, lb_method);
         }
 
-        lraClient = new NarayanaLRAClient();
-
-        if (!lraClient.isLoadBalancing()) {
-            fail("client should be load balancing (look for message id 25046 in the logs for the reason why)");
-        }
-
         client = ClientBuilder.newClient();
 
         for (UndertowJaxrsServer server : servers) {
             server.deploy(LRACoordinator.class);
         }
-
-        if (lraClient.getCurrent() != null) {
-            // clear it since it isn't caused by this test (tests do the assertNull in the @After test method)
-            LRALogger.logger.warnf("before test %s: current thread should not be associated with any LRAs",
-                    testName.getMethodName());
-            lraClient.clearCurrent(true);
-        }
     }
 
-    @After
+    @AfterEach
     public void after() {
         URI uri = lraClient.getCurrent();
 
@@ -149,21 +128,15 @@ public class LBTest extends LRATestBase {
                     LRALogger.logger.infof("after test %s: could not stop server %s", testName, e.getMessage());
                 }
             }
-            assertNull(testName.getMethodName() + ": thread should not be associated with any LRAs", uri);
+            assertNull(uri, testName + ": thread should not be associated with any LRAs");
         }
     }
 
     // run a test multiple times parameterised by the algorithms defined by an @LBAlgorithms annotation
-    @Test
-    @LBAlgorithms({
-            NarayanaLRAClient.LB_METHOD_ROUND_ROBIN,
-            NarayanaLRAClient.LB_METHOD_STICKY,
-            NarayanaLRAClient.LB_METHOD_RANDOM,
-            NarayanaLRAClient.LB_METHOD_LEAST_REQUESTS,
-            NarayanaLRAClient.LB_METHOD_LEAST_RESPONSE_TIME,
-            NarayanaLRAClient.LB_METHOD_POWER_OF_TWO_CHOICES
-    })
-    public void testMultipleCoordinators() {
+    @ParameterizedTest(name = "#{index}, lb_method: {0}")
+    @MethodSource("parameters")
+    public void testMultipleCoordinators(String lb_method) {
+        initLBTest(lb_method);
         URI lra1 = lraClient.startLRA("testTwo_first");
         Current.pop(); // to avoid the next LRA from being nested
         URI lra2 = lraClient.startLRA("testTwo_second");
@@ -172,13 +145,11 @@ public class LBTest extends LRATestBase {
         switch (lb_method) {
             case LB_METHOD_ROUND_ROBIN:
                 // verify that the two LRAs were load balanced in a round-robin fashion:
-                assertNotEquals("LRAs should have been created by different coordinators",
-                        lra1.getPort(), lra2.getPort());
+                assertNotEquals(lra1.getPort(), lra2.getPort(), "LRAs should have been created by different coordinators");
                 break;
             case LB_METHOD_STICKY:
                 // verify that the two LRAs were created by the same coordinator:
-                assertEquals("LRAs should have been created by the same coordinator",
-                        lra1.getPort(), lra2.getPort());
+                assertEquals(lra1.getPort(), lra2.getPort(), "LRAs should have been created by the same coordinator");
                 break;
             default:
                 // other algorithms are more complex and/or are indeterminate to test - now rely on the Stork testsuite
@@ -200,16 +171,15 @@ public class LBTest extends LRATestBase {
         LRAStatus status1 = getStatus(lra1);
         LRAStatus status2 = getStatus(lra2);
 
-        assertTrue("1st LRA finished in wrong state", status1 == null || status1 == LRAStatus.Closed);
-        assertTrue("2nd LRA finished in wrong state", status2 == null || status2 == LRAStatus.Closed);
+        assertTrue(status1 == null || status1 == LRAStatus.Closed, "1st LRA finished in wrong state");
+        assertTrue(status2 == null || status2 == LRAStatus.Closed, "2nd LRA finished in wrong state");
     }
 
     // test failover of coordinators (ie if one is unavailable then the next one in the list is tried)
-    @Test
-    @LBAlgorithms({
-            LB_METHOD_ROUND_ROBIN, LB_METHOD_STICKY
-    })
-    public void testCoordinatorFailover() {
+    @ParameterizedTest(name = "#{index}, lb_method: {0}")
+    @ValueSource(strings = { NarayanaLRAClient.LB_METHOD_ROUND_ROBIN, NarayanaLRAClient.LB_METHOD_STICKY })
+    public void testCoordinatorFailover(String lb_method) {
+        initLBTest(lb_method);
         URI lra1 = runLRA("testCoordinatorFailover-first", true);
         URI lra2 = runLRA("testCoordinatorFailover-second", true);
 
@@ -218,10 +188,10 @@ public class LBTest extends LRATestBase {
 
         switch (lb_method) {
             case LB_METHOD_ROUND_ROBIN:
-                assertNotEquals("round-robin used the same coordinator", lra1.getPort(), lra2.getPort());
+                assertNotEquals(lra1.getPort(), lra2.getPort(), "round-robin used the same coordinator");
                 break;
             case LB_METHOD_STICKY:
-                assertEquals("round-robin used different coordinators", lra1.getPort(), lra2.getPort());
+                assertEquals(lra1.getPort(), lra2.getPort(), "round-robin used different coordinators");
                 break;
             default:
                 fail("unexpected lb method");
@@ -233,13 +203,12 @@ public class LBTest extends LRATestBase {
             URI lra3 = runLRA("testCoordinatorFailover-third", false);
 
             if (LB_METHOD_STICKY.equals(lb_method)) {
-                assertNull("should not be able to start an LRA with sticky if the original one is down", lra3);
+                assertNull(lra3, "should not be able to start an LRA with sticky if the original one is down");
             } else {
                 URI lra4 = runLRA("testCoordinatorFailover-fourth", false);
                 assertNotNull(lra3); // round-robin means that the next coordinator in the list is tried
                 assertNotNull(lra4);
-                assertEquals("different coordinators should not have been used",
-                        lra3.getPort(), lra4.getPort());
+                assertEquals(lra3.getPort(), lra4.getPort(), "different coordinators should not have been used");
             }
         } finally {
             servers[0].start(); // restart the stopped server
@@ -268,6 +237,21 @@ public class LBTest extends LRATestBase {
             assertNotNull(e);
             assertEquals(e.getResponse().getStatus(), NOT_FOUND.getStatusCode());
             return null;
+        }
+    }
+
+    public void initLBTest(String lb_method) {
+        this.lb_method = lb_method;
+        System.setProperty(NarayanaLRAClient.COORDINATOR_LB_METHOD_KEY, lb_method);
+        lraClient = new NarayanaLRAClient();
+        if (!lraClient.isLoadBalancing()) {
+            fail("client should be load balancing (look for message id 25046 in the logs for the reason why)");
+        }
+        if (lraClient.getCurrent() != null) {
+            // clear it since it isn't caused by this test (tests do the assertNull in the
+            // @After test method)
+            LRALogger.logger.warnf("before test %s: current thread should not be associated with any LRAs", testName);
+            lraClient.clearCurrent(true);
         }
     }
 }

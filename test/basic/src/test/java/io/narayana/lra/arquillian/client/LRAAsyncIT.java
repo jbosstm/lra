@@ -6,10 +6,10 @@
 package io.narayana.lra.arquillian.client;
 
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import io.narayana.lra.arquillian.Deployer;
 import io.narayana.lra.arquillian.TestBase;
@@ -17,10 +17,12 @@ import io.narayana.lra.arquillian.resource.LRAParticipant;
 import jakarta.ws.rs.client.Invocation;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -31,9 +33,10 @@ import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 public class LRAAsyncIT extends TestBase {
 
@@ -50,15 +53,15 @@ public class LRAAsyncIT extends TestBase {
     @ArquillianResource
     public URL baseURL;
 
-    @Rule
-    public TestName testName = new TestName();
+    public String testName;
 
-    @Override
-    public void before() {
-        super.before();
-        log.info("Running test " + testName.getMethodName());
+    @BeforeEach
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
+        log.info("Running test " + testName);
     }
 
+    @AfterEach
     @Override
     public void after() {
         super.after();
@@ -87,8 +90,9 @@ public class LRAAsyncIT extends TestBase {
             synchronized (lrasToAfterFinish) {
                 lrasToAfterFinish.add(lra1);
             }
-            assertEquals("LRA should still be active. The identifier of the LRA was " + lra1, LRAStatus.Active,
-                    lraClient.getStatus(lra1));
+            assertEquals(LRAStatus.Active,
+                    lraClient.getStatus(lra1),
+                    "LRA should still be active. The identifier of the LRA was " + lra1);
 
             // end the LRA
             invokeInTransaction(lra1, LRAParticipant.END_EXISTING_LRA);
@@ -102,7 +106,7 @@ public class LRAAsyncIT extends TestBase {
         try {
             List<Future<URI>> futures = executorService.invokeAll(callableTasks);
             for (Future<URI> f : futures)
-                assertNull(SHOULD_NOT_BE_ASSOCIATED, f.get());
+                assertNull(f.get(), SHOULD_NOT_BE_ASSOCIATED);
 
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
@@ -123,7 +127,7 @@ public class LRAAsyncIT extends TestBase {
                 lrasToAfterFinish.add(lra);
             }
 
-            assertNull(SHOULD_NOT_BE_ASSOCIATED, lraClient.getCurrent());
+            assertNull(lraClient.getCurrent(), SHOULD_NOT_BE_ASSOCIATED);
             invokeInTransaction(lra, LRAParticipant.END_EXISTING_LRA);
             return lra;
         };
@@ -136,7 +140,7 @@ public class LRAAsyncIT extends TestBase {
             List<Future<URI>> futures = executorService.invokeAll(callableTasks);
             for (Future<URI> f : futures) {
                 f.get();
-                assertNull(SHOULD_NOT_BE_ASSOCIATED, lraClient.getCurrent());
+                assertNull(lraClient.getCurrent(), SHOULD_NOT_BE_ASSOCIATED);
             }
 
         } catch (InterruptedException | ExecutionException e) {
@@ -159,12 +163,12 @@ public class LRAAsyncIT extends TestBase {
 
             response = builder.get();
 
-            assertTrue("This test expects that the invoked resource returns the identifier of the LRA "
-                    + "that was active during the invocation or an error message.", response.hasEntity());
+            assertTrue(response.hasEntity(), "This test expects that the invoked resource returns the identifier of the LRA "
+                    + "that was active during the invocation or an error message.");
 
             String responseMessage = response.readEntity(String.class);
 
-            assertEquals(responseMessage, 200, response.getStatus());
+            assertEquals(200, response.getStatus(), responseMessage);
 
             return URI.create(responseMessage);
         } finally {
@@ -172,5 +176,11 @@ public class LRAAsyncIT extends TestBase {
                 response.close();
             }
         }
+    }
+
+    @BeforeEach
+    public void setup(TestInfo testInfo) {
+        Optional<Method> testMethod = testInfo.getTestMethod();
+        this.testName = testMethod.get().getName();
     }
 }

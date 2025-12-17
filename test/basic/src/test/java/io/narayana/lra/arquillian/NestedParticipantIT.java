@@ -6,9 +6,9 @@
 package io.narayana.lra.arquillian;
 
 import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import io.narayana.lra.arquillian.resource.NestedParticipant;
 import io.narayana.lra.arquillian.spi.NarayanaLRARecovery;
@@ -16,10 +16,12 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
 import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
 import org.eclipse.microprofile.lra.tck.service.LRAMetricType;
@@ -27,10 +29,10 @@ import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 public class NestedParticipantIT extends TestBase {
     private static final Logger log = Logger.getLogger(NestedParticipantIT.class);
@@ -39,18 +41,17 @@ public class NestedParticipantIT extends TestBase {
     @ArquillianResource
     public URL baseURL;
 
-    @Rule
-    public TestName testName = new TestName();
+    public String testName;
 
     @Deployment
     public static WebArchive deploy() {
         return Deployer.deploy(NestedParticipantIT.class.getSimpleName(), NestedParticipant.class);
     }
 
-    @Override
-    public void before() {
-        super.before();
-        log.info("Running test " + testName.getMethodName());
+    @BeforeEach
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
+        log.info("Running test " + testName);
 
         Response response = client.target(UriBuilder.fromUri(baseURL.toExternalForm())
                 .path(NestedParticipant.ROOT_PATH)
@@ -82,7 +83,7 @@ public class NestedParticipantIT extends TestBase {
                     .get();
 
             assertEquals(200, response.getStatus());
-            Assert.assertTrue(response.hasEntity());
+            Assertions.assertTrue(response.hasEntity());
 
             nestedLRA = URI.create(response.readEntity(String.class));
             assertNotEquals(parentLRA, nestedLRA);
@@ -96,7 +97,7 @@ public class NestedParticipantIT extends TestBase {
                     .get();
 
             assertEquals(200, response.getStatus());
-            Assert.assertTrue(response.hasEntity());
+            Assertions.assertTrue(response.hasEntity());
 
             assertEquals(Integer.valueOf(1), response.readEntity(Integer.class));
 
@@ -122,7 +123,7 @@ public class NestedParticipantIT extends TestBase {
                 .get();
 
         assertEquals(200, response.getStatus());
-        Assert.assertTrue(response.hasEntity());
+        Assertions.assertTrue(response.hasEntity());
 
         assertEquals(Integer.valueOf(1), response.readEntity(Integer.class));
 
@@ -135,7 +136,7 @@ public class NestedParticipantIT extends TestBase {
                 .get();
 
         assertEquals(200, response.getStatus());
-        Assert.assertTrue(response.hasEntity());
+        Assertions.assertTrue(response.hasEntity());
 
         assertEquals(Integer.valueOf(2), response.readEntity(Integer.class));
 
@@ -148,7 +149,7 @@ public class NestedParticipantIT extends TestBase {
                 .get();
 
         assertEquals(200, response.getStatus());
-        Assert.assertTrue(response.hasEntity());
+        Assertions.assertTrue(response.hasEntity());
 
         assertEquals(Integer.valueOf(0), response.readEntity(Integer.class));
 
@@ -164,7 +165,7 @@ public class NestedParticipantIT extends TestBase {
                 .get();
 
         assertEquals(200, response.getStatus());
-        Assert.assertTrue(response.hasEntity());
+        Assertions.assertTrue(response.hasEntity());
 
         assertEquals(Integer.valueOf(1), response.readEntity(Integer.class));
 
@@ -183,8 +184,8 @@ public class NestedParticipantIT extends TestBase {
     // test that closing the top level of a transaction hierarchy leaves no LRAs associated with the calling thread
     @Test
     public void testGrandparentContext() {
-        assertNull("testGrandparentContext: current thread should not be associated with any LRAs",
-                lraClient.getCurrent());
+        assertNull(lraClient.getCurrent(),
+                "testGrandparentContext: current thread should not be associated with any LRAs");
 
         // start a hierarchy of three LRAs
         URI grandParent = lraClient.startLRA("NestedParticipantIT#testGrandparentContext grandparent");
@@ -195,8 +196,8 @@ public class NestedParticipantIT extends TestBase {
         lraClient.closeLRA(grandParent); // should close everything in the hierarchy
 
         // nothing should be associated with the calling thread
-        assertNull("testGrandparentContext: current thread should not be associated with any LRAs",
-                lraClient.getCurrent());
+        assertNull(lraClient.getCurrent(),
+                "testGrandparentContext: current thread should not be associated with any LRAs");
 
         // and verify they are all closed - narayanaLRAClient.getStatus(grandParent)
         assertClosed("grandparent", grandParent);
@@ -219,27 +220,33 @@ public class NestedParticipantIT extends TestBase {
                 .request()
                 .get()) {
 
-            assertEquals("parent context was not propagated correctly: " + response.readEntity(String.class),
-                    200, response.getStatus());
+            assertEquals(200, response.getStatus(),
+                    "parent context was not propagated correctly: " + response.readEntity(String.class));
         } finally {
             lraClient.closeLRA(parent);
-            assertNull("testParentContext: close LRA is still on the current thread", lraClient.getCurrent());
+            assertNull(lraClient.getCurrent(), "testParentContext: close LRA is still on the current thread");
         }
 
         // verify that the child is closed:
         try {
             // the status of child should be NOT_FOUND or finishing
-            assertNotEquals("child should no longer be active", LRAStatus.Active, lraClient.getStatus(child));
+            assertNotEquals(LRAStatus.Active, lraClient.getStatus(child), "child should no longer be active");
         } catch (WebApplicationException e) {
-            assertEquals("child should be finished", NOT_FOUND.getStatusCode(), e.getResponse().getStatus());
+            assertEquals(NOT_FOUND.getStatusCode(), e.getResponse().getStatus(), "child should be finished");
         }
     }
 
     // verify that an LRA is closed
     private void assertClosed(String msg, URI lra) {
         try {
-            assertEquals(msg, LRAStatus.Closed, lraClient.getStatus(lra));
+            assertEquals(LRAStatus.Closed, lraClient.getStatus(lra), msg);
         } catch (NotFoundException ignore) {
         }
+    }
+
+    @BeforeEach
+    public void setup(TestInfo testInfo) {
+        Optional<Method> testMethod = testInfo.getTestMethod();
+        this.testName = testMethod.get().getName();
     }
 }

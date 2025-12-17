@@ -12,13 +12,13 @@ import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_RECOVERY_HEADER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.arjuna.ats.arjuna.exceptions.ObjectStoreException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -48,6 +48,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
@@ -68,18 +69,16 @@ import org.jboss.byteman.contrib.bmunit.BMRule;
 import org.jboss.byteman.contrib.bmunit.BMRules;
 import org.jboss.byteman.contrib.bmunit.BMScript;
 import org.jboss.byteman.contrib.bmunit.BMScripts;
-import org.jboss.byteman.contrib.bmunit.BMUnitRunner;
+import org.jboss.byteman.contrib.bmunit.WithByteman;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.jboss.resteasy.test.TestPortProvider;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
-@RunWith(BMUnitRunner.class)
+@WithByteman
 public class LRATest extends LRATestBase {
     static final String LRA_API_VERSION_HEADER_NAME = "Narayana-LRA-API-version";
     static final String RECOVERY_HEADER_NAME = "Long-Running-Action-Recovery";
@@ -91,8 +90,7 @@ public class LRATest extends LRATestBase {
     private String recoveryPath;
     int[] ports = { 8081, 8082 };
 
-    @Rule
-    public TestName testName = new TestName();
+    public String testName;
 
     @ApplicationPath("base")
     public static class LRAParticipant extends Application {
@@ -120,8 +118,10 @@ public class LRATest extends LRATestBase {
         }
     }
 
-    @Before
-    public void before() {
+    @BeforeEach
+    public void before(TestInfo testInfo) {
+        Optional<Method> testMethod = testInfo.getTestMethod();
+        this.testName = testMethod.get().getName();
         LRALogger.logger.debugf("Starting test %s", testName);
         clearObjectStore(testName);
 
@@ -135,8 +135,7 @@ public class LRATest extends LRATestBase {
             try {
                 servers[i].start();
             } catch (Exception e) {
-                LRALogger.logger.infof("before test %s: could not start server %s",
-                        testName.getMethodName(), e.getMessage());
+                LRALogger.logger.infof("before test %s: could not start server %s", testName, e.getMessage());
             }
 
             sb.append(String.format("http://%s:%d/%s%s",
@@ -164,13 +163,12 @@ public class LRATest extends LRATestBase {
 
         if (lraClient.getCurrent() != null) {
             // clear it since it isn't caused by this test (tests do the assertNull in the @After test method)
-            LRALogger.logger.warnf("before test %s: current thread should not be associated with any LRAs",
-                    testName.getMethodName());
+            LRALogger.logger.warnf("before test %s: current thread should not be associated with any LRAs", testName);
             lraClient.clearCurrent(true);
         }
     }
 
-    @After
+    @AfterEach
     public void after() {
         URI uri = lraClient.getCurrent();
         try {
@@ -190,8 +188,7 @@ public class LRATest extends LRATestBase {
                     LRALogger.logger.infof("after test %s: could not stop server %s", testName, e.getMessage());
                 }
             }
-            assertNull(testName.getMethodName() + ": current thread should not be associated with any LRAs",
-                    uri);
+            assertNull(uri, testName + ": current thread should not be associated with any LRAs");
         }
     }
 
@@ -209,12 +206,12 @@ public class LRATest extends LRATestBase {
             IntStream.range(0, LRA_COUNT)
                     .forEach(i -> {
                         try {
-                            ids[i] = lraClient.startLRA(testName.getMethodName() + i);
+                            ids[i] = lraClient.startLRA(testName + i);
                             Current.pop(); // disassociate the LRA from the current thread
                             assertNotNull(ids[i]);
                         } catch (WebApplicationException e) {
-                            fail(String.format("%s: step %d failed with HTTP status %d (%s)",
-                                    testName.getMethodName(), i, e.getResponse().getStatus(), e.getMessage()));
+                            fail(String.format("%s: step %d failed with HTTP status %d (%s)", testName, i,
+                                    e.getResponse().getStatus(), e.getMessage()));
                         }
                     });
 
@@ -224,7 +221,7 @@ public class LRATest extends LRATestBase {
                     .forEach(i -> {
                         try {
                             // start an LRA while a scan is in progress to test parallelism
-                            ids2[i] = lraClient.startLRA(testName.getMethodName() + i);
+                            ids2[i] = lraClient.startLRA(testName + i);
                             service.scan();
                         } finally {
                             lraClient.cancelLRA(ids2[i]);
@@ -238,8 +235,7 @@ public class LRATest extends LRATestBase {
                     try {
                         lraClient.cancelLRA(ids[i]);
                     } catch (WebApplicationException e) {
-                        System.out.printf("%s: cancel %s failed with %s%n",
-                                testName.getMethodName(), ids[i], e.getMessage());
+                        System.out.printf("%s: cancel %s failed with %s%n", testName, ids[i], e.getMessage());
                     }
                 }
             }
@@ -248,7 +244,7 @@ public class LRATest extends LRATestBase {
 
     @Test
     public void joinWithVersionTest() {
-        URI lraId = lraClient.startLRA(testName.getMethodName());
+        URI lraId = lraClient.startLRA(testName);
         String version = LRAConstants.API_VERSION_1_2;
         String encodedLraId = URLEncoder.encode(lraId.toString(), StandardCharsets.UTF_8); // must be valid
 
@@ -258,17 +254,17 @@ public class LRATest extends LRATestBase {
                 .header(LRA_API_VERSION_HEADER_NAME, version)
                 // the request body should correspond to a valid compensator or be empty
                 .put(Entity.text(""))) {
-            Assert.assertEquals("Expected joining LRA succeeded, PUT/200 is expected.",
-                    OK.getStatusCode(), response.getStatus());
-            Assert.assertEquals("Expected API header to be returned with the version provided in request",
-                    version, response.getHeaderString(LRA_API_VERSION_HEADER_NAME));
+            Assertions.assertEquals(OK.getStatusCode(), response.getStatus(),
+                    "Expected joining LRA succeeded, PUT/200 is expected.");
+            Assertions.assertEquals(version, response.getHeaderString(LRA_API_VERSION_HEADER_NAME),
+                    "Expected API header to be returned with the version provided in request");
             String recoveryHeaderUrlMessage = response.getHeaderString(RECOVERY_HEADER_NAME);
             String recoveryUrlBody = response.readEntity(String.class);
             URI recoveryUrlLocation = response.getLocation();
-            Assert.assertEquals("Expecting returned body and recovery header have got the same content",
-                    recoveryUrlBody, recoveryHeaderUrlMessage);
-            Assert.assertEquals("Expecting returned body and location have got the same content",
-                    recoveryUrlBody, recoveryUrlLocation.toString());
+            Assertions.assertEquals(recoveryUrlBody, recoveryHeaderUrlMessage,
+                    "Expecting returned body and recovery header have got the same content");
+            Assertions.assertEquals(recoveryUrlBody, recoveryUrlLocation.toString(),
+                    "Expecting returned body and location have got the same content");
             MatcherAssert.assertThat("Expected returned message contains the sub-path of LRA recovery URL",
                     recoveryUrlBody, containsString("lra-coordinator/recovery"));
             // the new format just contains the Uid of the LRA
@@ -281,7 +277,7 @@ public class LRATest extends LRATestBase {
 
     @Test
     public void joinWithOldVersionTest() {
-        URI lraId = lraClient.startLRA(testName.getMethodName());
+        URI lraId = lraClient.startLRA(testName);
         String version = LRAConstants.API_VERSION_1_1;
         String encodedLraId = URLEncoder.encode(lraId.toString(), StandardCharsets.UTF_8); // must be valid
 
@@ -291,17 +287,17 @@ public class LRATest extends LRATestBase {
                 .header(LRA_API_VERSION_HEADER_NAME, version)
                 // the request body should correspond to a valid compensator or be empty
                 .put(Entity.text(""))) {
-            Assert.assertEquals("Expected joining LRA succeeded, PUT/200 is expected.",
-                    OK.getStatusCode(), response.getStatus());
-            Assert.assertEquals("Expected API header to be returned with the version provided in request",
-                    version, response.getHeaderString(LRA_API_VERSION_HEADER_NAME));
+            Assertions.assertEquals(OK.getStatusCode(), response.getStatus(),
+                    "Expected joining LRA succeeded, PUT/200 is expected.");
+            Assertions.assertEquals(version, response.getHeaderString(LRA_API_VERSION_HEADER_NAME),
+                    "Expected API header to be returned with the version provided in request");
             String recoveryHeaderUrlMessage = response.getHeaderString(RECOVERY_HEADER_NAME);
             String recoveryUrlBody = response.readEntity(String.class);
             URI recoveryUrlLocation = response.getLocation();
-            Assert.assertEquals("Expecting returned body and recovery header have got the same content",
-                    recoveryUrlBody, recoveryHeaderUrlMessage);
-            Assert.assertEquals("Expecting returned body and location have got the same content",
-                    recoveryUrlBody, recoveryUrlLocation.toString());
+            Assertions.assertEquals(recoveryUrlBody, recoveryHeaderUrlMessage,
+                    "Expecting returned body and recovery header have got the same content");
+            Assertions.assertEquals(recoveryUrlBody, recoveryUrlLocation.toString(),
+                    "Expecting returned body and location have got the same content");
             MatcherAssert.assertThat("Expected returned message contains the sub-path of LRA recovery URL",
                     recoveryUrlBody, containsString("lra-coordinator/recovery"));
             MatcherAssert.assertThat("Expected returned message contains the LRA id",
@@ -330,7 +326,7 @@ public class LRATest extends LRATestBase {
     void participantCallbackOrder(boolean cancel) {
         queue.clear(); // reset the queue which records the order in which participants are ended
 
-        URI lraId = lraClient.startLRA(testName.getMethodName());
+        URI lraId = lraClient.startLRA(testName);
 
         for (int i = 1; i <= 2; i++) { // pick out participants participant1 and participant2
             String businessMethodName = String.format("/base/participant%d/continue", i);
@@ -361,8 +357,8 @@ public class LRATest extends LRATestBase {
 
         // verify that participants participant1 and participant2 were compensated/completed in reverse order,
         // ie the queue should be in the order {2, 1} because they were enlisted in the order {1, 2}
-        assertEquals(String.format("second participant should have %s first", cancel ? "compensated" : "completed"),
-                Integer.valueOf(2), queue.remove()); // removing the first item from the queue should give participant2
+        assertEquals(Integer.valueOf(2), queue.remove(),
+                String.format("second participant should have %s first", cancel ? "compensated" : "completed")); // removing the first item from the queue should give participant2
 
         queue.remove(); // clean up item from participant1 (the remaining integer on the queue)
     }
@@ -374,20 +370,20 @@ public class LRATest extends LRATestBase {
     public void testLRAParticipant() {
         // lookup the status of a non-existent LRA
         Response r1 = client.target(coordinatorPath + "/xyz/status").request().get();
-        assertEquals("LRA id xyz should not exist", Response.Status.NOT_FOUND.getStatusCode(), r1.getStatus());
+        assertEquals(Response.Status.NOT_FOUND.getStatusCode(), r1.getStatus(), "LRA id xyz should not exist");
 
         // start a new LRA
         Response r2 = client.target(coordinatorPath + "/start").request().post(null);
-        assertEquals("Expected 201", Response.Status.CREATED.getStatusCode(), r2.getStatus());
+        assertEquals(Response.Status.CREATED.getStatusCode(), r2.getStatus(), "Expected 201");
         String lraId = r2.getHeaderString(LRA_HTTP_CONTEXT_HEADER);
-        Assert.assertNotNull("missing context header", lraId);
+        Assertions.assertNotNull(lraId, "missing context header");
         // RestEasy adds brackets and , to delimit multiple values for a particular header key
         lraId = new StringTokenizer(lraId, "[,]").nextToken();
         // close the LRA
         Response r3 = client.target(String.format("%s/close", lraId)).request().put(null);
         int status = r3.getStatus();
-        assertTrue("Problem closing LRA: ",
-                status == OK.getStatusCode() || status == Response.Status.NOT_FOUND.getStatusCode());
+        assertTrue(status == OK.getStatusCode() || status == Response.Status.NOT_FOUND.getStatusCode(),
+                "Problem closing LRA: ");
 
         // verify that the participant complete request is issued when a method annotated with @LRA returns
         int completions = completeCount.get();
@@ -405,7 +401,7 @@ public class LRATest extends LRATestBase {
         String lraId = client.target(TestPortProvider.generateURL("/base/test/start-end")).request().get(String.class);
         assertEquals(completions + 1, completeCount.get());
         LRAStatus status = getStatus(new URI(lraId));
-        assertTrue("LRA should have closed", status == null || status == LRAStatus.Closed);
+        assertTrue(status == null || status == LRAStatus.Closed, "LRA should have closed");
     }
 
     @Test
@@ -421,7 +417,7 @@ public class LRATest extends LRATestBase {
     }
 
     private void negotiateContent(String acceptMediaType) {
-        URI lraId = lraClient.startLRA(testName.getMethodName());
+        URI lraId = lraClient.startLRA(testName);
 
         // cancel and validate that the response reports the status using the requested media type
         try (Response r = client
@@ -436,7 +432,7 @@ public class LRATest extends LRATestBase {
                 fail("unable to cleanup: " + res);
             }
 
-            try {
+            Assertions.assertDoesNotThrow(() -> {
                 if (acceptMediaType.equals(MediaType.TEXT_PLAIN)) {
                     String status = r.readEntity(String.class);
 
@@ -448,9 +444,7 @@ public class LRATest extends LRATestBase {
 
                     assertEquals(expected, status);
                 }
-            } catch (Exception e) {
-                fail("Could not read entity body: " + e.getMessage());
-            }
+            }, "Could not read entity body: ");
         }
 
         // we started the LRA using the client API which associates the LRA with the calling thread
@@ -461,7 +455,7 @@ public class LRATest extends LRATestBase {
 
     @Test
     public void testGetAllLRAsAcceptJson() {
-        URI lraId = lraClient.startLRA(testName.getMethodName());
+        URI lraId = lraClient.startLRA(testName);
 
         // read all LRAs using Json
         try (Response response = client.target(coordinatorPath)
@@ -485,7 +479,7 @@ public class LRATest extends LRATestBase {
                         .filter(lra -> lraId.equals(lra.getLraId()))
                         .findFirst();
 
-                assertTrue("The LRA is unknown to the coordinator", targetLRA.isPresent());
+                assertTrue(targetLRA.isPresent(), "The LRA is unknown to the coordinator");
             } catch (JsonProcessingException e) {
                 fail("could not read json array: " + e.getMessage());
             }
@@ -501,7 +495,7 @@ public class LRATest extends LRATestBase {
     @Test
     // start an LRA and validate that the coordinator reports its status correctly
     public void testLRAInfoAcceptJson() {
-        URI lraId = lraClient.startLRA(testName.getMethodName());
+        URI lraId = lraClient.startLRA(testName);
 
         // request the status of the LRA that was just started
         try (Response r = client
@@ -524,7 +518,7 @@ public class LRATest extends LRATestBase {
 
                 // validate the LRA id, the client id and the status
                 assertEquals(lraId, data.getLraId());
-                assertEquals(testName.getMethodName(), data.getClientId());
+                assertEquals(testName, data.getClientId());
                 assertEquals(LRAStatus.Active, data.getStatus());
 
             } catch (JsonProcessingException e) {
@@ -543,7 +537,7 @@ public class LRATest extends LRATestBase {
     @Test
     // start an LRA and validate that the coordinator reports its status correctly
     public void testLRAStatusWithJson() {
-        URI lraId = lraClient.startLRA(testName.getMethodName());
+        URI lraId = lraClient.startLRA(testName);
 
         // request the status of the LRA that was just started
         try (Response r = client
@@ -620,7 +614,7 @@ public class LRATest extends LRATestBase {
 
     @Test
     public void testJoinLRAViaBody() {
-        URI lraId = lraClient.startLRA(testName.getMethodName());
+        URI lraId = lraClient.startLRA(testName);
         String encodedLraId = URLEncoder.encode(lraId.toString(), StandardCharsets.UTF_8); // must be valid
 
         try (Response response = client.target(coordinatorPath)
@@ -666,8 +660,8 @@ public class LRATest extends LRATestBase {
         // call a participant method that starts an LRA and returns the lra and the recovery id in the response
         String urls = client.target(TestPortProvider.generateURL("/base/test/start-with-recovery")).request().get(String.class);
         String[] tokens = urls.split(",");
-        assertTrue("response is missing components for the lraId and/or recoveryId",
-                tokens.length >= 2);
+        assertTrue(tokens.length >= 2,
+                "response is missing components for the lraId and/or recoveryId");
         // the service method returns the lra and recovery ids in a comma separated response:
         String lraUrl = tokens[tokens.length - 2];
         String recoveryUrl = tokens[tokens.length - 1];
@@ -720,7 +714,7 @@ public class LRATest extends LRATestBase {
         // verify that the participant was called on the new endpoint and that the LRA cancelled
         assertEquals(fallbackCompensations + 1, fallbackCompensateCount.get());
         LRAStatus status = getStatus(new URI(lraUrl));
-        assertTrue("LRA should have cancelled", status == null || status == LRAStatus.Cancelled);
+        assertTrue(status == null || status == LRAStatus.Cancelled, "LRA should have cancelled");
     }
 
     /**
@@ -738,7 +732,7 @@ public class LRATest extends LRATestBase {
         for (int i = 0; i < txnCount; i++) {
             String lraId = client.target(TestPortProvider.generateURL("/base/test/start-end")).request().get(String.class);
             LRAStatus status = getStatus(new URI(lraId));
-            assertTrue("LRA should have closed", status == null || status == LRAStatus.Closed);
+            assertTrue(status == null || status == LRAStatus.Closed, "LRA should have closed");
         }
 
         // Remark: there should be no memory leaks in LRAService
@@ -770,12 +764,11 @@ public class LRATest extends LRATestBase {
         } catch (NotFoundException e) {
             fail("testReplay: LRA should still have been completing: " + e.getMessage());
         }
-
         // the LRA should still be finishing (ie there should be a log record)
         assertEquals(completions, completeCount.get());
 
         service.recover();
-        assertTrue(testName + ": lra did not finish", isFinished(lraId));
+        assertTrue(isFinished(lraId), testName + ": lra did not finish");
     }
 
     /**
@@ -819,10 +812,10 @@ public class LRATest extends LRATestBase {
         String parent = parentResponse.readEntity(String.class);
 
         if (parentCancelEarly) {
-            assertEquals("invocation should have produced a 500 code", 500, parentResponse.getStatus());
+            assertEquals(500, parentResponse.getStatus(), "invocation should have produced a 500 code");
             // and the parent and child should have compensated
-            assertEquals("neither parent nor child should complete", 0, completeCount.get());
-            assertEquals("parent and child should each have compensated", 1, compensateCount.get());
+            assertEquals(0, completeCount.get(), "neither parent nor child should complete");
+            assertEquals(1, compensateCount.get(), "parent and child should each have compensated");
             assertStatus(parent, LRAStatus.Cancelled, true);
 
             return;
@@ -835,33 +828,33 @@ public class LRATest extends LRATestBase {
                 .queryParam("cancel", childCancelEarly)
                 .request().header(LRA_HTTP_CONTEXT_HEADER, parent).put(Entity.text(parent))) {
             child = childResponse.readEntity(String.class);
-            assertNotNull("start child failed: ", child);
+            assertNotNull(child, "start child failed: ");
             child = UriBuilder.fromUri(child).replaceQuery(null).build().toASCIIString();
         }
 
         if (childCancelEarly) {
             // the child is canceled and the parent is active
-            assertEquals("neither parent nor child should complete", 0, completeCount.get());
-            assertEquals("child should have compensated", 1, compensateCount.get());
+            assertEquals(0, completeCount.get(), "neither parent nor child should complete");
+            assertEquals(1, compensateCount.get(), "child should have compensated");
             assertStatus(child, LRAStatus.Cancelled, true);
             assertStatus(parent, LRAStatus.Active, false);
         } else {
-            assertEquals("nothing should be completed yet", 0, completeCount.get());
-            assertEquals("nothing should be compensated yet", 0, compensateCount.get());
+            assertEquals(0, completeCount.get(), "nothing should be completed yet");
+            assertEquals(0, compensateCount.get(), "nothing should be compensated yet");
             assertStatus(parent, LRAStatus.Active, false);
             assertStatus(child, LRAStatus.Active, false);
         }
 
         // if the child was not cancelled then close it now
         if (childCancelEarly) {
-            assertEquals("child should not have (provisionally) completed", 0, completeCount.get());
-            assertEquals("child should have compensated", 1, compensateCount.get());
+            assertEquals(0, completeCount.get(), "child should not have (provisionally) completed");
+            assertEquals(1, compensateCount.get(), "child should have compensated");
         } else {
             try (Response response = client.target(TestPortProvider.generateURL("/base/test/end"))
                     .queryParam("cancel", childCancelLate)
                     .request().header(LRA_HTTP_CONTEXT_HEADER, child).put(Entity.text(""))) {
-                assertEquals("finish child: ", response.getStatus(), childCancelLate ? 500 : 200);
-                assertEquals("child should have (provisionally) completed", 1, completeCount.get());
+                assertEquals(response.getStatus(), childCancelLate ? 500 : 200, "finish child: ");
+                assertEquals(1, completeCount.get(), "child should have (provisionally) completed");
             }
         }
 
@@ -869,32 +862,29 @@ public class LRATest extends LRATestBase {
         try (Response response = client.target(TestPortProvider.generateURL("/base/test/end"))
                 .queryParam("cancel", parentCancelLate)
                 .request().header(LRA_HTTP_CONTEXT_HEADER, parent).put(Entity.text(""))) {
-            assertEquals("finish parent", response.getStatus(), parentCancelLate ? 500 : 200);
+            assertEquals(response.getStatus(), parentCancelLate ? 500 : 200, "finish parent");
         }
 
         try (Response response = client.target(TestPortProvider.generateURL("/base/test/forget-count"))
                 .request()
                 .get()) {
 
-            assertEquals("LRA participant HTTP status", 200, response.getStatus());
+            assertEquals(200, response.getStatus(), "LRA participant HTTP status");
 
             int forgetCount = response.readEntity(Integer.class);
 
             if (childCancelEarly) {
-                assertEquals("A participant in a nested LRA that compensates should not be asked to forget",
-                        0, forgetCount);
+                assertEquals(0, forgetCount, "A participant in a nested LRA that compensates should not be asked to forget");
             } else {
-                assertEquals("A participant in a nested LRA that completes should be asked to forget",
-                        1, forgetCount);
+                assertEquals(1, forgetCount, "A participant in a nested LRA that completes should be asked to forget");
             }
         }
 
         if (childCancelEarly) {
-            assertEquals("parent should have completed and child should not have completed",
-                    1, completeCount.get());
+            assertEquals(1, completeCount.get(), "parent should have completed and child should not have completed");
         } else {
-            assertTrue("parent and child should have completed once each",
-                    completeCount.get() >= 2);
+            assertTrue(completeCount.get() >= 2,
+                    "parent and child should have completed once each");
         }
     }
 
@@ -948,7 +938,7 @@ public class LRATest extends LRATestBase {
 
         // the response is a comma separated list of URIs (parent, children)
         String lraStr = response.readEntity(String.class);
-        assertNotNull("expecting a LRA string returned from " + resourcePath.getUri(), lraStr);
+        assertNotNull(lraStr, "expecting a LRA string returned from " + resourcePath.getUri());
 
         URI[] uris = Arrays.stream(lraStr.split(",")).map(s -> {
             try {
@@ -960,21 +950,20 @@ public class LRATest extends LRATestBase {
         }).toArray(URI[]::new);
 
         // check that the multiLevelNestedActivity method returned the mandatory LRA followed by any nested LRAs
-        assertEquals("multiLevelNestedActivity: step 1 (the test call went to " + resourcePath.getUri() + ")",
-                nestedCnt + 1, uris.length);
+        assertEquals(nestedCnt + 1, uris.length,
+                "multiLevelNestedActivity: step 1 (the test call went to " + resourcePath.getUri() + ")");
         // first element should be the mandatory LRA
-        assertEquals("multiLevelNestedActivity: step 2 (the test call went to " + resourcePath.getUri() + ")",
-                lra, uris[0]);
+        assertEquals(lra, uris[0], "multiLevelNestedActivity: step 2 (the test call went to " + resourcePath.getUri() + ")");
 
         // and the mandatory lra seen by the multiLevelNestedActivity method
-        assertFalse("multiLevelNestedActivity: top level LRA should be active (path called " + resourcePath.getUri() + ")",
-                isFinished(uris[0]));
+        assertFalse(isFinished(uris[0]),
+                "multiLevelNestedActivity: top level LRA should be active (path called " + resourcePath.getUri() + ")");
 
         // check that all nested activities were told to complete
-        assertEquals("multiLevelNestedActivity: step 3 (called test path " +
-                resourcePath.getUri() + ")", nestedCnt, completeCount.get());
-        assertEquals("multiLevelNestedActivity: step 4 (called test path " +
-                resourcePath.getUri() + ")", 0, compensateCount.get());
+        assertEquals(nestedCnt, completeCount.get(), "multiLevelNestedActivity: step 3 (called test path " +
+                resourcePath.getUri() + ")");
+        assertEquals(0, compensateCount.get(), "multiLevelNestedActivity: step 4 (called test path " +
+                resourcePath.getUri() + ")");
 
         // close the LRA
         if (how == CompletionType.compensate) {
@@ -990,11 +979,11 @@ public class LRATest extends LRATestBase {
              * which will then tell L2 to compensate (ie the compensate count is incremented again)
              */
             // each nested participant should have completed (the +nestedCnt)
-            assertEquals("multiLevelNestedActivity: step 7 (called test path " +
-                    resourcePath.getUri() + ")", nestedCnt, completeCount.get());
+            assertEquals(nestedCnt, completeCount.get(), "multiLevelNestedActivity: step 7 (called test path " +
+                    resourcePath.getUri() + ")");
             // each nested participant should have compensated. The top level enlistment should have compensated (the +1)
-            assertEquals("multiLevelNestedActivity: step 8 (called test path " +
-                    resourcePath.getUri() + ")", nestedCnt + 1, compensateCount.get());
+            assertEquals(nestedCnt + 1, compensateCount.get(), "multiLevelNestedActivity: step 8 (called test path " +
+                    resourcePath.getUri() + ")");
         } else if (how == CompletionType.complete) {
             lraClient.closeLRA(lra);
 
@@ -1002,14 +991,14 @@ public class LRATest extends LRATestBase {
             assertAllFinished(uris);
 
             // each nested participant and the top level participant should have completed (nestedCnt + 1) at least once
-            assertTrue("multiLevelNestedActivity: step 5a (called test path " +
-                    resourcePath.getUri() + ")", completeCount.get() >= nestedCnt + 1);
+            assertTrue(completeCount.get() >= nestedCnt + 1, "multiLevelNestedActivity: step 5a (called test path " +
+                    resourcePath.getUri() + ")");
             // each nested participant should have been told to forget
-            assertEquals("multiLevelNestedActivity: step 5b (called test path " +
-                    resourcePath.getUri() + ")", forgetCount.get(), nestedCnt);
+            assertEquals(forgetCount.get(), nestedCnt, "multiLevelNestedActivity: step 5b (called test path " +
+                    resourcePath.getUri() + ")");
             // and that neither were still not told to compensate
-            assertEquals("multiLevelNestedActivity: step 6 (called test path " +
-                    resourcePath.getUri() + ")", 0, compensateCount.get());
+            assertEquals(0, compensateCount.get(), "multiLevelNestedActivity: step 6 (called test path " +
+                    resourcePath.getUri() + ")");
         } else {
             /*
              * The test is calling for a mixed outcome (a top level LRA L1 and nestedCnt nested LRAs (L2, L3, ...)::
@@ -1032,7 +1021,7 @@ public class LRATest extends LRATestBase {
                     .request()
                     .header(LRA_HTTP_CONTEXT_HEADER, uris[1])
                     .put(Entity.text(""))) {
-                assertEquals("compensate the first nested LRA", 500, r.getStatus());
+                assertEquals(500, r.getStatus(), "compensate the first nested LRA");
             }
 
             lraClient.closeLRA(lra); // should not complete any nested LRAs (since they have already completed via the interceptor)
@@ -1042,16 +1031,16 @@ public class LRATest extends LRATestBase {
              * (NB the first nested LRA is completed and compensated)
              * Note that the top level complete should not call complete again on the nested LRA
              */
-            assertEquals("multiLevelNestedActivity: step 10 (called test path " +
-                    resourcePath.getUri() + ")", nestedCnt + 1, completeCount.get());
+            assertEquals(nestedCnt + 1, completeCount.get(), "multiLevelNestedActivity: step 10 (called test path " +
+                    resourcePath.getUri() + ")");
             /*
              * The test is calling for a mixed outcome:
              * - the top level LRA was closed
              * - one of the nested LRAs was compensated the rest should have been completed
              */
             // there should be just 1 compensation (the first nested LRA)
-            assertEquals("multiLevelNestedActivity: step 9 (called test path " +
-                    resourcePath.getUri() + ")", 1, compensateCount.get());
+            assertEquals(1, compensateCount.get(), "multiLevelNestedActivity: step 9 (called test path " +
+                    resourcePath.getUri() + ")");
         }
 
         // verify that the coordinator does not return any LRAs
@@ -1059,12 +1048,12 @@ public class LRATest extends LRATestBase {
         List<LRAData> lras = lraClient.getAllLRAs();
         LRAData parentData = new LRAData();
         parentData.setLraId(lra);
-        assertFalse("parent LRA should not have been returned", lras.contains(parentData));
+        assertFalse(lras.contains(parentData), "parent LRA should not have been returned");
 
         for (URI uri : uris) {
             LRAData nestedData = new LRAData();
             nestedData.setLraId(uri);
-            assertFalse("child LRA should not have been returned", lras.contains(nestedData));
+            assertFalse(lras.contains(nestedData), "child LRA should not have been returned");
         }
     }
 
@@ -1072,9 +1061,9 @@ public class LRATest extends LRATestBase {
     private void assertAllFinished(URI[] uris) {
         assertTrue(uris.length != 0);
         IntStream.rangeClosed(0, uris.length - 1).forEach(i -> assertTrue(
+                isFinished(uris[i]),
                 String.format("multiLevelNestedActivity: %s LRA still active",
-                        (i == 0 ? "top level" : "nested")),
-                isFinished(uris[i])));
+                        (i == 0 ? "top level" : "nested"))));
     }
 
     @Test
@@ -1128,19 +1117,19 @@ public class LRATest extends LRATestBase {
 
         lraClient.closeLRA(parentId);
 
-        assertTrue("parent did not finish", isFinished(parentId));
-        assertTrue("child did not finish", isFinished(childId));
+        assertTrue(isFinished(parentId), "parent did not finish");
+        assertTrue(isFinished(childId), "child did not finish");
 
         try {
             LRAStatus cStatus = lraClient.getStatus(childId);
-            assertEquals("child did not close: " + cStatus, LRAStatus.Closed, cStatus);
+            assertEquals(LRAStatus.Closed, cStatus, "child did not close: " + cStatus);
         } catch (NotFoundException ignore) {
             // must have been cleaned up by the coordinator after it closed
         }
 
         try {
             LRAStatus pStatus = lraClient.getStatus(parentId);
-            assertEquals("parent did not close: " + pStatus, LRAStatus.Closed, pStatus);
+            assertEquals(LRAStatus.Closed, pStatus, "parent did not close: " + pStatus);
         } catch (NotFoundException ignore) {
             // must have been cleaned up by the coordinator after it closed
         }
@@ -1181,7 +1170,7 @@ public class LRATest extends LRATestBase {
                 .get(String.class);
         assertEquals(compensations + 1, compensateCount.get());
         LRAStatus status = getStatus(new URI(lraId));
-        assertTrue("LRA should have cancelled", status == null || status == LRAStatus.Cancelled);
+        assertTrue(status == null || status == LRAStatus.Cancelled, "LRA should have cancelled");
     }
 
     @Test
@@ -1196,25 +1185,24 @@ public class LRATest extends LRATestBase {
         try (Response response = client.target(target)
                 .request()
                 .get()) {
-            assertEquals("expected HTTP 410 Gone", 410, response.getStatus());
+            assertEquals(410, response.getStatus(), "expected HTTP 410 Gone");
 
             // assert that the business method was not invoked
             // the filter should detect that enlisting with the failed and respond with message code 25025
             String methodResponse = response.readEntity(String.class);
 
-            assertNotEquals("business method should not have been called",
-                    TIMEOUT_BEFORE_JOIN_BUSINESS_DATA, methodResponse);
+            assertNotEquals(TIMEOUT_BEFORE_JOIN_BUSINESS_DATA, methodResponse, "business method should not have been called");
 
             // LRA025025 is the generic error code but can we get more specific
-            assertTrue("Expected LRA025025 but was " + methodResponse, methodResponse.startsWith("LRA025025"));
+            assertTrue(methodResponse.startsWith("LRA025025"), "Expected LRA025025 but was " + methodResponse);
         }
 
-        assertEquals("participant should not have been enlisted", compensations, compensateCount.get());
+        assertEquals(compensations, compensateCount.get(), "participant should not have been enlisted");
     }
 
     @Test
     public void testTimeOutWithNoParticipants() {
-        URI lraId = lraClient.startLRA(null, testName.getMethodName(), 100L, ChronoUnit.MILLIS);
+        URI lraId = lraClient.startLRA(null, testName, 100L, ChronoUnit.MILLIS);
 
         // a) wait for the time limit to be reached
         try {
@@ -1225,8 +1213,8 @@ public class LRATest extends LRATestBase {
 
         // b) verify that the coordinator either removed it from its cache or it cancelled the LRA
         LRAStatus status = getStatus(lraId);
-        assertTrue("LRA should have cancelled but it's in state " + status,
-                status == null || status == LRAStatus.Cancelled);
+        assertTrue(status == null || status == LRAStatus.Cancelled,
+                "LRA should have cancelled but it's in state " + status);
         try {
             lraClient.cancelLRA(lraId);
             fail("should not be able to cancel a timed out LRA");
@@ -1242,35 +1230,35 @@ public class LRATest extends LRATestBase {
 
         // invoke a business method that should start and end an LRA
         try (Response r = client.target(TestPortProvider.generateURL(businessMethodName)).request().get()) {
-            assertEquals("testLRAListener: business method call failed", 200, r.getStatus());
+            assertEquals(200, r.getStatus(), "testLRAListener: business method call failed");
             lraId = new URI(r.readEntity(String.class)); // remember the LRA so that it's status can be verified
         }
 
         // verify that the AfterLRA annotated method ("/lra-listener/after") keeps getting called until it returns 200
         try (Response r = client.target(TestPortProvider.generateURL(afterCheckMethodName))
                 .request().get()) {
-            assertEquals("testLRAListener: check-after method call failed", 200, r.getStatus());
+            assertEquals(200, r.getStatus(), "testLRAListener: check-after method call failed");
 
             Integer notificationsBeforeRecovery = r.readEntity(Integer.class);
-            assertTrue("Expected at least one AfterLRA notifications", notificationsBeforeRecovery > 0);
+            assertTrue(notificationsBeforeRecovery > 0, "Expected at least one AfterLRA notifications");
 
             // verify that the coordinator still regards the LRA as finished even though there are still listeners
             LRAStatus status = getStatus(lraId);
-            assertEquals("LRA should be in the closed state, not " + status, LRAStatus.Closed, status);
+            assertEquals(LRAStatus.Closed, status, "LRA should be in the closed state, not " + status);
 
             // trigger a recovery scan so that the coordinator redelivers the listener notification which can take
             // a few seconds (maybe put this in a routine so that other tests can use it)
             try (Response r2 = client.target(recoveryPath).request().get()) {
-                assertEquals("testLRAListener: trigger recovery method call failed", 200, r.getStatus());
+                assertEquals(200, r.getStatus(), "testLRAListener: trigger recovery method call failed");
                 r2.getEntity(); // read the response stream, ignore the result (but we could check to see if contains lraId)
             }
 
             // check that the listener was notified again during the recovery scan
             try (Response r3 = client.target(TestPortProvider.generateURL(afterCheckMethodName)).request().get()) {
-                assertEquals("testLRAListener: check-after method call failed", 200, r3.getStatus());
+                assertEquals(200, r3.getStatus(), "testLRAListener: check-after method call failed");
                 int notificationsAfterRecovery = r3.readEntity(Integer.class);
-                assertTrue("Expected the recovery scan to produce extra AfterLRA listener notifications",
-                        notificationsAfterRecovery > notificationsBeforeRecovery);
+                assertTrue(notificationsAfterRecovery > notificationsBeforeRecovery,
+                        "Expected the recovery scan to produce extra AfterLRA listener notifications");
             }
 
             // the AfterLRA notification handler during recovery ("/lra-listener/after")
@@ -1283,8 +1271,8 @@ public class LRATest extends LRATestBase {
             } catch (NotFoundException ignore) {
                 // success the LRA is gone as expected
             } catch (WebApplicationException e) {
-                assertEquals("status of LRA unavailable: " + e.getMessage(),
-                        NOT_FOUND.getStatusCode(), e.getResponse().getStatus());
+                assertEquals(NOT_FOUND.getStatusCode(), e.getResponse().getStatus(),
+                        "status of LRA unavailable: " + e.getMessage());
             }
         }
     }
@@ -1302,7 +1290,7 @@ public class LRATest extends LRATestBase {
         } catch (ServiceUnavailableException e) {
             // expected since the byteman script fails the attempt to write to the store
             Response response = e.getResponse();
-            assertNotNull("missing response object", response);
+            assertNotNull(response, "missing response object");
             // the response should be 503
             assertEquals(503, response.getStatus());
             assertTrue(response.hasEntity());
@@ -1312,7 +1300,7 @@ public class LRATest extends LRATestBase {
 
         // verify that nothing was written to the store
         try {
-            assertEquals("LRA record should not have been created", 0, countRecords());
+            assertEquals(0, countRecords(), "LRA record should not have been created");
         } catch (ObjectStoreException e) {
             fail("Unable to read the store: " + e.getMessage());
         }
@@ -1328,11 +1316,11 @@ public class LRATest extends LRATestBase {
             Object res = client.target(TestPortProvider.generateURL("/base/test/start-end")).request().get(Object.class);
             fail("should have thrown ServiceUnavailableException but returned " + res);
         } catch (WebApplicationException e) {
-            assertEquals("Unexpected response code",
-                    Response.Status.SERVICE_UNAVAILABLE.getStatusCode(), e.getResponse().getStatus());
+            assertEquals(Response.Status.SERVICE_UNAVAILABLE.getStatusCode(), e.getResponse().getStatus(),
+                    "Unexpected response code");
             String reason = e.getResponse().readEntity(String.class);
-            assertTrue("response does not contain LRA025032",
-                    reason.contains("LRA025032")); // LRA025032 means deactivate failed
+            assertTrue(reason.contains("LRA025032"),
+                    "response does not contain LRA025032"); // LRA025032 means deactivate failed
         }
     }
 
@@ -1356,7 +1344,7 @@ public class LRATest extends LRATestBase {
 
     public void testEndFailure(boolean closeLRA) {
         // start an LRA by calling the coordinator
-        URI lraId = lraClient.startLRA(testName.getMethodName());
+        URI lraId = lraClient.startLRA(testName);
 
         // enlist a participant via the participant filter (ie ServerLRAFilter)
         try (Response r = client.target(TestPortProvider.generateURL("/base/participant1/continue"))
@@ -1374,7 +1362,7 @@ public class LRATest extends LRATestBase {
             }
         } catch (WebApplicationException e) {
             Response response = e.getResponse();
-            assertNotNull("missing response object", response);
+            assertNotNull(response, "missing response object");
             // the response should be 503
             assertEquals(503, response.getStatus());
             assertTrue(response.hasEntity());
@@ -1415,24 +1403,22 @@ public class LRATest extends LRATestBase {
         else
             lraClient.closeLRA(parentId);
 
-        assertEquals("parent and child should both have finished",
-                2, cancel ? compensateCount.get() : completeCount.get());
+        assertEquals(2, cancel ? compensateCount.get() : completeCount.get(), "parent and child should both have finished");
 
         LRAStatus pStatus = getStatus(parentId);
         LRAStatus cStatus = getStatus(childId);
 
-        assertTrue("parent LRA finished in wrong state",
-                pStatus == null || pStatus == (cancel ? LRAStatus.Cancelled : LRAStatus.Closed));
-        assertTrue("child LRA finished in wrong state",
-                cStatus == null || cStatus == (cancel ? LRAStatus.Cancelled : LRAStatus.Closed));
+        assertTrue(pStatus == null || pStatus == (cancel ? LRAStatus.Cancelled : LRAStatus.Closed),
+                "parent LRA finished in wrong state");
+        assertTrue(cStatus == null || cStatus == (cancel ? LRAStatus.Cancelled : LRAStatus.Closed),
+                "child LRA finished in wrong state");
     }
 
     private void enlistParticipant(String lraUid) {
         try (Response response = client.target(lraUid).request().put(Entity.text(getCompensatorLinkHeader()))) {
-            assertEquals("Unexpected status: " + response.readEntity(String.class),
-                    200, response.getStatus());
+            assertEquals(200, response.getStatus(), "Unexpected status: " + response.readEntity(String.class));
             String recoveryId = response.getHeaderString(LRA_HTTP_RECOVERY_HEADER);
-            assertNotNull("recovery id was null", recoveryId);
+            assertNotNull(recoveryId, "recovery id was null");
         }
     }
 
@@ -1466,8 +1452,8 @@ public class LRATest extends LRATestBase {
         try {
             LRAStatus status = getStatus(lraId);
 
-            assertTrue(message + ": LRA status: " + status,
-                    Arrays.stream(expectedValues).anyMatch(s -> s == status));
+            assertTrue(Arrays.stream(expectedValues).anyMatch(s -> s == status),
+                    message + ": LRA status: " + status);
         } catch (NotFoundException e) {
             List<LRAStatus> values = Arrays.asList(expectedValues);
             // if the LRA finished then the coordinator is free to clean up so NotFoundException is valid
@@ -1480,12 +1466,12 @@ public class LRATest extends LRATestBase {
         try {
             LRAStatus status = getStatus(new URI(lraId));
 
-            assertTrue("unexpected null LRA status", status != null || nullValid);
+            assertTrue(status != null || nullValid, "unexpected null LRA status");
 
-            assertTrue("Expected status " + expected + " but state was " + status,
-                    status == null || status == expected);
+            assertTrue(status == null || status == expected,
+                    "Expected status " + expected + " but state was " + status);
         } catch (URISyntaxException e) {
-            fail(String.format("%s: %s", testName.getMethodName(), e.getMessage()));
+            fail(String.format("%s: %s", testName, e.getMessage()));
         }
     }
 

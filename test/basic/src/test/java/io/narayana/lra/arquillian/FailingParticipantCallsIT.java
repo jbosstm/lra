@@ -11,17 +11,19 @@ import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
+import java.util.Optional;
 import org.eclipse.microprofile.lra.tck.service.spi.LRACallbackException;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 public class FailingParticipantCallsIT extends TestBase {
 
@@ -30,13 +32,12 @@ public class FailingParticipantCallsIT extends TestBase {
     @ArquillianResource
     public URL baseURL;
 
-    @Rule
-    public TestName testName = new TestName();
+    public String testName;
 
-    @Override
-    public void before() {
-        super.before();
-        log.info("Running test " + testName.getMethodName());
+    @BeforeEach
+    public void before(TestInfo testInfo) {
+        testName = testInfo.getDisplayName();
+        log.info("Running test " + testName);
     }
 
     @Deployment
@@ -57,8 +58,8 @@ public class FailingParticipantCallsIT extends TestBase {
                     .request()
                     .get();
 
-            Assert.assertEquals(200, response.getStatus());
-            Assert.assertTrue(response.hasEntity());
+            Assertions.assertEquals(200, response.getStatus());
+            Assertions.assertTrue(response.hasEntity());
 
             lra = URI.create(response.readEntity(String.class));
             lrasToAfterFinish.add(lra);
@@ -70,7 +71,7 @@ public class FailingParticipantCallsIT extends TestBase {
                     .path(FailingAfterLRAListener.ROOT_PATH).path("counter").build())
                     .request().get();
 
-            Assert.assertEquals(2, Integer.parseInt(response.readEntity(String.class)));
+            Assertions.assertEquals(2, Integer.parseInt(response.readEntity(String.class)));
         } finally {
             if (response != null) {
                 response.close();
@@ -80,5 +81,11 @@ public class FailingParticipantCallsIT extends TestBase {
             }
         }
 
+    }
+
+    @BeforeEach
+    public void setup(TestInfo testInfo) {
+        Optional<Method> testMethod = testInfo.getTestMethod();
+        this.testName = testMethod.get().getName();
     }
 }

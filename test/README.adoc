@@ -44,6 +44,12 @@ The **WildFly** runtime is used through the 'arq' profile. Two instances of Wild
    with the current project changes).
  * The second instance is started using Arquillian to deploy the LRA participant
    under test. Moreover, the testing class is hosted on separated JVM.
+ 
+A WildFly instance can be provided to the tests in 3 ways:
+ * Via the `JBOSS_HOME` environment variable pointing to an existing WildFly installation.
+ * By using the `-Pdownload` profile; this downloads and unpacks the zip distribution from Maven central and points the tests to it.
+ * By using the `-Pprovision` profile; this provisions a WildFly Galleon instance and points the tests to it.
+   
 
 === Running tests with WildFly
 
@@ -51,11 +57,10 @@ To start all integration tests, testing with the coordinator that was build by t
 
 [source,sh]
 ----
-export JBOSS_HOME=<path-to-wildfly-distribution-directory>
-mvn clean verify -Parq
+mvn clean verify -Parq,provision
 
 # single test in one module
-mvn clean verify -Parq -pl :lra-test-basic -Dit.test=FailedLRAIT
+mvn clean verify -Parq,provision -pl :lra-test-basic -Dit.test=FailedLRAIT
 ----
 
 To start all integration tests, testing with the build-in coordinator of WildFly:
@@ -76,5 +81,8 @@ mvn clean verify -Parq,coordinator.wildfly.subsystem -pl :lra-test-basic -Dit.te
 
 | `-Ddebug`
 | The WildFly waits at port `8787` for debugger to connect.
+
+| `-Dwildfly.version`
+| When using the download or provision profiles; the version of WildFly to download resp. provision
 
 |===

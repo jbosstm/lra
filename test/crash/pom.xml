@@ -16,6 +16,10 @@
   <name>LRA crash tests</name>
   <description>LRA integration tests using unmanaged containers to simulate crash scenarios</description>
 
+  <properties>
+    <skip.wildfly.plugin>true</skip.wildfly.plugin>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.jboss.narayana.lra</groupId>

@@ -37,6 +37,9 @@
     <!-- the property used by NarayanaLRAClient when passed into the container as the JVM parameter -->
     <lra.coordinator.url>http://${lra.coordinator.host}:${lra.coordinator.port}/lra-coordinator</lra.coordinator.url>
 
+    <lra.participant.debug.params></lra.participant.debug.params>
+    <lra.participant.debug.port>9088</lra.participant.debug.port>
+
     <!-- for test executions where coordinator is started as a separate JVM (e.g. for Quarkus) and the test application
              is deployed at the different JVM; these properties define where the test JVM application is started -->
     <test.application.host>localhost</test.application.host>
@@ -116,6 +119,7 @@
       <id>arq</id>
       <modules>
         <module>crash</module>
+        <module>quarkus</module>
       </modules>
       <properties>
         <config.to.replace>standalone.xml</config.to.replace>
@@ -206,6 +210,29 @@
             <artifactId>maven-antrun-plugin</artifactId>
             <executions>
               <execution>
+                <id>replace-lra-jars</id>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <phase>process-resources</phase>
+                <configuration>
+                  <target xmlns:if="ant:if" xmlns:unless="ant:unless">
+                    <echo if:true="${wildfly.download}">wildfly.download=true, updating LRA jar versions in ${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-participant/main/module.xml</echo>
+                    <echo unless:true="${wildfly.download}">wildfly.download is not true, skipping LRA module.xml update</echo>
+
+                    <!-- Update lra-client-* -->
+                    <replaceregexp byline="true" file="${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-participant/main/module.xml" match="(lra-client-)[^&quot;]+(\.jar)" replace="\1${project.version}\2" if:true="${wildfly.download}"></replaceregexp>
+
+                    <!-- Update lra-proxy-api-* -->
+                    <replaceregexp byline="true" file="${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-participant/main/module.xml" match="(lra-proxy-api-)[^&quot;]+(\.jar)" replace="\1${project.version}\2" if:true="${wildfly.download}"></replaceregexp>
+
+                    <!-- Update narayana-lra-* -->
+                    <replaceregexp byline="true" file="${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-participant/main/module.xml" match="(narayana-lra-)[^&quot;]+(\.jar)" replace="\1${project.version}\2" if:true="${wildfly.download}"></replaceregexp>
+                  </target>
+                </configuration>
+              </execution>
+
+              <execution>
                 <goals>
                   <goal>run</goal>
                 </goals>
@@ -216,13 +243,17 @@
                     <delete dir="../../ObjectStore" failonerror="false"></delete>
 
                     <!-- We overwrite the config files as the config.to.replace can be different in different modules and without overwrite being the case, then the file will not be written over -->
+
+                    <!-- For the coordinator, create a new standalone.xml file where we add the extensions to activate the LRA coordinator -->
                     <copy file="${wildfly.home}/standalone/configuration/${config.to.replace}" overwrite="true" tofile="${wildfly.home}/standalone/configuration/${lra.coordinator.xml.filename}"></copy>
-                    <copy file="${wildfly.home}/standalone/configuration/${config.to.replace}" overwrite="true" tofile="${wildfly.home}/standalone/configuration/${lra.participant.xml.filename}"></copy>
 
                     <!-- Activate the build-in LRA coordinator in WildFly, unless we're deploying the one we just build. -->
                     <replace file="${wildfly.home}/standalone/configuration/${lra.coordinator.xml.filename}" token="org.wildfly.extension.microprofile.jwt-smallrye" value="org.wildfly.extension.microprofile.jwt-smallrye&quot;/&gt; &lt;extension module=&quot;org.wildfly.extension.microprofile.lra-coordinator&quot;/&gt; &lt;extension module=&quot;org.wildfly.extension.microprofile.openapi-smallrye"></replace>
                     <replace file="${wildfly.home}/standalone/configuration/${lra.coordinator.xml.filename}" token="subsystem xmlns=&quot;urn:wildfly:microprofile-jwt-smallrye:1.0" value="subsystem xmlns=&quot;urn:wildfly:microprofile-jwt-smallrye:1.0&quot;/&gt; &lt;subsystem xmlns=&quot;urn:wildfly:microprofile-lra-coordinator:1.0&quot;/&gt; &lt;subsystem xmlns=&quot;urn:wildfly:microprofile-openapi-smallrye:1.0"></replace>
                     <replace file="${wildfly.home}/standalone/configuration/${lra.coordinator.xml.filename}" token="object-store path=&quot;tx-object-store" value="object-store path=&quot;wfly_lra_objectstore"></replace>
+
+                    <!-- For the partipants, create a new standalone.xml as well, but don't change anything.  -->
+                    <copy file="${wildfly.home}/standalone/configuration/${config.to.replace}" overwrite="true" tofile="${wildfly.home}/standalone/configuration/${lra.participant.xml.filename}"></copy>
                   </target>
                 </configuration>
               </execution>
@@ -230,12 +261,18 @@
           </plugin>
 
           <!--
-            Wildfly is activated and configured through wildfly-maven-plugin instead
+            Start the WildFly instance for the LRA Coordinator
+            
+            Wildfly for the coordinator is activated and configured through wildfly-maven-plugin instead
             of using an Arquillian cluster. This design choice reflects the preference
-            to be consistent with the mechanism used to deploy lra-coordinator in
+            to be consistent with the mechanism used to deploy the lra-coordinator in
             Quarkus. Moreover, the Microprofile LRA TCK does not allow to use multiple
             Arquillian containers. As a consequence, lra-coordinator needs to be deployed
             separately.
+            
+            Note: The crash module disables this plug-in and uses an Arquillian group with two
+                  containers defined in the arquillian-wildfly.xml of that module.
+            
           -->
           <plugin>
             <groupId>org.wildfly.plugins</groupId>
@@ -246,7 +283,7 @@
             </configuration>
 
             <executions>
-              <!-- Starts Wildfly -->
+              <!-- Starts Wildfly for the coordinator -->
               <execution>
                 <id>start</id>
                 <goals>
@@ -261,7 +298,12 @@
                 </configuration>
               </execution>
 
-              <!-- Deploys the coordinator to Wildfly -->
+              <!-- 
+                Deploys the coordinator war build by this project to Wildfly.
+                
+                Note that the coordinator.wildfly.subsystem profile disables
+                the deploy and undeploy of this coordinator war.
+               -->
               <execution>
                 <id>deploy-coordinator</id>
                 <goals>
@@ -276,7 +318,7 @@
                 </configuration>
               </execution>
 
-              <!-- Undeploys the coordinator from Wildfly -->
+              <!-- Undeploys the coordinator war from Wildfly -->
               <execution>
                 <id>undeploy-coordinator</id>
                 <goals>
@@ -288,7 +330,7 @@
                 </configuration>
               </execution>
 
-              <!-- Shutdowns Wildfly -->
+              <!-- Shutdowns Wildfly for the coordinator -->
               <execution>
                 <id>shutdown</id>
                 <goals>
@@ -299,6 +341,12 @@
             </executions>
           </plugin>
 
+          <!-- 
+              Starts the tests.
+              
+              As part of the tests, start up the 2nd WildFly instance for the participants.
+              
+          -->
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-failsafe-plugin</artifactId>
@@ -310,24 +358,28 @@
               <systemPropertyVariables>
                 <arquillian.xml>arquillian-wildfly.xml</arquillian.xml>
 
-                <!-- qualifier used to identify the Wildfly cluster -->
+                <!-- qualifier used to identify the Wildfly cluster. Only used by crash module.  -->
                 <arquillian.group.qualifier>wildfly-cluster</arquillian.group.qualifier>
 
-                <!-- qualifier used to identify the Wildfly container where lra-coordinator will be deployed-->
+                <!-- qualifier used to identify the Wildfly container where lra-coordinator will be deployed. Only used by crash module.-->
                 <arquillian.lra.coordinator.container.qualifier>${lra.coordinator.container.qualifier}</arquillian.lra.coordinator.container.qualifier>
 
                 <!-- qualifier used to identify the Wildfly container where lra-participant will be deployed-->
                 <arquillian.lra.participant.container.qualifier>${lra.participant.container.qualifier}</arquillian.lra.participant.container.qualifier>
 
-                <!-- qualifier used to identify the lra-coordinator deployment-->
+                <!-- qualifier used to identify the lra-coordinator deployment. Only used by crash module. -->
                 <arquillian.lra.coordinator.deployment.qualifier>${lra.coordinator.deployment.qualifier}</arquillian.lra.coordinator.deployment.qualifier>
 
                 <!-- qualifier used to identify the lra-participant deployment-->
                 <arquillian.lra.participant.deployment.qualifier>${lra.participant.deployment.qualifier}</arquillian.lra.participant.deployment.qualifier>
 
-                <!-- sharing with Arquillian the names of the XML standalone configurations for Wildfly instances -->
+                <!-- XML standalone configurations for coordinator WildFly instance. Only used by crash module. -->
                 <lra.coordinator.xml.filename>${lra.coordinator.xml.filename}</lra.coordinator.xml.filename>
+
+                <!-- XML standalone configurations for participant WildFly instance. -->
                 <lra.participant.xml.filename>${lra.participant.xml.filename}</lra.participant.xml.filename>
+
+                <lra.participant.debug.params>${lra.participant.debug.params}</lra.participant.debug.params>
 
                 <!-- used to resolve the resteasy-client version -->
                 <version.resteasy-client>${version.resteasy-client}</version.resteasy-client>
@@ -394,6 +446,7 @@
       <id>download</id>
 
       <properties>
+        <wildfly.download>true</wildfly.download>
         <wildfly.home>${wildfly.root}/wildfly-${wildfly.version}</wildfly.home>
         <wildfly.root>${user.dir}/target/wildfly</wildfly.root>
         <wildfly.version>38.0.1.Final</wildfly.version>
@@ -425,6 +478,49 @@
                   </artifactItems>
                 </configuration>
               </execution>
+              <execution>
+                <id>update-narayana-lra</id>
+                <goals>
+                  <goal>copy</goal>
+                </goals>
+                <phase>process-test-classes</phase>
+                <configuration>
+                  <skip>${narayana.noupdate}</skip>
+                  <silent>false</silent>
+                  <artifactItems>
+                    <artifactItem>
+                      <groupId>org.jboss.narayana.lra</groupId>
+                      <artifactId>lra-client</artifactId>
+                      <version>${project.version}</version>
+                      <type>jar</type>
+                      <overWrite>true</overWrite>
+                      <outputDirectory>${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-participant/main</outputDirectory>
+                      <destFileName>lra-client-${project.version}.jar</destFileName>
+                    </artifactItem>
+
+                    <artifactItem>
+                      <groupId>org.jboss.narayana.lra</groupId>
+                      <artifactId>narayana-lra</artifactId>
+                      <version>${project.version}</version>
+                      <type>jar</type>
+                      <overWrite>true</overWrite>
+                      <outputDirectory>${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-participant/main</outputDirectory>
+                      <destFileName>narayana-lra-${project.version}.jar</destFileName>
+                    </artifactItem>
+
+                    <artifactItem>
+                      <groupId>org.jboss.narayana.lra</groupId>
+                      <artifactId>lra-proxy-api</artifactId>
+                      <version>${project.version}</version>
+                      <type>jar</type>
+                      <overWrite>true</overWrite>
+                      <outputDirectory>${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-participant/main</outputDirectory>
+                      <destFileName>lra-proxy-api-${project.version}.jar</destFileName>
+                    </artifactItem>
+
+                  </artifactItems>
+                </configuration>
+              </execution>
             </executions>
           </plugin>
         </plugins>
@@ -440,6 +536,18 @@
       </activation>
       <properties>
         <lra.coordinator.debug.params>-Xrunjdwp:transport=dt_socket,address=${lra.coordinator.debug.port},server=y,suspend=y</lra.coordinator.debug.params>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>debug.lra.participant</id>
+      <activation>
+        <property>
+          <name>debug.participant</name>
+        </property>
+      </activation>
+      <properties>
+        <lra.participant.debug.params>-Xrunjdwp:transport=dt_socket,address=${lra.participant.debug.port},server=y,suspend=y</lra.participant.debug.params>
       </properties>
     </profile>
 

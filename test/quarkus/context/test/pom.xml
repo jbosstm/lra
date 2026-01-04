@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright The Narayana Authors
+   SPDX short identifier: Apache-2.0
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.jboss.narayana.lra</groupId>
+    <artifactId>lra-test-quarkus-context</artifactId>
+    <version>1.0.4.Final-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>lra-test-quarkus-context-test</artifactId>
+
+  <name>LRA tests: Quarkus Context Test</name>
+  <description>LRA test testing with a jar for Quarkus for context propagation</description>
+
+  <properties>
+
+    <lra.initiator.host>localhost</lra.initiator.host>
+    <lra.initiator.port>9080</lra.initiator.port>
+    <quarkus.app>app.jar</quarkus.app>
+
+    <quarkus.home>${project.build.directory}/quarkus</quarkus.home>
+    <quarkus.jar>${quarkus.home}/${quarkus.app}</quarkus.jar>
+    <skip.wildfly.plugin>false</skip.wildfly.plugin>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.jboss.narayana.lra</groupId>
+      <artifactId>narayana-lra</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.enterprise</groupId>
+      <artifactId>jakarta.enterprise.cdi-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jboss.narayana.lra</groupId>
+      <artifactId>lra-test-arquillian-extension</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.json</groupId>
+      <artifactId>jakarta.json-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.parsson</groupId>
+      <artifactId>parsson</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-client</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-jackson2-provider</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-install-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-quarkus-app</id>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.jboss.narayana.lra</groupId>
+                  <artifactId>lra-test-quarkus-context-build</artifactId>
+                  <version>${project.version}</version>
+                  <type>jar</type>
+                  <outputDirectory>${quarkus.home}</outputDirectory>
+                  <destFileName>${quarkus.app}</destFileName>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>start-quarkus</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>pre-integration-test</phase>
+            <configuration>
+              <executable>${java.home}/bin/java</executable>
+              <arguments>
+                <argument>-Dquarkus.http.host=${lra.initiator.host}</argument>
+                <argument>-Dquarkus.http.port=${lra.initiator.port}</argument>
+                <argument>-Dquarkus.lra.coordinator-url=${lra.coordinator.url}</argument>
+                <argument>-jar</argument>
+                <argument>${quarkus.jar}</argument>
+              </arguments>
+
+              <!-- Key bits -->
+              <async>true</async>
+              <asyncDestroyOnShutdown>true</asyncDestroyOnShutdown>
+              <inheritIo>true</inheritIo>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <lra.initiator.host>${lra.initiator.host}</lra.initiator.host>
+            <lra.initiator.port>${lra.initiator.port}</lra.initiator.port>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>stop-quarkus</id>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <phase>post-integration-test</phase>
+            <configuration>
+              <target>
+                <echo>Stopping Quarkus using: http://${lra.initiator.host}:${lra.initiator.port}/shutdown</echo>
+                <waitfor maxwait="10" maxwaitunit="second">
+                  <http requestMethod="GET" url="http://${lra.initiator.host}:${lra.initiator.port}/shutdown"></http>
+                </waitfor>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

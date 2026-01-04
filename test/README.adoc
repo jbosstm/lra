@@ -86,3 +86,16 @@ mvn clean verify -Parq,coordinator.wildfly.subsystem -pl :lra-test-basic -Dit.te
 | When using the download or provision profiles; the version of WildFly to download resp. provision
 
 |===
+
+=== Running against WildFly build from source with updated LRA
+
+This project contains a script that uses a two-tiered checkout of WildFly and builds it with the LRA version from this repo. It then executes TCK tests directly against it, and then runs the tests from this repo against it.
+
+Invoke from the root of this repo using:
+
+[source,sh]
+----
+BASH_INTERPRETER=/bin/bash WORKSPACE=$PWD PROFILE=LRA ./scripts/hudson/narayana.sh
+----
+
+

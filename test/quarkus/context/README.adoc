@@ -1,0 +1,29 @@
+= Context propagation test for Quarkus
+
+WildFly and most other servers use Jakarta Concurrency for context propagation when doing async requests. This is covered by the io.narayana.lra.arquillian.LRAAsyncLRAIT test in the lra-test-basic module.
+
+This test can be executed using:
+
+```
+mvn clean install -Parq,download -pl :lra-test-basic -Dit.test=io.narayana.lra.arquillian.LRAAsyncLRAIT
+```
+
+However, Quarkus uses an older and non-maintained API called MicroProfile Context Propagation for this. MicroProfile Context Propagation moved to Jakarta Concurrency, so most other servers (specifically WildFly) have dropped support for this. Older WildFly versions do support it using a feature pack.
+
+LRA supports MicroProfile Context Propagation specifically for Quarkus, but therefore we also have to test with Quarkus. The test setup works as follows:
+
+The /build module builds a Quarkus uberjar containing the first participant in the LRA, which initiates the LRA. It asynchronously calls two other participants (client 1 and client 2), which both run on WildFly. Depending on the configuration options, the coordinator build by this project runs on a second WildFly instance.
+
+From this folder, using:
+
+```
+mvn clean install -Parq,download
+```
+
+The defaults are as follows:
+
+* WildFly 1 - HTTP port 8080 - started by Maven WildFly plugin. Runs coordinator war from module org.jboss.narayana.lra:lra-coordinator-war
+* Quarkus 1 - HTTP port 9080 - started by Maven Exec plugin. Runs initiator jar from module org.jboss.narayana.lra: lra-test-quarkus-context-build
+* WildFly 2 - HTTP port 8180 - started by Arquillian. Runs micro archive war created by test io.narayana.lra.arquillian.quarkus.LRAAsyncLRAIT
+
+ 

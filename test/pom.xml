@@ -116,6 +116,7 @@
       <id>arq</id>
       <modules>
         <module>crash</module>
+        <module>quarkus</module>
       </modules>
       <properties>
         <config.to.replace>standalone.xml</config.to.replace>

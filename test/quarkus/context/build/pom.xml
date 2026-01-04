@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright The Narayana Authors
+   SPDX short identifier: Apache-2.0
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.jboss.narayana.lra</groupId>
+    <artifactId>lra-test-quarkus-context</artifactId>
+    <version>1.0.4.Final-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>lra-test-quarkus-context-build</artifactId>
+
+  <name>LRA tests: Quarkus Context Build</name>
+  <description>LRA test Building a jar for Quarkus to test context propagation</description>
+
+  <properties>
+    <!-- Encoding -->
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <quarkus.package.jar.add-runner-suffix>false</quarkus.package.jar.add-runner-suffix>
+
+    <quarkus.package.jar.type>uber-jar</quarkus.package.jar.type>
+    <quarkus.platform.version>${version.quarkus}</quarkus.platform.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.quarkus.platform</groupId>
+        <artifactId>quarkus-bom</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  <dependencies>
+    <!-- Core DI -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-arc</artifactId>
+    </dependency>
+
+    <!-- LRA participant support -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-narayana-lra</artifactId>
+      <!-- Make it explicit that we replace narayana-lra -->
+      <exclusions>
+        <exclusion>
+          <groupId>org.jboss.narayana.lra</groupId>
+          <artifactId>narayana-lra</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <!-- Make it explicit that we replace narayana-lra -->
+    <dependency>
+      <groupId>org.jboss.narayana.lra</groupId>
+      <artifactId>narayana-lra</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- Use RESTEasy Classic instead of Quarkus REST -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-resteasy-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-resteasy-client</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Quarkus build/dev/native -->
+      <plugin>
+        <groupId>io.quarkus.platform</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <extensions>true</extensions>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build</goal>
+              <goal>generate-code</goal>
+              <goal>generate-code-tests</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

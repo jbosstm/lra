@@ -7,11 +7,13 @@ package io.narayana.lra.context;
 
 import io.narayana.lra.Current;
 import io.narayana.lra.logging.LRALogger;
+import jakarta.enterprise.inject.Vetoed;
 import java.net.URI;
 import java.util.Map;
 import org.eclipse.microprofile.context.spi.ThreadContextProvider;
 import org.eclipse.microprofile.context.spi.ThreadContextSnapshot;
 
+@Vetoed // never a CDI bean
 public class ClientLRAContextProviderMP implements ThreadContextProvider {
 
     private static final ThreadContextSnapshot NOOP_SNAPSHOT = () -> () -> {

@@ -19,6 +19,7 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.client.ClientBuilder;
+import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -56,21 +57,29 @@ public class LRAAsyncParticipant1Initiator {
         log.infov("\033[0;1m\u001B[33mReceived base URL from client: {0}", baseUrl);
         log.infov("\033[0;1m\u001B[33mCoordinator URL: {0}", System.getProperty("lra.coordinator.url"));
 
-        Future<Response> futureResponse1 = managedExecutorService.submit(() -> ClientBuilder.newClient()
-                .target(baseUrl.toURI())
-                .path(LRAAsyncParticipant2Client1.LRA_PARTICIPANT_PATH)
-                .path(LRAAsyncParticipant2Client1.TRANSACTIONAL_START_PATH)
-                .request()
-                .header(LRA_HTTP_CONTEXT_HEADER, lraId)
-                .get());
+        Future<Response> futureResponse1 = managedExecutorService.submit(() -> {
 
-        Future<Response> futureResponse2 = managedExecutorService.submit(() -> ClientBuilder.newClient()
-                .target(baseUrl.toURI())
-                .path(LRAAsyncParticipant3Client2.LRA_PARTICIPANT_PATH)
-                .path(LRAAsyncParticipant3Client2.TRANSACTIONAL_START_PATH)
-                .request()
-                .header(LRA_HTTP_CONTEXT_HEADER, lraId)
-                .get());
+            WebTarget target = ClientBuilder.newClient()
+                    .target(baseUrl.toURI())
+                    .path(LRAAsyncParticipant2Client1.LRA_PARTICIPANT_PATH)
+                    .path(LRAAsyncParticipant2Client1.TRANSACTIONAL_START_PATH);
+
+            log.infov("\033[0;1m\u001B[33mCalling {0}", target.getUri());
+
+            return target.request().get();
+        });
+
+        Future<Response> futureResponse2 = managedExecutorService.submit(() -> {
+
+            WebTarget target = ClientBuilder.newClient()
+                    .target(baseUrl.toURI())
+                    .path(LRAAsyncParticipant3Client2.LRA_PARTICIPANT_PATH)
+                    .path(LRAAsyncParticipant3Client2.TRANSACTIONAL_START_PATH);
+
+            log.infov("\033[0;1m\u001B[33mCalling {0}", target.getUri());
+
+            return target.request().get();
+        });
 
         String response1 = futureResponse1.get().readEntity(String.class);
 

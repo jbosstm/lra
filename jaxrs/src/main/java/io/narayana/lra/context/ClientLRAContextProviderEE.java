@@ -9,9 +9,11 @@ import io.narayana.lra.Current;
 import io.narayana.lra.logging.LRALogger;
 import jakarta.enterprise.concurrent.spi.ThreadContextProvider;
 import jakarta.enterprise.concurrent.spi.ThreadContextSnapshot;
+import jakarta.enterprise.inject.Vetoed;
 import java.net.URI;
 import java.util.Map;
 
+@Vetoed // never a CDI bean
 public class ClientLRAContextProviderEE implements ThreadContextProvider {
 
     private static final ThreadContextSnapshot NOOP_SNAPSHOT = () -> () -> {

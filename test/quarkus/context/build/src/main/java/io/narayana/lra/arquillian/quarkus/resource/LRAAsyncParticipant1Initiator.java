@@ -69,7 +69,6 @@ public class LRAAsyncParticipant1Initiator {
                 .path(LRA_PARTICIPANT2_PATH)
                 .path(TRANSACTIONAL2_START_PATH)
                 .request()
-                .header(LRA_HTTP_CONTEXT_HEADER, lraId)
                 .get());
 
         log.infov("\033[0;1m\u001B[33mInitiator calling client 2 at {0}{1}/{2}", baseUrl.toURI(), LRA_PARTICIPANT3_PATH,
@@ -80,7 +79,6 @@ public class LRAAsyncParticipant1Initiator {
                 .path(LRA_PARTICIPANT3_PATH)
                 .path(TRANSACTIONAL3_START_PATH)
                 .request()
-                .header(LRA_HTTP_CONTEXT_HEADER, lraId)
                 .get());
 
         // Small sleep to give the logging some chance to appear in order. Not technically needed.

@@ -58,13 +58,14 @@ jobs:
             maven-${{ runner.os }}-
 
       - name: LRA test
-        if: steps.check-label.outputs.should_skip != 'true'
+        if: steps.check-label.outputs.should_skip != 'true' 
         run: |
           git config --global user.email "lra@jbosstm.com"
           git config --global user.name "lra-bot"
-          PULL_DESCRIPTION_BODY="${{ github.event.pull_request.body }}" WORKSPACE=$PWD PROFILE=LRA ./scripts/hudson/narayana.sh
+          WORKSPACE=$PWD PROFILE=LRA ./scripts/hudson/narayana.sh
         env:
           LRA_TCK_TIMEOUT_FACTOR: 1
+          PULL_DESCRIPTION_BODY: ${{ github.event.pull_request.body }}
 
       - uses: actions/upload-artifact@v6
         if: steps.check-label.outputs.should_skip != 'true' && always()

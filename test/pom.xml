@@ -252,7 +252,7 @@
                     <replace file="${wildfly.home}/standalone/configuration/${lra.coordinator.xml.filename}" token="subsystem xmlns=&quot;urn:wildfly:microprofile-jwt-smallrye:1.0" value="subsystem xmlns=&quot;urn:wildfly:microprofile-jwt-smallrye:1.0&quot;/&gt; &lt;subsystem xmlns=&quot;urn:wildfly:microprofile-lra-coordinator:1.0&quot;/&gt; &lt;subsystem xmlns=&quot;urn:wildfly:microprofile-openapi-smallrye:1.0"></replace>
                     <replace file="${wildfly.home}/standalone/configuration/${lra.coordinator.xml.filename}" token="object-store path=&quot;tx-object-store" value="object-store path=&quot;wfly_lra_objectstore"></replace>
 
-                    <!-- For the partipants, create create a new standalone.xml as well, but don't change anything.  -->
+                    <!-- For the partipants, create a new standalone.xml as well, but don't change anything.  -->
                     <copy file="${wildfly.home}/standalone/configuration/${config.to.replace}" overwrite="true" tofile="${wildfly.home}/standalone/configuration/${lra.participant.xml.filename}"></copy>
                   </target>
                 </configuration>

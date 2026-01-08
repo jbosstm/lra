@@ -169,9 +169,6 @@ function initGithubVariables
              PULL_DESCRIPTION=$(curl -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/$GIT_ACCOUNT/$GIT_REPO/pulls/$PULL_NUMBER)
          [ "x${PULL_DESCRIPTION_BODY}" = "x" ] &&\
              PULL_DESCRIPTION_BODY=$(printf '%s' "$PULL_DESCRIPTION" | grep \"body\":)
-     else
-             PULL_DESCRIPTION=""
-             PULL_DESCRIPTION_BODY=""
      fi
 }
 
@@ -190,6 +187,13 @@ function comment_on_pull
 
 function build_narayana {
   echo "Checking if need SPI PR"
+
+  SPI_PR_NUMBER="$(echo "$PULL_DESCRIPTION_BODY" | grep "https://github.com/jbosstm/jboss-transaction-spi/pull/" | awk -F 'https:\/\/github.com\/jbosstm\/jboss-transaction-spi\/pull\/' '{print $2}' | awk -F '"' '{ print $1 }' | sed -r 's/^([0-9]+).*$/\1/')"
+  
+  if [ $SPI_PR_NUMBER ]; then
+      export SPI_BRANCH=remotes/jbosstm/pull/$SPI_PR_NUMBER/head
+  fi
+
   if [ -n "$SPI_BRANCH" ]; then
     echo "Building SPI PR"
     if [ -d jboss-transaction-spi ]; then
@@ -241,6 +245,13 @@ function clone_as {
     cd jboss-as
 
     git remote add upstream https://github.com/wildfly/wildfly.git
+    AS_PR_NUMBER="$(echo "$PULL_DESCRIPTION_BODY" | grep "https://github.com/jbosstm/jboss-as/pull/" | awk -F 'https:\/\/github.com\/jbosstm\/jboss-as\/pull\/' '{print $2}' | awk -F '"' '{ print $1 }' | sed -r 's/^([0-9]+).*$/\1/')"
+    
+    #Discover if we need to test with a different AS branch
+    if [ $AS_PR_NUMBER ]; then
+        export AS_BRANCH=remotes/jbosstm/pull/$AS_PR_NUMBER/head
+        echo Using: $AS_BRANCH
+    fi
 
     [ -z "$AS_BRANCH" ] || git fetch jbosstm +refs/pull/*/head:refs/remotes/jbosstm/pull/*/head
     [ $? -eq 0 ] || fatal "git fetch of pulls failed"

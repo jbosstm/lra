@@ -76,14 +76,21 @@ public class MpLraTckAuxiliaryArchiveAppender implements AuxiliaryArchiveAppende
                         "io.smallrye.mutiny.helpers")
                 // registration of LRACDIExtension as Weld extension to be booted-up
                 .addAsResource("META-INF/services/jakarta.enterprise.inject.spi.Extension")
+
                 // explicitly define to work with annotated beans
                 .addAsManifestResource(new StringAsset("<beans version=\"1.1\" bean-discovery-mode=\"annotated\"></beans>"),
                         "beans.xml")
+
                 // for WildFly we need dependencies to be part of the deployment's class path
                 .addAsManifestResource(new StringAsset(ManifestMF), "MANIFEST.MF");
-        archive.addPackages(true, io.narayana.lra.filter.ClientLRARequestFilter.class.getPackage())
+
+        archive.addPackages(true,
+                io.narayana.lra.filter.ClientLRARequestFilter.class.getPackage(),
+                io.narayana.lra.context.ClientLRAContextProviderEE.class.getPackage())
                 .addAsResource(new StringAsset("org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder"),
-                        "META-INF/services/jakarta.ws.rs.client.ClientBuilder");
+                        "META-INF/services/jakarta.ws.rs.client.ClientBuilder")
+                .addAsResource(new StringAsset("io.narayana.lra.context.ClientLRAContextProviderEE"),
+                        "META-INF/services/jakarta.enterprise.concurrent.spi.ThreadContextProvider");
 
         // adding TCK required SPI implementation
         archive.addClass(NarayanaLRARecovery.class);

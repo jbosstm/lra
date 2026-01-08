@@ -258,6 +258,10 @@ function clone_as {
   echo "Rebasing the wildfly upstream/main on top of the AS_BRANCH $AS_BRANCH"
   git pull --rebase upstream main
   [ $? -eq 0 ] || fatal "git rebase failed"
+  
+  ## Until WildFly is updated
+  pwd
+  cp $WORKSPACE/scripts/hudson/module.xml galleon-pack/galleon-shared/src/main/resources/modules/system/layers/base/org/jboss/narayana/lra/lra-participant/main/module.xml
 
   if [ $REDUCE_SPACE = 1 ]; then
     echo "Deleting git dir to reduce disk usage"

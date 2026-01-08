@@ -62,7 +62,7 @@ jobs:
         run: |
           git config --global user.email "lra@jbosstm.com"
           git config --global user.name "lra-bot"
-          WORKSPACE=$PWD PROFILE=LRA ./scripts/hudson/narayana.sh
+          PULL_DESCRIPTION_BODY="${{ github.event.pull_request.body }}" WORKSPACE=$PWD PROFILE=LRA ./scripts/hudson/narayana.sh
         env:
           LRA_TCK_TIMEOUT_FACTOR: 1
 

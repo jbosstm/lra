@@ -28,6 +28,17 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
+      <groupId>org.eclipse.microprofile.rest.client</groupId>
+      <artifactId>microprofile-rest-client-api</artifactId>
+      <version>4.0</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.resteasy.microprofile</groupId>
+      <artifactId>microprofile-rest-client</artifactId>
+      <version>3.0.1.Final</version>
+    </dependency>
+    <dependency>
       <groupId>io.smallrye.config</groupId>
       <artifactId>smallrye-config</artifactId>
     </dependency>

@@ -65,6 +65,8 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -729,10 +731,12 @@ public class Coordinator extends Application {
 
     private URI toURI(String lraId) {
         URL url;
+        // needed to decode string passed from clients
+        String decodedURL = URLDecoder.decode(lraId, StandardCharsets.UTF_8);
 
         try {
             // see if it already in the correct format
-            url = new URL(lraId);
+            url = new URL(decodedURL);
             url.toURI();
         } catch (Exception e) {
             try {

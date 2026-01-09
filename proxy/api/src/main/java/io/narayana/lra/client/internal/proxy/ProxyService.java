@@ -8,7 +8,7 @@ package io.narayana.lra.client.internal.proxy;
 import static io.narayana.lra.client.internal.proxy.ParticipantProxyResource.LRA_PROXY_PATH;
 import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
 
-import io.narayana.lra.client.internal.NarayanaLRAClient;
+import io.narayana.lra.client.NarayanaLRAClient;
 import io.narayana.lra.proxy.logging.LRAProxyLogger;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;

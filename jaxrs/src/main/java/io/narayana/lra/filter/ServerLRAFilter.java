@@ -25,7 +25,7 @@ import io.narayana.lra.AnnotationResolver;
 import io.narayana.lra.Current;
 import io.narayana.lra.LRAConstants;
 import io.narayana.lra.client.LRAParticipantData;
-import io.narayana.lra.client.internal.NarayanaLRAClient;
+import io.narayana.lra.client.NarayanaLRAClient;
 import io.narayana.lra.client.internal.proxy.nonjaxrs.LRAParticipant;
 import io.narayana.lra.client.internal.proxy.nonjaxrs.LRAParticipantRegistry;
 import io.narayana.lra.logging.LRALogger;
@@ -452,7 +452,7 @@ public class ServerLRAFilter implements ContainerRequestFilter, ContainerRespons
                     headers.putSingle(LRA_HTTP_RECOVERY_HEADER,
                             START_END_QUOTES_PATTERN.matcher(recoveryUrl.toASCIIString()).replaceAll(""));
                 } catch (WebApplicationException e) {
-                    String reason = e.getMessage();
+                    String reason = e.getResponse().readEntity(String.class);
 
                     progress = updateProgress(progress, ProgressStep.JoinFailed, reason);
                     abortWith(containerRequestContext, lraId.toASCIIString(),

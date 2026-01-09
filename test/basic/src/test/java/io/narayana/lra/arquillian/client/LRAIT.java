@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.narayana.lra.arquillian.Deployer;
 import io.narayana.lra.arquillian.TestBase;
 import io.narayana.lra.arquillian.resource.LRAParticipant;
-import io.narayana.lra.client.internal.NarayanaLRAClient;
+import io.narayana.lra.client.NarayanaLRAClient;
 import jakarta.ws.rs.client.Invocation;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;

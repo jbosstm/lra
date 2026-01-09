@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.narayana.lra.Current;
 import io.narayana.lra.LRAConstants;
 import io.narayana.lra.LRAData;
-import io.narayana.lra.client.internal.NarayanaLRAClient;
+import io.narayana.lra.client.NarayanaLRAClient;
 import io.narayana.lra.coordinator.api.Coordinator;
 import io.narayana.lra.coordinator.domain.service.LRAService;
 import io.narayana.lra.coordinator.internal.LRARecoveryModule;
@@ -63,6 +63,7 @@ import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
+import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jboss.byteman.contrib.bmunit.BMRule;
@@ -1295,7 +1296,7 @@ public class LRATest extends LRATestBase {
             assertEquals(503, response.getStatus());
             assertTrue(response.hasEntity());
             String message = response.readEntity(String.class);
-            assertTrue(message.contains("LRA025032"));
+            assertTrue(message.contains("LRA025032"), "message expected is LRA025032, but was " + message);
         }
 
         // verify that nothing was written to the store
@@ -1320,7 +1321,7 @@ public class LRATest extends LRATestBase {
                     "Unexpected response code");
             String reason = e.getResponse().readEntity(String.class);
             assertTrue(reason.contains("LRA025032"),
-                    "response does not contain LRA025032"); // LRA025032 means deactivate failed
+                    "response does not contain LRA025032, but was " + reason); // LRA025032 means deactivate failed
         }
     }
 
@@ -1367,7 +1368,7 @@ public class LRATest extends LRATestBase {
             assertEquals(503, response.getStatus());
             assertTrue(response.hasEntity());
             String message = response.readEntity(String.class);
-            assertTrue(message.contains("LRA025032"));
+            assertTrue(message.contains("LRA025032"), "message expected is LRA025032, but was " + message);
         }
     }
 
@@ -1641,7 +1642,7 @@ public class LRATest extends LRATestBase {
      */
     @Test
     public void testRenewTimeLimitExtendsLRALife() {
-        // start an LRA with a short timeout (10 seconds)
+        // start an LRA with a short timeout (1 seconds)
         URI lraId = lraClient.startLRA(null, testName, 1000L, ChronoUnit.MILLIS);
         String encodedLraId = URLEncoder.encode(lraId.toString(), StandardCharsets.UTF_8);
         try {
@@ -1674,6 +1675,331 @@ public class LRATest extends LRATestBase {
             } catch (Exception e) {
                 // ignore cleanup errors
             }
+        }
+    }
+
+    /**
+     * Test getting the status of a nested LRA using the NarayanaLRAClient
+     */
+    @Test
+    public void testGetNestedLRAStatus() {
+        // Start a parent LRA
+        URI parentId = lraClient.startLRA(testName + "-parent");
+
+        // Start a nested child LRA
+        URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
+
+        try {
+            // Get the status of the nested LRA - should be Active
+            ParticipantStatus status = lraClient.getNestedLRAStatus(childId);
+
+            // Nested LRAs are represented as participants and should have Active status
+            assertEquals(ParticipantStatus.Active, status,
+                    "Nested LRA should be in Active participant status");
+        } finally {
+            // Clean up - close parent which should cascade to child
+            lraClient.closeLRA(parentId);
+        }
+    }
+
+    /**
+     * Test completing a nested LRA directly
+     */
+    @Test
+    public void testCompleteNestedLRA() {
+        // Start a parent LRA
+        URI parentId = lraClient.startLRA(testName + "-parent");
+
+        // Start a nested child LRA
+        URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
+
+        try {
+            // Complete the nested LRA directly
+            ParticipantStatus status = lraClient.completeNestedLRA(childId);
+
+            // The status should indicate completion or completing
+            assertTrue(status == ParticipantStatus.Completed || status == ParticipantStatus.Completing,
+                    "Nested LRA should be Completed or Completing after completion, but was: " + status);
+        } finally {
+            // Clean up - close parent
+            try {
+                lraClient.closeLRA(parentId);
+            } catch (Exception ignore) {
+                // Parent may already be closed or in invalid state after child completion
+            }
+        }
+    }
+
+    /**
+     * Test compensating a nested LRA directly
+     */
+    @Test
+    public void testCompensateNestedLRA() {
+        // Start a parent LRA
+        URI parentId = lraClient.startLRA(testName + "-parent");
+
+        // Start a nested child LRA
+        URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
+
+        try {
+            // Compensate the nested LRA directly
+            ParticipantStatus status = lraClient.compensateNestedLRA(childId);
+
+            // The status should indicate compensation or compensating
+            assertTrue(status == ParticipantStatus.Compensated || status == ParticipantStatus.Compensating,
+                    "Nested LRA should be Compensated or Compensating after compensation, but was: " + status);
+        } finally {
+            // Clean up - cancel parent
+            try {
+                lraClient.cancelLRA(parentId);
+            } catch (Exception ignore) {
+                // Parent may already be cancelled or in invalid state after child compensation
+            }
+        }
+    }
+
+    /**
+     * Test forgetting a nested LRA after it has completed
+     */
+    @Test
+    public void testForgetNestedLRA() {
+        // Start a parent LRA
+        URI parentId = lraClient.startLRA(testName + "-parent");
+
+        // Start a nested child LRA
+        URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
+
+        try {
+            // Complete the nested LRA
+            ParticipantStatus status = lraClient.completeNestedLRA(childId);
+
+            assertTrue(status == ParticipantStatus.Completed || status == ParticipantStatus.Completing,
+                    "Nested LRA should be completed before forgetting");
+
+            // Now forget the nested LRA - this should succeed without throwing an exception
+            lraClient.forgetNestedLRA(childId);
+
+            // Verify that the nested LRA is truly forgotten by checking its status
+            // It should either not be found or report as compensated (cleanup state)
+            try {
+                ParticipantStatus afterForget = lraClient.getNestedLRAStatus(childId);
+                // If we get here, the LRA still exists but should be in a terminal state
+                assertTrue(afterForget == ParticipantStatus.Compensated || afterForget == ParticipantStatus.Completed,
+                        "After forget, nested LRA should be in terminal state if still exists");
+            } catch (NotFoundException expected) {
+                // This is expected - the LRA has been forgotten and removed
+            }
+        } finally {
+            // Clean up - close parent
+            lraClient.closeLRA(parentId);
+        }
+    }
+
+    /**
+     * Test the full lifecycle of a nested LRA: create, check status, complete, and forget
+     */
+    @Test
+    public void testNestedLRAFullLifecycle() {
+        URI parentId = lraClient.startLRA(testName + "-parent");
+        URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
+
+        try {
+            // Step 1: Verify initial status is Active
+            ParticipantStatus initialStatus = lraClient.getNestedLRAStatus(childId);
+            assertEquals(ParticipantStatus.Active, initialStatus,
+                    "Newly created nested LRA should be Active");
+
+            // Step 2: Complete the nested LRA
+            ParticipantStatus completedStatus = lraClient.completeNestedLRA(childId);
+            assertTrue(
+                    completedStatus == ParticipantStatus.Completed || completedStatus == ParticipantStatus.Completing,
+                    "Nested LRA should be in completed state");
+
+            // Step 3: Forget the nested LRA
+            lraClient.forgetNestedLRA(childId);
+
+            // Step 4: Close the parent LRA
+            lraClient.closeLRA(parentId);
+
+            // Verify parent is closed
+            LRAStatus parentStatus = getStatus(parentId);
+            assertTrue(parentStatus == null || parentStatus == LRAStatus.Closed,
+                    "Parent LRA should be closed");
+
+        } catch (Exception e) {
+            fail("Full lifecycle test failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Test that compensating a nested LRA when parent is cancelled works correctly
+     */
+    @Test
+    public void testNestedLRACompensationWithParentCancel() {
+        URI parentId = lraClient.startLRA(testName + "-parent");
+        URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
+
+        try {
+            // Verify child is active
+            ParticipantStatus initialStatus = lraClient.getNestedLRAStatus(childId);
+            assertEquals(ParticipantStatus.Active, initialStatus,
+                    "Child should be active initially");
+
+            // Compensate the child directly
+            ParticipantStatus compensatedStatus = lraClient
+                    .compensateNestedLRA(childId);
+            assertTrue(compensatedStatus == ParticipantStatus.Compensated
+                    || compensatedStatus == ParticipantStatus.Compensating,
+                    "Child should be compensated");
+
+            // Cancel the parent
+            lraClient.cancelLRA(parentId);
+
+            // Verify parent is cancelled
+            LRAStatus parentStatus = getStatus(parentId);
+            assertTrue(parentStatus == null || parentStatus == LRAStatus.Cancelled,
+                    "Parent should be cancelled");
+
+        } catch (Exception e) {
+            fail("Nested LRA compensation with parent cancel test failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Test getting detailed LRA information
+     */
+    @Test
+    public void testGetLRAInfo() {
+        URI lraId = lraClient.startLRA(testName);
+
+        try {
+            // Get detailed LRA information
+            LRAData lraInfo = lraClient.getLRAInfo(lraId);
+
+            // Verify the returned data
+            assertNotNull(lraInfo, "LRA info should not be null");
+            assertEquals(lraId, lraInfo.getLraId(), "LRA ID should match");
+            assertEquals(testName, lraInfo.getClientId(), "Client ID should match");
+            assertEquals(LRAStatus.Active, lraInfo.getStatus(), "LRA should be active");
+            assertNotNull(lraInfo.getStartTime(), "Start time should be set");
+
+        } finally {
+            lraClient.closeLRA(lraId);
+        }
+    }
+
+    /**
+     * Test getting LRA info with different media types
+     */
+    @Test
+    public void testGetLRAInfoWithMediaType() {
+        URI lraId = lraClient.startLRA(testName);
+
+        try {
+            // Get LRA info with JSON media type
+            LRAData lraInfoJson = lraClient.getLRAInfo(lraId, MediaType.APPLICATION_JSON);
+            assertNotNull(lraInfoJson, "LRA info (JSON) should not be null");
+            assertEquals(lraId, lraInfoJson.getLraId(), "LRA ID should match");
+
+            // Get LRA info with text/plain media type
+            LRAData lraInfoText = lraClient.getLRAInfo(lraId, MediaType.TEXT_PLAIN);
+            assertNotNull(lraInfoText, "LRA info (TEXT) should not be null");
+            assertEquals(lraId, lraInfoText.getLraId(), "LRA ID should match");
+
+        } finally {
+            lraClient.closeLRA(lraId);
+        }
+    }
+
+    /**
+     * Test renewing the time limit of an LRA
+     */
+    @Test
+    public void testRenewTimeLimit() {
+        // Start an LRA with a long timeout
+        URI lraId = lraClient.startLRA(null, testName, 500L, ChronoUnit.MILLIS);
+
+        try {
+            // Get initial LRA info
+            LRAData initialInfo = lraClient.getLRAInfo(lraId);
+            assertNotNull(initialInfo, "Initial LRA info should not be null");
+            assertEquals(LRAStatus.Active, initialInfo.getStatus(), "LRA should be active");
+
+            // Renew the time limit to a longer period (2 minutes)
+            lraClient.renewTimeLimit(lraId, 120000L);
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            // LRA should still be active
+            LRAData updatedInfo = lraClient.getLRAInfo(lraId);
+            assertNotNull(updatedInfo, "Updated LRA info should not be null");
+            assertEquals(LRAStatus.Active, updatedInfo.getStatus(), "LRA should still be active after renewal");
+
+        } finally {
+            lraClient.closeLRA(lraId);
+        }
+    }
+
+    /**
+     * Test renewing time limit with null value (should set to 0)
+     */
+    @Test
+    public void testRenewTimeLimitWithNull() {
+        URI lraId = lraClient.startLRA(null, testName, 60000L, ChronoUnit.MILLIS);
+
+        try {
+            // Renew with null (should be interpreted as 0 - no timeout)
+            lraClient.renewTimeLimit(lraId, null);
+
+            // Verify LRA is still active
+            LRAStatus status = lraClient.getStatus(lraId);
+            assertEquals(LRAStatus.Active, status, "LRA should still be active");
+
+        } finally {
+            lraClient.closeLRA(lraId);
+        }
+    }
+
+    /**
+     * Test that getLRAInfo throws exception for non-existent LRA
+     */
+    @Test
+    public void testGetLRAInfoNonExistent() {
+        // Create a fake LRA URI that doesn't exist
+        URI fakeLraId = URI.create(coordinatorPath + "/00000000-0000-0000-0000-000000000000");
+
+        try {
+            lraClient.getLRAInfo(fakeLraId);
+            fail("Expected NotFoundException for non-existent LRA");
+        } catch (NotFoundException expected) {
+            // Expected behavior
+        } catch (WebApplicationException e) {
+            // Also acceptable if it returns 404
+            assertEquals(NOT_FOUND.getStatusCode(), e.getResponse().getStatus(),
+                    "Should return 404 for non-existent LRA");
+        }
+    }
+
+    /**
+     * Test that renewTimeLimit throws exception for non-existent LRA
+     */
+    @Test
+    public void testRenewTimeLimitNonExistent() {
+        // Create a fake LRA URI that doesn't exist
+        URI fakeLraId = URI.create(coordinatorPath + "/00000000-0000-0000-0000-000000000000");
+
+        try {
+            lraClient.renewTimeLimit(fakeLraId, 60000L);
+            fail("Expected NotFoundException for non-existent LRA");
+        } catch (NotFoundException expected) {
+            // Expected behavior
+        } catch (WebApplicationException e) {
+            // Also acceptable if it returns 404
+            assertEquals(NOT_FOUND.getStatusCode(), e.getResponse().getStatus(),
+                    "Should return 404 for non-existent LRA");
         }
     }
 

@@ -32,6 +32,17 @@
     <dependency>
       <groupId>org.jboss.narayana.lra</groupId>
       <artifactId>narayana-lra</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.narayana.lra</groupId>
+      <artifactId>lra-client</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.narayana.lra</groupId>
+      <artifactId>lra-proxy-api</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>jakarta.enterprise</groupId>

@@ -5,8 +5,8 @@
 package io.narayana.lra.coordinator.domain.model;
 
 import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
-import static io.narayana.lra.client.internal.NarayanaLRAClient.LB_METHOD_ROUND_ROBIN;
-import static io.narayana.lra.client.internal.NarayanaLRAClient.LB_METHOD_STICKY;
+import static io.narayana.lra.client.NarayanaLRAClient.LB_METHOD_ROUND_ROBIN;
+import static io.narayana.lra.client.NarayanaLRAClient.LB_METHOD_STICKY;
 import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import io.narayana.lra.Current;
-import io.narayana.lra.client.internal.NarayanaLRAClient;
+import io.narayana.lra.client.NarayanaLRAClient;
 import io.narayana.lra.coordinator.api.Coordinator;
 import io.narayana.lra.logging.LRALogger;
 import jakarta.ws.rs.ApplicationPath;

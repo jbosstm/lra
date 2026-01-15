@@ -160,7 +160,7 @@
     <version.parsson>1.1.7</version.parsson>
     <version.smallrye-converter-api>2.7.0</version.smallrye-converter-api>
     <version.sortpom>4.0.0</version.sortpom>
-    <version.undertow.core>2.3.20.Final</version.undertow.core>
+    <version.undertow.core>2.3.22.Final</version.undertow.core>
     <version.wildfly-maven-plugin>5.1.5.Final</version.wildfly-maven-plugin>
 
   </properties>

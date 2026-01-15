@@ -884,11 +884,15 @@ public class NarayanaLRAClient implements Closeable {
                 return null;
             }
         } catch (ExecutionException e) {
+            if (e.getMessage().contains("503")) {
+                throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE).entity(e.getMessage()).build());
+            }
             String logMsg = LRALogger.i18nLogger.info_failedToEnlistingLRANotFound(lraId, coordinatorUrl,
                     NOT_FOUND.getStatusCode(), NOT_FOUND.getReasonPhrase(), GONE.getStatusCode(),
                     GONE.getReasonPhrase());
             LRALogger.logger.info(logMsg);
             throw new WebApplicationException(Response.status(GONE).entity(logMsg).build());
+
         } catch (InterruptedException | TimeoutException e) {
             throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
                     .entity("join LRA client request timed out, try again later").build());
@@ -935,7 +939,13 @@ public class NarayanaLRAClient implements Closeable {
             if (response.getStatus() == NOT_FOUND.getStatusCode()) {
                 throw new WebApplicationException(response);
             }
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (ExecutionException e) {
+            // Handle 404 not found
+            if (e.getMessage().contains("404")) {
+                throw new WebApplicationException(Response.status(NOT_FOUND).entity(e.getMessage()).build());
+            }
+            throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE).entity(e.getMessage()).build());
+        } catch (InterruptedException | TimeoutException e) {
             throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
                     .entity("end LRA client request timed out, try again later")
                     .build());

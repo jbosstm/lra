@@ -1295,7 +1295,7 @@ public class LRATest extends LRATestBase {
             assertEquals(503, response.getStatus());
             assertTrue(response.hasEntity());
             String message = response.readEntity(String.class);
-            assertTrue(message.contains("LRA025032"));
+            assertTrue(message.contains("LRA025032"), "message expected is LRA025032, but was " + message);
         }
 
         // verify that nothing was written to the store
@@ -1320,7 +1320,7 @@ public class LRATest extends LRATestBase {
                     "Unexpected response code");
             String reason = e.getResponse().readEntity(String.class);
             assertTrue(reason.contains("LRA025032"),
-                    "response does not contain LRA025032"); // LRA025032 means deactivate failed
+                    "response does not contain LRA025032, but was " + reason); // LRA025032 means deactivate failed
         }
     }
 
@@ -1367,7 +1367,7 @@ public class LRATest extends LRATestBase {
             assertEquals(503, response.getStatus());
             assertTrue(response.hasEntity());
             String message = response.readEntity(String.class);
-            assertTrue(message.contains("LRA025032"));
+            assertTrue(message.contains("LRA025032"), "message expected is LRA025032, but was " + message);
         }
     }
 

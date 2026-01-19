@@ -452,7 +452,7 @@ public class ServerLRAFilter implements ContainerRequestFilter, ContainerRespons
                     headers.putSingle(LRA_HTTP_RECOVERY_HEADER,
                             START_END_QUOTES_PATTERN.matcher(recoveryUrl.toASCIIString()).replaceAll(""));
                 } catch (WebApplicationException e) {
-                    String reason = e.getMessage();
+                    String reason = e.getResponse().readEntity(String.class);
 
                     progress = updateProgress(progress, ProgressStep.JoinFailed, reason);
                     abortWith(containerRequestContext, lraId.toASCIIString(),

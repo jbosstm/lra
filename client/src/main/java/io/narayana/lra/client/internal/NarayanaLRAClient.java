@@ -456,8 +456,18 @@ public class NarayanaLRAClient implements Closeable {
 
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 // Handle connection exceptions, async timeout, and execution failures
+                Throwable t = e.getCause();
+
                 if (supportsFailover && i == coordinatorCount - 1) {
-                    String errMsg = LRALogger.i18nLogger.warn_startLRAFailed(e.getMessage());
+
+                    String errMsg = "";
+                    if (t instanceof ServiceUnavailableException) {
+                        t = (ServiceUnavailableException) t;
+                        String msg = ((ServiceUnavailableException) t).getResponse().readEntity(String.class);
+                        errMsg = LRALogger.i18nLogger.warn_startLRAFailed(msg);
+                    } else {
+                        errMsg = LRALogger.i18nLogger.warn_startLRAFailed(e.getMessage());
+                    }
                     LRALogger.logger.warn(errMsg, e);
                     /*
                      * bail out since we've either tried all the coordinators or failover isn't supported
@@ -885,8 +895,10 @@ public class NarayanaLRAClient implements Closeable {
             }
         } catch (ExecutionException e) {
             Throwable t = e.getCause();
-            if (e.getMessage().contains("503")) {
-                throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE).entity(t.getMessage()).build());
+            if (t instanceof ServiceUnavailableException) {
+                t = (ServiceUnavailableException) t;
+                String msg = ((ServiceUnavailableException) t).getResponse().readEntity(String.class);
+                throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE).entity(msg).build());
             }
             String logMsg = LRALogger.i18nLogger.info_failedToEnlistingLRANotFound(lraId, coordinatorUrl,
                     NOT_FOUND.getStatusCode(), NOT_FOUND.getReasonPhrase(), GONE.getStatusCode(),

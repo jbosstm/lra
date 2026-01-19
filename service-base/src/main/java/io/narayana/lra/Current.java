@@ -40,21 +40,26 @@ public class Current {
 
     @SuppressWarnings("ConstantConditions")
     public static void addActiveLRACache(URI lraId) {
-        if (lraId != null && activeLRACache.containsKey(lraId)) {
-            activeLRACache.compute(lraId, (k, v) -> v + 1);
-        } else {
-            activeLRACache.put(lraId, 1);
+        if (lraId == null) {
+            return;
         }
+
+        activeLRACache.merge(lraId, 1, Integer::sum);
     }
 
     public static void removeActiveLRACache(URI lraId) {
-        if (lraId != null && activeLRACache.containsKey(lraId)) {
-            activeLRACache.compute(lraId, (k, v) -> v - 1);
-
-            if (activeLRACache.get(lraId) == 0) {
-                activeLRACache.remove(lraId);
-            }
+        if (lraId == null) {
+            return;
         }
+
+        activeLRACache.compute(lraId, (k, v) -> {
+            if (v == null) {
+                return null; // already absent; nothing to do
+            }
+
+            int next = v - 1;
+            return next <= 0 ? null : next; // remove at 0
+        });
     }
 
     private final Stack<URI> stack;

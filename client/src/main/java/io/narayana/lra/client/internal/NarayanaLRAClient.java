@@ -88,6 +88,11 @@ import org.eclipse.microprofile.rest.client.RestClientBuilder;
  * <p>
  * A utility class for controlling the lifecycle of Long Running Actions (LRAs) but the preferred mechanism is to use
  * the annotation in the {@link org.eclipse.microprofile.lra.annotation} package
+ * <p>
+ * HTTP client security and timeout configuration can be provided via MicroProfile Config properties with the
+ * prefix "lra.http-client.*". Supported properties include SSL/TLS keystores and truststores, connection timeouts,
+ * read timeouts, custom hostname verifiers, and provider registration.
+ * See {@link RestClientConfig} for details on available configuration options.
  */
 @RequestScoped
 public class NarayanaLRAClient implements Closeable {
@@ -1062,6 +1067,7 @@ public class NarayanaLRAClient implements Closeable {
      * @return a CoordinatorClient instance
      */
     private CoordinatorClient createCoordinatorClient(URI baseUri) {
-        return RestClientBuilder.newBuilder().baseUri(baseUri).build(CoordinatorClient.class);
+        RestClientBuilder builder = RestClientBuilder.newBuilder().baseUri(baseUri);
+        return new RestClientConfig().configure(builder).build(CoordinatorClient.class);
     }
 }

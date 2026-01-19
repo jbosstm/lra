@@ -42,7 +42,7 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.ServiceUnavailableException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.container.Suspended;
 import jakarta.ws.rs.core.GenericType;
@@ -454,7 +454,7 @@ public class NarayanaLRAClient implements Closeable {
 
                 return lra;
 
-            } catch (ProcessingException | InterruptedException | ExecutionException | TimeoutException e) {
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 // Handle connection exceptions, async timeout, and execution failures
                 if (supportsFailover && i == coordinatorCount - 1) {
                     String errMsg = LRALogger.i18nLogger.warn_startLRAFailed(e.getMessage());
@@ -884,8 +884,9 @@ public class NarayanaLRAClient implements Closeable {
                 return null;
             }
         } catch (ExecutionException e) {
+            Throwable t = e.getCause();
             if (e.getMessage().contains("503")) {
-                throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE).entity(e.getMessage()).build());
+                throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE).entity(t.getMessage()).build());
             }
             String logMsg = LRALogger.i18nLogger.info_failedToEnlistingLRANotFound(lraId, coordinatorUrl,
                     NOT_FOUND.getStatusCode(), NOT_FOUND.getReasonPhrase(), GONE.getStatusCode(),
@@ -940,11 +941,17 @@ public class NarayanaLRAClient implements Closeable {
                 throw new WebApplicationException(response);
             }
         } catch (ExecutionException e) {
+            Throwable t = e.getCause();
             // Handle 404 not found
-            if (e.getMessage().contains("404")) {
-                throw new WebApplicationException(Response.status(NOT_FOUND).entity(e.getMessage()).build());
+            if (t instanceof NotFoundException) {
+                throw (NotFoundException) t;
             }
-            throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE).entity(e.getMessage()).build());
+            if (t instanceof ServiceUnavailableException) {
+                t = (ServiceUnavailableException) t;
+                String msg = ((ServiceUnavailableException) t).getResponse().readEntity(String.class);
+                throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE).entity(msg).build());
+            }
+            throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE).entity(t.getMessage()).build());
         } catch (InterruptedException | TimeoutException e) {
             throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
                     .entity("end LRA client request timed out, try again later")

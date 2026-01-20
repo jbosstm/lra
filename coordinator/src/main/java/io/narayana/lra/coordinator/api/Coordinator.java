@@ -368,7 +368,9 @@ public class Coordinator extends Application {
     @GET
     @Path("nested/{NestedLraId}/status")
     public Response getNestedLRAStatus(@PathParam("NestedLraId") String nestedLraId) {
-        if (!lraService.hasTransaction(nestedLraId)) {
+        // needed to decode string passed from clients
+        String decodedURL = URLDecoder.decode(nestedLraId, StandardCharsets.UTF_8);
+        if (!lraService.hasTransaction(decodedURL)) {
             // it must have compensated
             return Response.ok(ParticipantStatus.Compensated.name()).build();
         }

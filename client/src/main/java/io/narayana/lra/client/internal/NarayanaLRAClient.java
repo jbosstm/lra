@@ -36,6 +36,7 @@ import io.smallrye.stork.api.ServiceDefinition;
 import io.smallrye.stork.api.config.ConfigWithType;
 import io.smallrye.stork.servicediscovery.staticlist.StaticConfiguration;
 import jakarta.enterprise.context.RequestScoped;
+import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
@@ -78,6 +79,7 @@ import org.eclipse.microprofile.lra.annotation.Compensate;
 import org.eclipse.microprofile.lra.annotation.Complete;
 import org.eclipse.microprofile.lra.annotation.Forget;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
+import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
 import org.eclipse.microprofile.lra.annotation.Status;
 import org.eclipse.microprofile.lra.annotation.ws.rs.Leave;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
@@ -786,6 +788,236 @@ public class NarayanaLRAClient implements Closeable {
         }
     }
 
+    /**
+     * Get detailed information about a specific LRA.
+     *
+     * @param uri The LRA URI
+     * @return LRAData containing detailed information about the LRA
+     * @throws WebApplicationException if the request fails
+     */
+    public LRAData getLRAInfo(URI uri) throws WebApplicationException {
+        return getLRAInfo(uri, MediaType.APPLICATION_JSON);
+    }
+
+    /**
+     * Get detailed information about a specific LRA.
+     *
+     * @param uri The LRA URI
+     * @param acceptMediaType Response content type preference
+     * @return LRAData containing detailed information about the LRA
+     * @throws WebApplicationException if the request fails
+     */
+    public LRAData getLRAInfo(URI uri, String acceptMediaType) throws WebApplicationException {
+        try {
+            URI uriWithoutQuery = UriBuilder.fromUri(uri).replaceQuery(null).build();
+            CoordinatorClient client = createCoordinatorClient(LRAConstants.getLRACoordinatorUrl(uriWithoutQuery));
+            String lraUid = LRAConstants.getLRAUid(uri);
+
+            Response response = client.getLRAInfo(
+                    lraUid,
+                    acceptMediaType,
+                    LRAConstants.CURRENT_API_VERSION_STRING)
+                    .toCompletableFuture().get(QUERY_TIMEOUT, TimeUnit.SECONDS);
+
+            if (response.getStatus() != OK.getStatusCode()) {
+                throw new WebApplicationException(response);
+            }
+
+            if (!response.hasEntity()) {
+                throw new WebApplicationException(
+                        Response.status(INTERNAL_SERVER_ERROR)
+                                .entity("No LRA info returned").build());
+            }
+
+            return response.readEntity(LRAData.class);
+        } catch (ExecutionException e) {
+            throw new NotFoundException(e.getMessage());
+        } catch (InterruptedException | TimeoutException e) {
+            throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
+                    .entity("get LRA info client request timed out, try again later").build());
+        }
+    }
+
+    /**
+     * Update the time limit for an existing LRA.
+     *
+     * @param uri The LRA URI
+     * @param timeLimit New time limit in milliseconds
+     * @throws WebApplicationException if the request fails
+     */
+    public void renewTimeLimit(URI uri, Long timeLimit) throws WebApplicationException {
+        try {
+            URI uriWithoutQuery = UriBuilder.fromUri(uri).replaceQuery(null).build();
+            CoordinatorClient client = createCoordinatorClient(LRAConstants.getLRACoordinatorUrl(uriWithoutQuery));
+            String lraUid = LRAConstants.getLRAUid(uri);
+
+            Response response = client.renewTimeLimit(
+                    lraUid,
+                    timeLimit != null ? timeLimit : 0L,
+                    LRAConstants.CURRENT_API_VERSION_STRING)
+                    .toCompletableFuture().get(QUERY_TIMEOUT, TimeUnit.SECONDS);
+
+            if (response.getStatus() != OK.getStatusCode()) {
+                throw new WebApplicationException(response);
+            }
+        } catch (ExecutionException e) {
+            throw new NotFoundException(e.getMessage());
+        } catch (InterruptedException | TimeoutException e) {
+            throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
+                    .entity("renew time limit client request timed out, try again later").build());
+        }
+    }
+
+    /**
+     * Get the status of a nested LRA.
+     * Nested LRAs are represented as participants in their parent LRA.
+     *
+     * @param nestedLraId The URI of the nested LRA
+     * @return The participant status of the nested LRA
+     * @throws WebApplicationException if the request fails or nested LRA is not found
+     */
+    public ParticipantStatus getNestedLRAStatus(URI nestedLraId)
+            throws WebApplicationException {
+        try {
+
+            URI uriWithoutQuery = UriBuilder.fromUri(nestedLraId).replaceQuery(null).build();
+            CoordinatorClient client = createCoordinatorClient(LRAConstants.getLRACoordinatorUrl(uriWithoutQuery));
+
+            // ParentLRA query is part of the lra id, so keeping it
+            String encodedLRA = URLEncoder.encode(nestedLraId.toString(), StandardCharsets.UTF_8);
+            Response response = client.getNestedLRAStatus(encodedLRA)
+                    .toCompletableFuture().get(QUERY_TIMEOUT, TimeUnit.SECONDS);
+
+            if (response.getStatus() != OK.getStatusCode()) {
+                throw new WebApplicationException(response);
+            }
+
+            if (!response.hasEntity()) {
+                throw new WebApplicationException(
+                        Response.status(INTERNAL_SERVER_ERROR)
+                                .entity("No status returned for nested LRA").build());
+            }
+
+            String statusString = response.readEntity(String.class);
+            return ParticipantStatus.valueOf(statusString);
+        } catch (ExecutionException e) {
+            throw new NotFoundException(e.getMessage());
+        } catch (InterruptedException | TimeoutException e) {
+            throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
+                    .entity("get nested LRA status client request timed out, try again later").build());
+        }
+    }
+
+    /**
+     * Complete a nested LRA.
+     * This triggers the completion of the nested LRA as if its parent LRA is completing.
+     *
+     * @param nestedLraId The URI of the nested LRA to complete
+     * @return The final participant status of the nested LRA
+     * @throws WebApplicationException if the request fails
+     */
+    public ParticipantStatus completeNestedLRA(URI nestedLraId)
+            throws WebApplicationException {
+        try {
+            URI uriWithoutQuery = UriBuilder.fromUri(nestedLraId).replaceQuery(null).build();
+            CoordinatorClient client = createCoordinatorClient(LRAConstants.getLRACoordinatorUrl(uriWithoutQuery));
+
+            // Extract the LRA UID
+            String encodedLRA = URLEncoder.encode(nestedLraId.toString(), StandardCharsets.UTF_8);
+            Response response = client.completeNestedLRA(
+                    encodedLRA,
+                    MediaType.TEXT_PLAIN,
+                    LRAConstants.CURRENT_API_VERSION_STRING)
+                    .toCompletableFuture().get(END_TIMEOUT, TimeUnit.SECONDS);
+
+            if (response.getStatus() != OK.getStatusCode()) {
+                throw new WebApplicationException(response);
+            }
+
+            if (!response.hasEntity()) {
+                throw new WebApplicationException(
+                        Response.status(INTERNAL_SERVER_ERROR)
+                                .entity("No status returned for nested LRA completion").build());
+            }
+
+            String statusString = response.readEntity(String.class);
+            return ParticipantStatus.valueOf(statusString);
+        } catch (ExecutionException e) {
+            throw new NotFoundException(e.getMessage());
+        } catch (InterruptedException | TimeoutException e) {
+            throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
+                    .entity("complete nested LRA client request timed out, try again later").build());
+        }
+    }
+
+    /**
+     * Compensate a nested LRA.
+     * This triggers the compensation of the nested LRA as if its parent LRA is compensating.
+     *
+     * @param nestedLraId The URI of the nested LRA to compensate
+     * @return The final participant status of the nested LRA
+     * @throws WebApplicationException if the request fails
+     */
+    public ParticipantStatus compensateNestedLRA(URI nestedLraId)
+            throws WebApplicationException {
+        try {
+            URI uriWithoutQuery = UriBuilder.fromUri(nestedLraId).replaceQuery(null).build();
+            CoordinatorClient client = createCoordinatorClient(LRAConstants.getLRACoordinatorUrl(uriWithoutQuery));
+
+            String encodedLRA = URLEncoder.encode(nestedLraId.toString(), StandardCharsets.UTF_8);
+            Response response = client.compensateNestedLRA(
+                    encodedLRA,
+                    MediaType.TEXT_PLAIN,
+                    LRAConstants.CURRENT_API_VERSION_STRING)
+                    .toCompletableFuture().get(END_TIMEOUT, TimeUnit.SECONDS);
+
+            if (response.getStatus() != OK.getStatusCode()) {
+                throw new WebApplicationException(response);
+            }
+
+            if (!response.hasEntity()) {
+                throw new WebApplicationException(
+                        Response.status(INTERNAL_SERVER_ERROR)
+                                .entity("No status returned for nested LRA compensation").build());
+            }
+
+            String statusString = response.readEntity(String.class);
+            return ParticipantStatus.valueOf(statusString);
+        } catch (ExecutionException e) {
+            throw new NotFoundException(e.getMessage());
+        } catch (InterruptedException | TimeoutException e) {
+            throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
+                    .entity("compensate nested LRA client request timed out, try again later").build());
+        }
+    }
+
+    /**
+     * Forget a nested LRA.
+     * This removes the nested LRA from the coordinator's memory after it has completed or compensated.
+     *
+     * @param nestedLraId The URI of the nested LRA to forget
+     * @throws WebApplicationException if the request fails
+     */
+    public void forgetNestedLRA(URI nestedLraId) throws WebApplicationException {
+        try {
+            URI uriWithoutQuery = UriBuilder.fromUri(nestedLraId).replaceQuery(null).build();
+            CoordinatorClient client = createCoordinatorClient(LRAConstants.getLRACoordinatorUrl(uriWithoutQuery));
+
+            String encodedLRA = URLEncoder.encode(nestedLraId.toString(), StandardCharsets.UTF_8);
+            Response response = client.forgetNestedLRA(encodedLRA)
+                    .toCompletableFuture().get(END_TIMEOUT, TimeUnit.SECONDS);
+
+            if (response.getStatus() != OK.getStatusCode()) {
+                throw new WebApplicationException(response);
+            }
+        } catch (ExecutionException e) {
+            throw new NotFoundException(e.getMessage());
+        } catch (InterruptedException | TimeoutException e) {
+            throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
+                    .entity("forget nested LRA client request timed out, try again later").build());
+        }
+    }
+
     private static StringBuilder makeLink(StringBuilder b, String uriPrefix, String key, String value) {
 
         if (value == null) {
@@ -966,7 +1198,14 @@ public class NarayanaLRAClient implements Closeable {
             if (t instanceof ServiceUnavailableException) {
                 t = (ServiceUnavailableException) t;
                 String msg = ((ServiceUnavailableException) t).getResponse().readEntity(String.class);
-                throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE).entity(msg).build());
+                int status = ((ServiceUnavailableException) t).getResponse().getStatus();
+                throw new WebApplicationException(Response.status(status).entity(msg).build());
+            }
+            if (t instanceof ClientErrorException) {
+                t = (ClientErrorException) t;
+                String msg = ((ClientErrorException) t).getResponse().readEntity(String.class);
+                int status = ((ClientErrorException) t).getResponse().getStatus();
+                throw new WebApplicationException(Response.status(status).entity(msg).build());
             }
             throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE).entity(t.getMessage()).build());
         } catch (InterruptedException | TimeoutException e) {

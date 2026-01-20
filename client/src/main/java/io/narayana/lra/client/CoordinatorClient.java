@@ -3,7 +3,7 @@
    SPDX-License-Identifier: Apache-2.0
  */
 
-package io.narayana.lra.client.internal;
+package io.narayana.lra.client;
 
 import io.narayana.lra.LRAConstants;
 import jakarta.ws.rs.Consumes;

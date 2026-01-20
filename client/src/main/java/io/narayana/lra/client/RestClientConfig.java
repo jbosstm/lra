@@ -3,7 +3,7 @@
    SPDX-License-Identifier: Apache-2.0
  */
 
-package io.narayana.lra.client.internal;
+package io.narayana.lra.client;
 
 import io.narayana.lra.logging.LRALogger;
 import java.io.FileInputStream;

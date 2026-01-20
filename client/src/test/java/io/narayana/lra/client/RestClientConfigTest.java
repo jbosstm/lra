@@ -2,7 +2,6 @@ package io.narayana.lra.client;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import io.narayana.lra.client.internal.RestClientConfig;
 import jakarta.ws.rs.core.Configuration;
 import java.io.File;
 import java.io.FileOutputStream;

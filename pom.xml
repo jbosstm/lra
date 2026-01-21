@@ -753,7 +753,7 @@
           <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-ide-config</artifactId>
-            <version>3.30.6</version>
+            <version>3.31.0</version>
           </dependency>
         </dependencies>
       </plugin>

@@ -160,7 +160,7 @@
     <version.org.sonatype.plugins.nxrm3.plugin>1.0.13</version.org.sonatype.plugins.nxrm3.plugin>
     <version.org.wildfly.arquillian>5.1.0.Final</version.org.wildfly.arquillian>
     <version.parsson>1.1.7</version.parsson>
-    <version.quarkus>3.30.5</version.quarkus>
+    <version.quarkus>3.30.7</version.quarkus>
     <version.smallrye-converter-api>2.7.0</version.smallrye-converter-api>
     <version.sortpom>4.0.0</version.sortpom>
     <version.undertow.core>2.3.22.Final</version.undertow.core>

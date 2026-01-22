@@ -1493,4 +1493,188 @@ public class LRATest extends LRATestBase {
                 .build().toString();
     }
 
+    /**
+     * Test that renewing an LRA timelimit allows postponing (extending) the timeout
+     */
+    @Test
+    public void testRenewTimeLimitAllowsPostponing() {
+        // start an LRA with a short timeout (10 seconds)
+        URI lraId = lraClient.startLRA(null, testName, 10000L, ChronoUnit.MILLIS);
+        String encodedLraId = URLEncoder.encode(lraId.toString(), StandardCharsets.UTF_8);
+
+        try {
+            // wait a bit to ensure we're past the original start time
+            TimeUnit.MILLISECONDS.sleep(100);
+
+            // try to extend the timeout to 30 seconds (should succeed)
+            try (Response response = client.target(coordinatorPath)
+                    .path(encodedLraId)
+                    .path("renew")
+                    .queryParam(LRAConstants.TIMELIMIT_PARAM_NAME, 30000L)
+                    .request()
+                    .put(Entity.text(""))) {
+
+                assertEquals(OK.getStatusCode(), response.getStatus(),
+                        "Expected renewing LRA timeout to succeed when postponing");
+
+                // verify LRA is still active
+                LRAStatus status = getStatus(lraId);
+                assertEquals(LRAStatus.Active, status, "LRA should still be active after postponing timeout");
+            }
+        } catch (InterruptedException e) {
+            fail("Test interrupted: " + e.getMessage());
+        } finally {
+            try {
+                lraClient.cancelLRA(lraId);
+            } catch (Exception e) {
+                // ignore cleanup errors
+            }
+        }
+    }
+
+    /**
+     * Test that renewing an LRA timelimit ignores attempts to shorten the timeout
+     */
+    @Test
+    public void testRenewTimeLimitIgnoresShortening() {
+        // start an LRA with a long timeout (30 seconds)
+        URI lraId = lraClient.startLRA(null, testName, 30000L, ChronoUnit.MILLIS);
+        String encodedLraId = URLEncoder.encode(lraId.toString(), StandardCharsets.UTF_8);
+
+        try {
+            // wait a bit to ensure we're past the original start time
+            TimeUnit.MILLISECONDS.sleep(100);
+
+            // try to shorten the timeout to 5 seconds (should be ignored but return 200 OK)
+            try (Response response = client.target(coordinatorPath)
+                    .path(encodedLraId)
+                    .path("renew")
+                    .queryParam(LRAConstants.TIMELIMIT_PARAM_NAME, 5000L)
+                    .request()
+                    .put(Entity.text(""))) {
+
+                assertEquals(OK.getStatusCode(), response.getStatus(),
+                        "Expected renewing LRA timeout to return OK even when shortening is ignored");
+
+                // verify LRA is still active (should not have timed out yet due to ignored request)
+                LRAStatus status = getStatus(lraId);
+                assertEquals(LRAStatus.Active, status, "LRA should still be active after shortening request is ignored");
+            }
+        } catch (InterruptedException e) {
+            fail("Test interrupted: " + e.getMessage());
+        } finally {
+            try {
+                lraClient.cancelLRA(lraId);
+            } catch (Exception e) {
+                // ignore cleanup errors
+            }
+        }
+    }
+
+    /**
+     * Test that renewing timelimit multiple times works correctly (only postponing
+     * allowed)
+     */
+    @Test
+    public void testRenewTimeLimitMultipleOperations() {
+        // start an LRA with a medium timeout (15 seconds)
+        URI lraId = lraClient.startLRA(null, testName, 15000L, ChronoUnit.MILLIS);
+        String encodedLraId = URLEncoder.encode(lraId.toString(), StandardCharsets.UTF_8);
+
+        try {
+            // wait a bit to ensure we're past the original start time
+            TimeUnit.MILLISECONDS.sleep(100);
+
+            // first extend to 25 seconds (should work)
+            try (Response response1 = client.target(coordinatorPath)
+                    .path(encodedLraId)
+                    .path("renew")
+                    .queryParam(LRAConstants.TIMELIMIT_PARAM_NAME, 25000L)
+                    .request()
+                    .put(Entity.text(""))) {
+
+                assertEquals(OK.getStatusCode(), response1.getStatus(),
+                        "First timeout extension should succeed");
+            }
+
+            // then try to shorten to 10 seconds (should be ignored)
+            try (Response response2 = client.target(coordinatorPath)
+                    .path(encodedLraId)
+                    .path("renew")
+                    .queryParam(LRAConstants.TIMELIMIT_PARAM_NAME, 10000L)
+                    .request()
+                    .put(Entity.text(""))) {
+
+                assertEquals(OK.getStatusCode(), response2.getStatus(),
+                        "Shortening attempt should return OK but be ignored");
+            }
+
+            // finally extend to 40 seconds (should work again)
+            try (Response response3 = client.target(coordinatorPath)
+                    .path(encodedLraId)
+                    .path("renew")
+                    .queryParam(LRAConstants.TIMELIMIT_PARAM_NAME, 40000L)
+                    .request()
+                    .put(Entity.text(""))) {
+
+                assertEquals(OK.getStatusCode(), response3.getStatus(),
+                        "Second timeout extension should succeed");
+
+                // verify LRA is still active
+                LRAStatus status = getStatus(lraId);
+                assertEquals(LRAStatus.Active, status, "LRA should still be active after multiple renew operations");
+            }
+        } catch (InterruptedException e) {
+            fail("Test interrupted: " + e.getMessage());
+        } finally {
+            try {
+                lraClient.cancelLRA(lraId);
+            } catch (Exception e) {
+                // ignore cleanup errors
+            }
+        }
+    }
+
+    /**
+     * As the response of this call is always OK 200, we need to verify the
+     * renewTimeLimit works checking the LRA is still active
+     */
+    @Test
+    public void testRenewTimeLimitExtendsLRALife() {
+        // start an LRA with a short timeout (10 seconds)
+        URI lraId = lraClient.startLRA(null, testName, 1000L, ChronoUnit.MILLIS);
+        String encodedLraId = URLEncoder.encode(lraId.toString(), StandardCharsets.UTF_8);
+        try {
+            // try to extend the timeout to 30 seconds (should succeed)
+            try (Response response = client.target(coordinatorPath).path(encodedLraId).path("renew")
+                    .queryParam(LRAConstants.TIMELIMIT_PARAM_NAME, 30000L).request().put(Entity.text(""))) {
+                assertEquals(OK.getStatusCode(), response.getStatus(),
+                        "Expected renewing LRA timeout to succeed when postponing");
+                // verify LRA is still active after initial timelimit
+                TimeUnit.MILLISECONDS.sleep(1000);
+                LRAStatus status = getStatus(lraId);
+                assertEquals(LRAStatus.Active, status, "LRA should still be active after postponing timeout");
+            }
+            // reducing timelimit should not take effect
+            try (Response response = client.target(coordinatorPath).path(encodedLraId).path("renew")
+                    .queryParam(LRAConstants.TIMELIMIT_PARAM_NAME, 10L).request().put(Entity.text(""))) {
+                assertEquals(OK.getStatusCode(), response.getStatus(),
+                        "Expected renewing LRA timeout to succeed but not having effect");
+                // verify LRA is still active after the call
+                TimeUnit.MILLISECONDS.sleep(1000);
+                LRAStatus status = getStatus(lraId);
+                assertEquals(LRAStatus.Active, status,
+                        "LRA should still be active because it is not possible to shorten the timelimit");
+            }
+        } catch (InterruptedException e) {
+            fail("Test interrupted: " + e.getMessage());
+        } finally {
+            try {
+                lraClient.cancelLRA(lraId);
+            } catch (Exception e) {
+                // ignore cleanup errors
+            }
+        }
+    }
+
 }

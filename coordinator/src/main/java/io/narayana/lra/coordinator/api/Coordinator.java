@@ -343,7 +343,8 @@ public class Coordinator extends Application {
     @PUT
     @Path("{LraId}/renew")
     @Operation(summary = "Update the TimeLimit for an existing LRA", description = "LRAs can be automatically cancelled if they aren't closed or cancelled before the TimeLimit "
-            + "specified at creation time is reached. The time limit can be updated.")
+            + "specified at creation time is reached. The time limit can be updated to postpone (extend) the timeout, but cannot be shortened. "
+            + "If the new timeout is earlier than the current one, the request will be ignored and return 200 OK without making any changes.")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "If the LRA time limit has been updated", content = @Content(schema = @Schema(implementation = String.class)), headers = {
                     @Header(ref = LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) }),

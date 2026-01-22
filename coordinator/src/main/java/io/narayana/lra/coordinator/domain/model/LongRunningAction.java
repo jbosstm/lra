@@ -1176,17 +1176,17 @@ public class LongRunningAction extends BasicAction {
             // check whether the new time limit is less than the current one
             LocalDateTime ft = LocalDateTime.now(ZoneOffset.UTC).plusNanos(nanosToAdd);
 
-            if (ft.isAfter(finishTime)) {
-                // the existing timer finishes before the requested one so there is nothing to do
+            if (ft.isBefore(finishTime)) {
+                // the new timeout is earlier than the existing one - shortening is not allowed
                 return Response.Status.OK.getStatusCode();
             }
 
-            // it is earlier so cancel the current timer
+            // it is later so cancel the current timer and reschedule with the extended timeout
             finishTime = ft;
 
             if (scheduledAbort != null) {
                 if (LRALogger.logger.isTraceEnabled()) {
-                    trace_progress("scheduleCancellation: earlier than previous timer");
+                    trace_progress("scheduleCancellation: later than previous timer, postponing");
                 }
                 scheduledAbort.cancel(false);
             }

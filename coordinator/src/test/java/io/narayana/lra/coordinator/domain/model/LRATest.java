@@ -1642,7 +1642,7 @@ public class LRATest extends LRATestBase {
      */
     @Test
     public void testRenewTimeLimitExtendsLRALife() {
-        // start an LRA with a short timeout (10 seconds)
+        // start an LRA with a short timeout (1 seconds)
         URI lraId = lraClient.startLRA(null, testName, 1000L, ChronoUnit.MILLIS);
         String encodedLraId = URLEncoder.encode(lraId.toString(), StandardCharsets.UTF_8);
         try {

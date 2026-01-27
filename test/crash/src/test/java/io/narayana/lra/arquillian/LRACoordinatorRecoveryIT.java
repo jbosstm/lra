@@ -168,6 +168,9 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
         doWait((LRAListener.LRA_SHORT_TIMELIMIT) * 1000);
         startContainer(LRA_COORDINATOR_CONTAINER_QUALIFIER, "");
 
+        // wait a little longer so that the LRA status moves from Cancelling to
+        // Cancelled status
+        doWait((LRAListener.LRA_SHORT_TIMELIMIT) * 1000);
         // Checks recovery
         LRAStatus status = getStatus(new URI(lraId));
 

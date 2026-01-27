@@ -24,7 +24,7 @@ public class LRAListener {
     public static final String LRA_LISTENER_ACTION = "action";
     public static final String LRA_LISTENER_UNTIMED_ACTION = "untimedAction";
     public static final String LRA_LISTENER_STATUS = "status";
-    public static final long LRA_SHORT_TIMELIMIT = 5L;
+    public static final long LRA_SHORT_TIMELIMIT = 2L;
 
     private static LRAStatus status;
 

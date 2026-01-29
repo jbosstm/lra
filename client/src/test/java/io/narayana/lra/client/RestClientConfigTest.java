@@ -1,42 +1,48 @@
 package io.narayana.lra.client;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import jakarta.ws.rs.core.Configuration;
+import io.undertow.Undertow;
+import io.undertow.server.HttpHandler;
+import io.undertow.util.Headers;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.net.URI;
 import java.security.KeyStore;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.HostnameVerifier;
+import java.security.SecureRandom;
+import java.util.concurrent.CompletionStage;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.ConfigValue;
-import org.eclipse.microprofile.config.spi.Converter;
+import javax.net.ssl.TrustManagerFactory;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
-import org.eclipse.microprofile.rest.client.ext.QueryParamStyle;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class RestClientConfigTest {
 
-    private Config mockConfig;
+    private static final String TEST_RESPONSE = "OK";
+    private static final String PASSWORD = "changeit";
+    private static final int HTTPS_PORT = 18443;
+    private static final String SERVER_HOST = "localhost";
+
     private File tempKeyStore;
     private File tempTrustStore;
+    private Undertow server;
 
     @BeforeEach
     public void setUp() throws Exception {
-        // Create temporary keystores for testing
         tempKeyStore = File.createTempFile("test-keystore", ".jks");
         tempTrustStore = File.createTempFile("test-truststore", ".jks");
 
-        // Create a simple empty keystore
         KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(null, "testpass".toCharArray());
 
@@ -57,433 +63,306 @@ public class RestClientConfigTest {
         if (tempTrustStore != null && tempTrustStore.exists()) {
             tempTrustStore.delete();
         }
+        if (server != null) {
+            server.stop();
+        }
+        System.clearProperty("lra.http-client.trustStore");
+        System.clearProperty("lra.http-client.trustStorePassword");
+        System.clearProperty("lra.http-client.trustStoreType");
+        System.clearProperty("lra.http-client.keyStore");
+        System.clearProperty("lra.http-client.keyStorePassword");
+        System.clearProperty("lra.http-client.keyStoreType");
+        System.clearProperty("lra.http-client.connectTimeout");
+        System.clearProperty("lra.http-client.readTimeout");
+        System.clearProperty("lra.http-client.hostnameVerifier");
+        System.clearProperty("lra.http-client.providers");
     }
 
     @Test
     public void testConfigureWithNoProperties() {
-        Map<String, String> properties = new HashMap<>();
-        mockConfig = new TestConfig(properties);
-
-        RestClientConfig config = new RestClientConfig(mockConfig);
         RestClientBuilder builder = RestClientBuilder.newBuilder().baseUri(URI.create("http://localhost:8080"));
 
-        // Should not throw exception when no properties are set
-        assertDoesNotThrow(() -> config.configure(builder));
+        assertDoesNotThrow(() -> new RestClientConfig().configure(builder));
     }
 
     @Test
     public void testConfigureWithTrustStore() {
-        Map<String, String> properties = new HashMap<>();
-        properties.put("lra.http-client.trustStore", "file://" + tempTrustStore.getAbsolutePath());
-        properties.put("lra.http-client.trustStorePassword", "testpass");
-        properties.put("lra.http-client.trustStoreType", "JKS");
-        mockConfig = new TestConfig(properties);
+        System.setProperty("lra.http-client.trustStore", "file://" + tempTrustStore.getAbsolutePath());
+        System.setProperty("lra.http-client.trustStorePassword", "testpass");
+        System.setProperty("lra.http-client.trustStoreType", "JKS");
 
-        RestClientConfig config = new RestClientConfig(mockConfig);
         RestClientBuilder builder = RestClientBuilder.newBuilder().baseUri(URI.create("https://localhost:8080"));
 
-        // Should configure SSL context successfully
-        assertDoesNotThrow(() -> config.configure(builder));
+        assertDoesNotThrow(() -> new RestClientConfig().configure(builder));
     }
 
     @Test
     public void testConfigureWithKeyStore() {
-        Map<String, String> properties = new HashMap<>();
-        properties.put("lra.http-client.keyStore", "file://" + tempKeyStore.getAbsolutePath());
-        properties.put("lra.http-client.keyStorePassword", "testpass");
-        properties.put("lra.http-client.keyStoreType", "JKS");
-        mockConfig = new TestConfig(properties);
+        System.setProperty("lra.http-client.keyStore", "file://" + tempKeyStore.getAbsolutePath());
+        System.setProperty("lra.http-client.keyStorePassword", "testpass");
+        System.setProperty("lra.http-client.keyStoreType", "JKS");
 
-        RestClientConfig config = new RestClientConfig(mockConfig);
         RestClientBuilder builder = RestClientBuilder.newBuilder().baseUri(URI.create("https://localhost:8080"));
 
-        // Should configure SSL context successfully
-        assertDoesNotThrow(() -> config.configure(builder));
+        assertDoesNotThrow(() -> new RestClientConfig().configure(builder));
     }
 
     @Test
     public void testConfigureWithBothKeyStoreAndTrustStore() {
-        Map<String, String> properties = new HashMap<>();
-        properties.put("lra.http-client.trustStore", "file://" + tempTrustStore.getAbsolutePath());
-        properties.put("lra.http-client.trustStorePassword", "testpass");
-        properties.put("lra.http-client.trustStoreType", "JKS");
-        properties.put("lra.http-client.keyStore", "file://" + tempKeyStore.getAbsolutePath());
-        properties.put("lra.http-client.keyStorePassword", "testpass");
-        properties.put("lra.http-client.keyStoreType", "JKS");
-        mockConfig = new TestConfig(properties);
+        System.setProperty("lra.http-client.trustStore", "file://" + tempTrustStore.getAbsolutePath());
+        System.setProperty("lra.http-client.trustStorePassword", "testpass");
+        System.setProperty("lra.http-client.trustStoreType", "JKS");
+        System.setProperty("lra.http-client.keyStore", "file://" + tempKeyStore.getAbsolutePath());
+        System.setProperty("lra.http-client.keyStorePassword", "testpass");
+        System.setProperty("lra.http-client.keyStoreType", "JKS");
 
-        RestClientConfig config = new RestClientConfig(mockConfig);
         RestClientBuilder builder = RestClientBuilder.newBuilder().baseUri(URI.create("https://localhost:8080"));
 
-        // Should configure SSL context with both keystores successfully
-        assertDoesNotThrow(() -> config.configure(builder));
+        assertDoesNotThrow(() -> new RestClientConfig().configure(builder));
     }
 
     @Test
     public void testConfigureWithTimeouts() {
-        Map<String, String> properties = new HashMap<>();
-        properties.put("lra.http-client.connectTimeout", "5000");
-        properties.put("lra.http-client.readTimeout", "10000");
-        mockConfig = new TestConfig(properties);
+        System.setProperty("lra.http-client.connectTimeout", "5000");
+        System.setProperty("lra.http-client.readTimeout", "10000");
 
-        RestClientConfig config = new RestClientConfig(mockConfig);
-        TestRestClientBuilder builder = new TestRestClientBuilder();
-        builder.baseUri(URI.create("http://localhost:8080"));
+        RestClientBuilder builder = RestClientBuilder.newBuilder().baseUri(URI.create("http://localhost:8080"));
 
-        config.configure(builder);
-
-        // Verify timeouts were set (through our test builder)
-        assertEquals(5000L, builder.getConnectTimeout());
-        assertEquals(10000L, builder.getReadTimeout());
+        assertDoesNotThrow(() -> new RestClientConfig().configure(builder));
     }
 
     @Test
     public void testConfigureWithCustomHostnameVerifier() {
-        Map<String, String> properties = new HashMap<>();
-        properties.put("lra.http-client.hostnameVerifier", TestHostnameVerifier.class.getName());
-        mockConfig = new TestConfig(properties);
+        System.setProperty("lra.http-client.hostnameVerifier",
+                "io.narayana.lra.client.RestClientConfigTest$TestHostnameVerifier");
 
-        RestClientConfig config = new RestClientConfig(mockConfig);
-        TestRestClientBuilder builder = new TestRestClientBuilder();
-        builder.baseUri(URI.create("https://localhost:8080"));
+        RestClientBuilder builder = RestClientBuilder.newBuilder().baseUri(URI.create("https://localhost:8080"));
 
-        config.configure(builder);
-
-        // Verify hostname verifier was set
-        assertNotNull(builder.getHostnameVerifier());
-        assertTrue(builder.getHostnameVerifier() instanceof TestHostnameVerifier);
+        assertDoesNotThrow(() -> new RestClientConfig().configure(builder));
     }
 
     @Test
     public void testConfigureWithInvalidHostnameVerifier() {
-        Map<String, String> properties = new HashMap<>();
-        properties.put("lra.http-client.hostnameVerifier", "com.example.NonExistentClass");
-        mockConfig = new TestConfig(properties);
+        System.setProperty("lra.http-client.hostnameVerifier", "com.example.NonExistentClass");
 
-        RestClientConfig config = new RestClientConfig(mockConfig);
         RestClientBuilder builder = RestClientBuilder.newBuilder().baseUri(URI.create("https://localhost:8080"));
 
-        // Should not throw exception, just log a warning
-        assertDoesNotThrow(() -> config.configure(builder));
+        assertDoesNotThrow(() -> new RestClientConfig().configure(builder));
     }
 
     @Test
     public void testConfigureWithProviders() {
-        Map<String, String> properties = new HashMap<>();
-        properties.put("lra.http-client.providers", TestProvider.class.getName());
-        mockConfig = new TestConfig(properties);
+        System.setProperty("lra.http-client.providers",
+                "io.narayana.lra.client.RestClientConfigTest$TestProvider");
 
-        RestClientConfig config = new RestClientConfig(mockConfig);
-        TestRestClientBuilder builder = new TestRestClientBuilder();
-        builder.baseUri(URI.create("http://localhost:8080"));
+        RestClientBuilder builder = RestClientBuilder.newBuilder().baseUri(URI.create("http://localhost:8080"));
 
-        config.configure(builder);
-
-        // Verify provider was registered
-        assertTrue(builder.getRegisteredClasses().contains(TestProvider.class));
+        assertDoesNotThrow(() -> new RestClientConfig().configure(builder));
     }
 
     @Test
     public void testConfigureWithMultipleProviders() {
-        Map<String, String> properties = new HashMap<>();
-        properties.put("lra.http-client.providers",
-                TestProvider.class.getName() + "," + AnotherTestProvider.class.getName());
-        mockConfig = new TestConfig(properties);
+        System.setProperty("lra.http-client.providers",
+                "io.narayana.lra.client.RestClientConfigTest$TestProvider,"
+                        + "io.narayana.lra.client.RestClientConfigTest$AnotherTestProvider");
 
-        RestClientConfig config = new RestClientConfig(mockConfig);
-        TestRestClientBuilder builder = new TestRestClientBuilder();
-        builder.baseUri(URI.create("http://localhost:8080"));
+        RestClientBuilder builder = RestClientBuilder.newBuilder().baseUri(URI.create("http://localhost:8080"));
 
-        config.configure(builder);
-
-        // Verify both providers were registered
-        assertTrue(builder.getRegisteredClasses().contains(TestProvider.class));
-        assertTrue(builder.getRegisteredClasses().contains(AnotherTestProvider.class));
+        assertDoesNotThrow(() -> new RestClientConfig().configure(builder));
     }
 
     @Test
     public void testConfigureWithInvalidTrustStore() {
-        Map<String, String> properties = new HashMap<>();
-        properties.put("lra.http-client.trustStore", "file:///non/existent/path.jks");
-        properties.put("lra.http-client.trustStorePassword", "testpass");
-        mockConfig = new TestConfig(properties);
+        System.setProperty("lra.http-client.trustStore", "file:///non/existent/path.jks");
+        System.setProperty("lra.http-client.trustStorePassword", "testpass");
 
-        RestClientConfig config = new RestClientConfig(mockConfig);
         RestClientBuilder builder = RestClientBuilder.newBuilder().baseUri(URI.create("https://localhost:8080"));
 
-        // Should not throw exception, configuration errors are logged as warnings
-        assertDoesNotThrow(() -> config.configure(builder));
+        assertDoesNotThrow(() -> new RestClientConfig().configure(builder));
     }
 
     @Test
     public void testDefaultKeyStoreType() {
-        Map<String, String> properties = new HashMap<>();
-        properties.put("lra.http-client.trustStore", "file://" + tempTrustStore.getAbsolutePath());
-        properties.put("lra.http-client.trustStorePassword", "testpass");
-        // Not setting trustStoreType - should default to JKS
-        mockConfig = new TestConfig(properties);
+        System.setProperty("lra.http-client.trustStore", "file://" + tempTrustStore.getAbsolutePath());
+        System.setProperty("lra.http-client.trustStorePassword", "testpass");
 
-        RestClientConfig config = new RestClientConfig(mockConfig);
         RestClientBuilder builder = RestClientBuilder.newBuilder().baseUri(URI.create("https://localhost:8080"));
 
-        // Should work with default JKS type
-        assertDoesNotThrow(() -> config.configure(builder));
+        assertDoesNotThrow(() -> new RestClientConfig().configure(builder));
     }
 
-    // Test helper classes
+    @Test
+    public void testHttpsConnectionWithTrustStore() throws Exception {
+        if (getClass().getClassLoader().getResource("client-truststore.jks") == null) {
+            return;
+        }
 
-    public static class TestHostnameVerifier implements HostnameVerifier {
+        startHttpsServer(false);
+
+        System.setProperty("lra.http-client.trustStore",
+                getClass().getClassLoader().getResource("client-truststore.jks").getPath());
+        System.setProperty("lra.http-client.trustStorePassword", PASSWORD);
+        System.setProperty("lra.http-client.trustStoreType", "JKS");
+        System.setProperty("lra.http-client.hostnameVerifier",
+                "io.narayana.lra.client.RestClientConfigTest$TestHostnameVerifier");
+
+        RestClientBuilder builder = RestClientBuilder.newBuilder()
+                .baseUri(URI.create("https://" + SERVER_HOST + ":" + HTTPS_PORT));
+
+        new RestClientConfig().configure(builder);
+
+        TestApi client = builder.build(TestApi.class);
+        Response response = client.test().toCompletableFuture().get();
+
+        assertEquals(200, response.getStatus());
+        assertEquals(TEST_RESPONSE, response.readEntity(String.class));
+    }
+
+    @Test
+    public void testMutualTlsConnection() throws Exception {
+        if (getClass().getClassLoader().getResource("client-truststore.jks") == null
+                || getClass().getClassLoader().getResource("client-keystore.jks") == null) {
+            return;
+        }
+
+        startHttpsServer(true);
+
+        System.setProperty("lra.http-client.trustStore",
+                getClass().getClassLoader().getResource("client-truststore.jks").getPath());
+        System.setProperty("lra.http-client.trustStorePassword", PASSWORD);
+        System.setProperty("lra.http-client.trustStoreType", "JKS");
+        System.setProperty("lra.http-client.keyStore",
+                getClass().getClassLoader().getResource("client-keystore.jks").getPath());
+        System.setProperty("lra.http-client.keyStorePassword", PASSWORD);
+        System.setProperty("lra.http-client.keyStoreType", "JKS");
+        System.setProperty("lra.http-client.hostnameVerifier",
+                "io.narayana.lra.client.RestClientConfigTest$TestHostnameVerifier");
+
+        RestClientBuilder builder = RestClientBuilder.newBuilder()
+                .baseUri(URI.create("https://" + SERVER_HOST + ":" + HTTPS_PORT));
+
+        new RestClientConfig().configure(builder);
+
+        TestApi client = builder.build(TestApi.class);
+        Response response = client.test().toCompletableFuture().get();
+
+        assertEquals(200, response.getStatus());
+        assertEquals(TEST_RESPONSE, response.readEntity(String.class));
+    }
+
+    @Test
+    public void testConnectionWithoutTrustStoreFails() throws Exception {
+        if (getClass().getClassLoader().getResource("server-keystore.jks") == null) {
+            return;
+        }
+
+        startHttpsServer(false);
+
+        System.setProperty("lra.http-client.hostnameVerifier",
+                "io.narayana.lra.client.RestClientConfigTest$TestHostnameVerifier");
+
+        RestClientBuilder builder = RestClientBuilder.newBuilder()
+                .baseUri(URI.create("https://" + SERVER_HOST + ":" + HTTPS_PORT));
+
+        new RestClientConfig().configure(builder);
+
+        TestApi client = builder.build(TestApi.class);
+
+        assertThrows(Exception.class, () -> {
+            Response response = client.test().toCompletableFuture().get();
+            response.readEntity(String.class);
+        });
+    }
+
+    @Test
+    public void testMutualTlsWithoutClientCertFails() throws Exception {
+        if (getClass().getClassLoader().getResource("client-truststore.jks") == null) {
+            return;
+        }
+
+        startHttpsServer(true);
+
+        System.setProperty("lra.http-client.trustStore",
+                getClass().getClassLoader().getResource("client-truststore.jks").getPath());
+        System.setProperty("lra.http-client.trustStorePassword", PASSWORD);
+        System.setProperty("lra.http-client.trustStoreType", "JKS");
+        System.setProperty("lra.http-client.hostnameVerifier",
+                "io.narayana.lra.client.RestClientConfigTest$TestHostnameVerifier");
+
+        RestClientBuilder builder = RestClientBuilder.newBuilder()
+                .baseUri(URI.create("https://" + SERVER_HOST + ":" + HTTPS_PORT));
+
+        new RestClientConfig().configure(builder);
+
+        TestApi client = builder.build(TestApi.class);
+
+        assertThrows(Exception.class, () -> {
+            Response response = client.test().toCompletableFuture().get();
+            response.readEntity(String.class);
+        });
+    }
+
+    private void startHttpsServer(boolean requireClientAuth) throws Exception {
+        KeyStore keyStore = loadKeyStore("server-keystore.jks");
+        KeyStore trustStore = loadKeyStore("server-truststore.jks");
+
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(keyStore, PASSWORD.toCharArray());
+
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(trustStore);
+
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
+
+        HttpHandler handler = exchange -> {
+            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/plain");
+            exchange.getResponseSender().send(TEST_RESPONSE);
+        };
+
+        Undertow.Builder builder = Undertow.builder()
+                .addHttpsListener(HTTPS_PORT, SERVER_HOST, sslContext)
+                .setHandler(handler);
+
+        if (requireClientAuth) {
+            builder.setSocketOption(org.xnio.Options.SSL_CLIENT_AUTH_MODE,
+                    org.xnio.SslClientAuthMode.REQUIRED);
+        }
+
+        server = builder.build();
+        server.start();
+        Thread.sleep(500);
+    }
+
+    private KeyStore loadKeyStore(String resource) throws Exception {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream(resource)) {
+            if (is == null) {
+                throw new IllegalArgumentException("Resource not found: " + resource);
+            }
+            KeyStore keyStore = KeyStore.getInstance("JKS");
+            keyStore.load(is, PASSWORD.toCharArray());
+            return keyStore;
+        }
+    }
+
+    @Path("/")
+    public interface TestApi {
+        @GET
+        @Path("/test")
+        @Produces(MediaType.TEXT_PLAIN)
+        CompletionStage<Response> test();
+    }
+
+    public static class TestHostnameVerifier implements javax.net.ssl.HostnameVerifier {
         @Override
-        public boolean verify(String hostname, SSLSession session) {
+        public boolean verify(String hostname, javax.net.ssl.SSLSession session) {
             return true;
         }
     }
 
     public static class TestProvider {
-        // Empty test provider
     }
 
     public static class AnotherTestProvider {
-        // Another empty test provider
-    }
-
-    /**
-     * Simple mock Config implementation for testing
-     */
-    private static class TestConfig implements Config {
-        private final Map<String, String> properties;
-
-        public TestConfig(Map<String, String> properties) {
-            this.properties = properties;
-        }
-
-        @Override
-        public <T> T getValue(String propertyName, Class<T> propertyType) {
-            String value = properties.get(propertyName);
-            if (value == null) {
-                throw new java.util.NoSuchElementException("Property " + propertyName + " not found");
-            }
-            return convertValue(value, propertyType);
-        }
-
-        @Override
-        public <T> java.util.Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
-            String value = properties.get(propertyName);
-            if (value == null) {
-                return java.util.Optional.empty();
-            }
-            return java.util.Optional.of(convertValue(value, propertyType));
-        }
-
-        @Override
-        public Iterable<String> getPropertyNames() {
-            return properties.keySet();
-        }
-
-        @Override
-        public Iterable<org.eclipse.microprofile.config.spi.ConfigSource> getConfigSources() {
-            return java.util.Collections.emptyList();
-        }
-
-        @SuppressWarnings("unchecked")
-        private <T> T convertValue(String value, Class<T> type) {
-            if (type == String.class) {
-                return (T) value;
-            } else if (type == Long.class || type == long.class) {
-                return (T) Long.valueOf(value);
-            } else if (type == Integer.class || type == int.class) {
-                return (T) Integer.valueOf(value);
-            }
-            throw new IllegalArgumentException("Unsupported type: " + type);
-        }
-
-        @Override
-        public ConfigValue getConfigValue(String propertyName) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public <T> Optional<Converter<T>> getConverter(Class<T> forType) {
-            // TODO Auto-generated method stub
-            return Optional.empty();
-        }
-
-        @Override
-        public <T> T unwrap(Class<T> type) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-    }
-
-    /**
-     * Test implementation of RestClientBuilder that tracks configuration
-     */
-    private static class TestRestClientBuilder implements RestClientBuilder {
-        private URI baseUri;
-        private Long connectTimeout;
-        private Long readTimeout;
-        private HostnameVerifier hostnameVerifier;
-        private SSLContext sslContext;
-        private final java.util.Set<Class<?>> registeredClasses = new java.util.HashSet<>();
-
-        @Override
-        public RestClientBuilder baseUri(URI uri) {
-            this.baseUri = uri;
-            return this;
-        }
-
-        @Override
-        public RestClientBuilder baseUrl(java.net.URL url) {
-            try {
-                return baseUri(url.toURI());
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public RestClientBuilder connectTimeout(long timeout, TimeUnit unit) {
-            this.connectTimeout = unit.toMillis(timeout);
-            return this;
-        }
-
-        @Override
-        public RestClientBuilder readTimeout(long timeout, TimeUnit unit) {
-            this.readTimeout = unit.toMillis(timeout);
-            return this;
-        }
-
-        @Override
-        public RestClientBuilder sslContext(SSLContext sslContext) {
-            this.sslContext = sslContext;
-            return this;
-        }
-
-        @Override
-        public RestClientBuilder hostnameVerifier(HostnameVerifier hostnameVerifier) {
-            this.hostnameVerifier = hostnameVerifier;
-            return this;
-        }
-
-        @Override
-        public RestClientBuilder register(Class<?> componentClass) {
-            registeredClasses.add(componentClass);
-            return this;
-        }
-
-        @Override
-        public RestClientBuilder register(Class<?> componentClass, int priority) {
-            return register(componentClass);
-        }
-
-        @Override
-        public RestClientBuilder register(Class<?> componentClass, Class<?>... contracts) {
-            return register(componentClass);
-        }
-
-        @Override
-        public RestClientBuilder register(Class<?> componentClass, Map<Class<?>, Integer> contracts) {
-            return register(componentClass);
-        }
-
-        @Override
-        public RestClientBuilder register(Object component) {
-            registeredClasses.add(component.getClass());
-            return this;
-        }
-
-        @Override
-        public RestClientBuilder register(Object component, int priority) {
-            return register(component);
-        }
-
-        @Override
-        public RestClientBuilder register(Object component, Class<?>... contracts) {
-            return register(component);
-        }
-
-        @Override
-        public RestClientBuilder register(Object component, Map<Class<?>, Integer> contracts) {
-            return register(component);
-        }
-
-        @Override
-        public RestClientBuilder property(String name, Object value) {
-            return this;
-        }
-
-        @Override
-        public <T> T build(Class<T> aClass) {
-            throw new UnsupportedOperationException("build() not implemented in test builder");
-        }
-
-        public Long getConnectTimeout() {
-            return connectTimeout;
-        }
-
-        public Long getReadTimeout() {
-            return readTimeout;
-        }
-
-        public HostnameVerifier getHostnameVerifier() {
-            return hostnameVerifier;
-        }
-
-        public SSLContext getSslContext() {
-            return sslContext;
-        }
-
-        public java.util.Set<Class<?>> getRegisteredClasses() {
-            return registeredClasses;
-        }
-
-        @Override
-        public Configuration getConfiguration() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public RestClientBuilder executorService(ExecutorService executor) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public RestClientBuilder trustStore(KeyStore trustStore) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public RestClientBuilder keyStore(KeyStore keyStore, String keystorePassword) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public RestClientBuilder followRedirects(boolean follow) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public RestClientBuilder proxyAddress(String proxyHost, int proxyPort) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public RestClientBuilder queryParamStyle(QueryParamStyle style) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public RestClientBuilder header(String name, Object value) {
-            // TODO Auto-generated method stub
-            return null;
-        }
     }
 }

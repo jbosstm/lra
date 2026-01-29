@@ -168,13 +168,15 @@ public class LRACoordinatorRecoveryIT extends UnmanagedTestBase {
         doWait((LRAListener.LRA_SHORT_TIMELIMIT) * 1000);
         startContainer(LRA_COORDINATOR_CONTAINER_QUALIFIER, "");
 
-        // wait a little longer so that the LRA status moves from Cancelling to
-        // Cancelled status
-        doWait((LRAListener.LRA_SHORT_TIMELIMIT) * 1000);
-        // Checks recovery
+        // we might need to wait a little longer so that the LRA status moves from
+        // Cancelling to Cancelled
         LRAStatus status = getStatus(new URI(lraId));
-
         LRALogger.logger.infof("%s: Status after restart is %s%n", status == null ? "GONE" : status.name());
+        for (int i = 0; i < 100 && status != null && status != LRAStatus.Cancelled; i++) {
+            LRALogger.logger.warnf("%s: Status after restart is %s%n", status == null ? "GONE" : status.name());
+            doWait(500);
+            status = getStatus(new URI(lraId));
+        }
 
         // null status is also accepted because the lra has already been cancelled and
         // removed

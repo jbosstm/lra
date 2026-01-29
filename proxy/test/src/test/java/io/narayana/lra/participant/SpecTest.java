@@ -10,7 +10,7 @@ import static io.narayana.lra.proxy.test.api.LRAMgmtEgController.LRAM_PATH;
 import static io.narayana.lra.proxy.test.api.LRAMgmtEgController.LRAM_WORK;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.narayana.lra.client.internal.NarayanaLRAClient;
+import io.narayana.lra.client.NarayanaLRAClient;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;

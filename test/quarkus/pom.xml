@@ -27,5 +27,22 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <skip.wildfly.plugin>false</skip.wildfly.plugin>
   </properties>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.quarkus.platform</groupId>
+        <artifactId>quarkus-bom</artifactId>
+        <version>${version.quarkus}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-resteasy-client</artifactId>
+    </dependency>
+  </dependencies>
 
 </project>

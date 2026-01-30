@@ -122,7 +122,7 @@
     <version.io.narayana.checkstyle-config>1.0.1.Final</version.io.narayana.checkstyle-config>
     <version.io.netty>4.2.9.Final</version.io.netty>
 
-    <version.io.smallrye.smallrye-config>3.15.1</version.io.smallrye.smallrye-config>
+    <version.io.smallrye.smallrye-config>3.16.0</version.io.smallrye.smallrye-config>
     <version.io.smallrye.smallrye-stork>2.7.7</version.io.smallrye.smallrye-stork>
     <version.jakarta.concurrent>3.1.1</version.jakarta.concurrent>
     <version.jakarta.enterprise>4.0.0</version.jakarta.enterprise>
@@ -160,7 +160,6 @@
     <version.org.sonatype.plugins.nxrm3.plugin>1.0.13</version.org.sonatype.plugins.nxrm3.plugin>
     <version.org.wildfly.arquillian>5.1.0.Final</version.org.wildfly.arquillian>
     <version.parsson>1.1.7</version.parsson>
-    <version.quarkus>3.31.1</version.quarkus>
     <version.sortpom>4.0.0</version.sortpom>
     <version.undertow.core>2.3.22.Final</version.undertow.core>
     <version.wildfly-maven-plugin>5.1.5.Final</version.wildfly-maven-plugin>

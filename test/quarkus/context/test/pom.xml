@@ -42,6 +42,7 @@
       <groupId>org.jboss.narayana.lra</groupId>
       <artifactId>lra-test-arquillian-extension</artifactId>
       <scope>test</scope>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>

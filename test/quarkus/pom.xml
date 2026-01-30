@@ -5,15 +5,10 @@
   -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
-  <parent>
-    <groupId>org.jboss.narayana.lra</groupId>
-    <artifactId>lra-test</artifactId>
-    <version>1.0.4.Final-SNAPSHOT</version>
-    <relativePath>../pom.xml</relativePath>
-  </parent>
-
+    
+  <groupId>org.jboss.narayana.lra</groupId>
   <artifactId>lra-test-quarkus</artifactId>
+  <version>1.0.4.Final-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>LRA tests: Quarkus</name>
@@ -23,7 +18,14 @@
   </modules>
 
   <properties>
-    <!-- TCK TckTests#timeLimit test needs a short, but non zero, delay -->
+    <version.quarkus>3.31.1</version.quarkus>
+        <!-- currently only defines where to search for the coordinator, it does not change where the coordinator is started -->
+    <lra.coordinator.host>localhost</lra.coordinator.host>
+    <lra.coordinator.port>8080</lra.coordinator.port>
+    <maven.compiler.release>17</maven.compiler.release>
+    <!-- the property used by NarayanaLRAClient when passed into the container as the JVM parameter -->
+    <lra.coordinator.url>http://${lra.coordinator.host}:${lra.coordinator.port}/lra-coordinator</lra.coordinator.url>
+
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <skip.wildfly.plugin>false</skip.wildfly.plugin>
   </properties>

@@ -8,7 +8,7 @@ package io.narayana.lra.coordinator.domain.model.objectstore;
 import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
 
 import io.narayana.lra.LRAData;
-import io.narayana.lra.client.internal.NarayanaLRAClient;
+import io.narayana.lra.client.NarayanaLRAClient;
 import io.narayana.lra.coordinator.api.Coordinator;
 import io.narayana.lra.filter.ServerLRAFilter;
 import io.narayana.lra.logging.LRALogger;

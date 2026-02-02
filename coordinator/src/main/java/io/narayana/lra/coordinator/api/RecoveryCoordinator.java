@@ -152,10 +152,8 @@ public class RecoveryCoordinator {
     @APIResponses({
             @APIResponse(responseCode = "204", description = "If the LRA log was successfully removed"),
             @APIResponse(responseCode = "412", description = "If the LRA is not in an end state (in which case the response " +
-                    "entity will indicate the current state at the time of the request)"),
-            @APIResponse(responseCode = "412", description = "If the input LRA does not correspond to a valid URI (in which case the "
-                    +
-                    "response entity will contain the error message)"),
+                    "entity will indicate the current state at the time of the request) or "
+                    + "if the input LRA does not correspond to a valid URI (in which case the response entity will contain the error message)"),
             @APIResponse(responseCode = "500", description = "If the attempt to remove the LRA log failed. This return code does not "
                     +
                     "discriminate between a failure at the log storage level or if the log did not exist)")

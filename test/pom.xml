@@ -407,7 +407,7 @@
 
       <properties>
         <wildfly.home>${user.dir}/target/wildfly</wildfly.home>
-        <wildfly.version>38.0.1.Final</wildfly.version>
+        <wildfly.version>39.0.0.Final</wildfly.version>
       </properties>
 
       <build>

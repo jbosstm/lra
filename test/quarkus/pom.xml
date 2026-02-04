@@ -18,7 +18,7 @@
   </modules>
 
   <properties>
-    <version.quarkus>3.31.1</version.quarkus>
+    <version.quarkus>3.31.2</version.quarkus>
         <!-- currently only defines where to search for the coordinator, it does not change where the coordinator is started -->
     <lra.coordinator.host>localhost</lra.coordinator.host>
     <lra.coordinator.port>8080</lra.coordinator.port>

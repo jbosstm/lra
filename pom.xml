@@ -156,7 +156,7 @@
     <version.org.jboss.logging.jboss-logging>3.6.1.Final</version.org.jboss.logging.jboss-logging>
     <version.org.jboss.logging.jboss-logging-processor>3.0.4.Final</version.org.jboss.logging.jboss-logging-processor>
     <!-- Needed for WildflyLRACoordinatorDeployment class -->
-    <version.org.jboss.resteasy>7.0.0.Final</version.org.jboss.resteasy>
+    <version.org.jboss.resteasy>7.0.1.Final</version.org.jboss.resteasy>
     <version.org.jboss.resteasy.microprofile>3.0.1.Final</version.org.jboss.resteasy.microprofile>
     <version.org.jboss.shrinkwrap.resolvers>3.3.4</version.org.jboss.shrinkwrap.resolvers>
     <version.org.sonatype.plugins.nxrm3.plugin>1.0.13</version.org.sonatype.plugins.nxrm3.plugin>

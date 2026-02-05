@@ -9,7 +9,7 @@
   <parent>
     <groupId>org.jboss.narayana.lra</groupId>
     <artifactId>lra-test-quarkus-context</artifactId>
-    <version>1.0.4.Final-SNAPSHOT</version>
+    <version>1.1.0.Final</version>
   </parent>
 
   <artifactId>lra-test-quarkus-context-test</artifactId>

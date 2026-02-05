@@ -163,7 +163,7 @@
     <version.org.wildfly.arquillian>5.1.0.Final</version.org.wildfly.arquillian>
     <version.parsson>1.1.7</version.parsson>
     <version.sortpom>4.0.0</version.sortpom>
-    <version.undertow.core>2.3.22.Final</version.undertow.core>
+    <version.undertow.core>2.3.23.Final</version.undertow.core>
     <version.wildfly-maven-plugin>5.1.5.Final</version.wildfly-maven-plugin>
 
   </properties>

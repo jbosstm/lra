@@ -88,11 +88,6 @@
       <groupId>org.jboss.logging</groupId>
       <artifactId>jboss-logging</artifactId>
     </dependency>
-    <!-- TODO remove this dependency once the NarayanaLRAClient(String, String, int, String) constructor is removed -->
-    <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-client</artifactId>
-    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

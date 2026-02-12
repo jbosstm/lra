@@ -449,7 +449,7 @@
         <wildfly.download>true</wildfly.download>
         <wildfly.home>${wildfly.root}/wildfly-${wildfly.version}</wildfly.home>
         <wildfly.root>${user.dir}/target/wildfly</wildfly.root>
-        <wildfly.version>39.0.0.Final</wildfly.version>
+        <wildfly.version>39.0.1.Final</wildfly.version>
       </properties>
 
       <build>

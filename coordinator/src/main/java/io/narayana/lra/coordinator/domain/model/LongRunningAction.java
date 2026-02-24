@@ -142,7 +142,7 @@ public class LongRunningAction extends BasicAction {
      */
     public LRAData getLRAData() {
         return new LRAData(id, clientId, status, isTopLevel(), isRecovering(),
-                startTime.toInstant(ZoneOffset.UTC).toEpochMilli(),
+                startTime == null ? 0L : startTime.toInstant(ZoneOffset.UTC).toEpochMilli(),
                 finishTime == null ? 0L : finishTime.toInstant(ZoneOffset.UTC).toEpochMilli(),
                 getHttpStatus());
     }

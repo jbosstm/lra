@@ -67,7 +67,7 @@ jobs:
           LRA_TCK_TIMEOUT_FACTOR: 1
           PULL_DESCRIPTION_BODY: ${{ github.event.pull_request.body }}
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: steps.check-label.outputs.should_skip != 'true' && always()
         with:
           name: lra-logs-jdk${{ matrix.java-version }}

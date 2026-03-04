@@ -25,7 +25,7 @@
     <quarkus.package.jar.add-runner-suffix>false</quarkus.package.jar.add-runner-suffix>
 
     <quarkus.package.jar.type>uber-jar</quarkus.package.jar.type>
-    <quarkus.platform.version>3.32.1</quarkus.platform.version>
+    <quarkus.platform.version>3.32.2</quarkus.platform.version>
   </properties>
 
   <dependencies>

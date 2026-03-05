@@ -25,7 +25,6 @@
     <quarkus.package.jar.add-runner-suffix>false</quarkus.package.jar.add-runner-suffix>
 
     <quarkus.package.jar.type>uber-jar</quarkus.package.jar.type>
-    <quarkus.platform.version>3.32.2</quarkus.platform.version>
   </properties>
 
   <dependencies>
@@ -82,7 +81,7 @@
       <plugin>
         <groupId>io.quarkus.platform</groupId>
         <artifactId>quarkus-maven-plugin</artifactId>
-        <version>${quarkus.platform.version}</version>
+        <version>${version.quarkus}</version>
         <extensions>true</extensions>
         <executions>
           <execution>

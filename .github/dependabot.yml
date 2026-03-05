@@ -16,6 +16,10 @@ updates:
     registries:
       - maven-central
       - jboss-public-repository-group
+    groups:
+      quarkus:
+        patterns:
+          - "io.quarkus*"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

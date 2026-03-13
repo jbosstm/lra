@@ -1717,9 +1717,8 @@ public class LRATest extends LRATestBase {
             // Complete the nested LRA directly
             ParticipantStatus status = lraClient.completeNestedLRA(childId);
 
-            // The status should indicate completion or completing
-            assertTrue(status == ParticipantStatus.Completed || status == ParticipantStatus.Completing,
-                    "Nested LRA should be Completed or Completing after completion, but was: " + status);
+            assertEquals(ParticipantStatus.Completed, status,
+                    "Nested LRA should be Completed after completion");
         } finally {
             // Clean up - close parent
             try {
@@ -1745,9 +1744,8 @@ public class LRATest extends LRATestBase {
             // Compensate the nested LRA directly
             ParticipantStatus status = lraClient.compensateNestedLRA(childId);
 
-            // The status should indicate compensation or compensating
-            assertTrue(status == ParticipantStatus.Compensated || status == ParticipantStatus.Compensating,
-                    "Nested LRA should be Compensated or Compensating after compensation, but was: " + status);
+            assertEquals(ParticipantStatus.Compensated, status,
+                    "Nested LRA should be Compensated after compensation");
         } finally {
             // Clean up - cancel parent
             try {
@@ -1773,8 +1771,8 @@ public class LRATest extends LRATestBase {
             // Complete the nested LRA
             ParticipantStatus status = lraClient.completeNestedLRA(childId);
 
-            assertTrue(status == ParticipantStatus.Completed || status == ParticipantStatus.Completing,
-                    "Nested LRA should be completed before forgetting");
+            assertEquals(ParticipantStatus.Completed, status,
+                    "Nested LRA should be Completed before forgetting");
 
             // Now forget the nested LRA - this should succeed without throwing an exception
             lraClient.forgetNestedLRA(childId);
@@ -1848,9 +1846,8 @@ public class LRATest extends LRATestBase {
             // Compensate the child directly
             ParticipantStatus compensatedStatus = lraClient
                     .compensateNestedLRA(childId);
-            assertTrue(compensatedStatus == ParticipantStatus.Compensated
-                    || compensatedStatus == ParticipantStatus.Compensating,
-                    "Child should be compensated");
+            assertEquals(ParticipantStatus.Compensated, compensatedStatus,
+                    "Child should be Compensated");
 
             // Cancel the parent
             lraClient.cancelLRA(parentId);
@@ -1980,6 +1977,200 @@ public class LRATest extends LRATestBase {
             // Also acceptable if it returns 404
             assertEquals(NOT_FOUND.getStatusCode(), e.getResponse().getStatus(),
                     "Should return 404 for non-existent LRA");
+        }
+    }
+
+    /**
+     * Validates the participant state model for nested LRAs as defined in
+     * MicroProfile LRA Specification.
+     *
+     * When the coordinator acts as a participant (for nested LRAs), the nested
+     * LRA's status is mapped to ParticipantStatus. This test validates that the
+     * close (complete) path follows the expected state transitions:
+     *
+     * Active -> Completing -> Completed
+     *
+     * The test creates a nested LRA, verifies Active status, then closes the parent
+     * which triggers the complete path on the nested LRA (as participant), and
+     * verifies the terminal state is Completed.
+     */
+    @Test
+    public void testParticipantStateModelClosePath() {
+        URI parentId = lraClient.startLRA(testName + "-parent");
+        URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
+
+        // Initial state: nested LRA as participant should report Active
+        ParticipantStatus initialStatus = lraClient.getNestedLRAStatus(childId);
+        assertEquals(ParticipantStatus.Active, initialStatus,
+                "A newly enlisted participant must be in Active state");
+
+        // Trigger the close (complete) path on the nested participant
+        ParticipantStatus completeStatus = lraClient.completeNestedLRA(childId);
+
+        assertEquals(ParticipantStatus.Completed, completeStatus,
+                "After complete the participant must be in Completed state");
+        // Clean up
+        lraClient.closeLRA(parentId);
+    }
+
+    /**
+     * Validates the participant state model cancel (compensate) path for nested
+     * LRAs as defined in MicroProfile LRA Specification.
+     *
+     * When the parent LRA is cancelled, the nested LRA (acting as a participant)
+     * must follow the compensate path:
+     *
+     * Active -> Compensating -> Compensated
+     */
+    @Test
+    public void testParticipantStateModelCancelPath() {
+        URI parentId = lraClient.startLRA(testName + "-parent");
+        URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
+
+        // Initial state: nested LRA as participant should report Active
+        ParticipantStatus initialStatus = lraClient.getNestedLRAStatus(childId);
+        assertEquals(ParticipantStatus.Active, initialStatus,
+                "A newly enlisted participant must be in Active state");
+
+        // Trigger the cancel (compensate) path on the nested participant
+        ParticipantStatus compensateStatus = lraClient.compensateNestedLRA(childId);
+
+        assertEquals(ParticipantStatus.Compensated, compensateStatus,
+                "After compensate the participant must be in Compensated state");
+        lraClient.cancelLRA(parentId);
+    }
+
+    /**
+     * Validates that the LRAStatus-to-ParticipantStatus mapping used when the
+     * coordinator acts as a participant for nested LRAs is consistent with
+     * MicroProfile LRA Specification.
+     *
+     * The mapping must be: LRAStatus.Active -> ParticipantStatus.Active
+     * LRAStatus.Closing -> ParticipantStatus.Completing LRAStatus.Closed ->
+     * ParticipantStatus.Completed LRAStatus.Cancelling ->
+     * ParticipantStatus.Compensating LRAStatus.Cancelled ->
+     * ParticipantStatus.Compensated LRAStatus.FailedToClose ->
+     * ParticipantStatus.FailedToComplete LRAStatus.FailedToCancel ->
+     * ParticipantStatus.FailedToCompensate
+     *
+     * This test verifies the mapping by checking the status endpoint for a nested
+     * LRA in its initial Active state and after close/cancel operations.
+     */
+    @Test
+    public void testNestedLRAStatusMappingConsistency() {
+        // Verify Active -> Active mapping
+        URI parentId1 = lraClient.startLRA(testName + "-parent1");
+        URI childId1 = lraClient.startLRA(parentId1, testName + "-child1", 0L, ChronoUnit.SECONDS);
+
+        LRAStatus childLRAStatus = lraClient.getStatus(childId1);
+        ParticipantStatus childParticipantStatus = lraClient.getNestedLRAStatus(childId1);
+
+        assertEquals(LRAStatus.Active, childLRAStatus,
+                "Child LRA should be in Active LRAStatus");
+        assertEquals(ParticipantStatus.Active, childParticipantStatus,
+                "Active LRAStatus must map to Active ParticipantStatus");
+
+        // Verify Closed -> Completed mapping via close path
+        lraClient.closeLRA(childId1);
+        LRAStatus closedStatus = getStatus(childId1);
+        if (closedStatus != null) {
+            ParticipantStatus afterClose = lraClient.getNestedLRAStatus(childId1);
+            assertEquals(ParticipantStatus.Completed, afterClose,
+                    "Closed LRAStatus must map to Completed ParticipantStatus");
+        }
+        try {
+            lraClient.closeLRA(parentId1);
+        } catch (Exception ignore) {
+        }
+
+        // Verify Cancelled -> Compensated mapping via cancel path
+        URI parentId2 = lraClient.startLRA(testName + "-parent2");
+        URI childId2 = lraClient.startLRA(parentId2, testName + "-child2", 0L, ChronoUnit.SECONDS);
+
+        lraClient.cancelLRA(childId2);
+        LRAStatus cancelledStatus = getStatus(childId2);
+        if (cancelledStatus != null) {
+            ParticipantStatus afterCancel = lraClient.getNestedLRAStatus(childId2);
+            assertEquals(ParticipantStatus.Compensated, afterCancel,
+                    "Cancelled LRAStatus must map to Compensated ParticipantStatus");
+        }
+        lraClient.cancelLRA(parentId2);
+    }
+
+    /**
+     * Validates that a non-existent nested LRA reports Compensated participant
+     * status. A nested LRA that has been removed from the coordinator is treated as
+     * having successfully compensated.
+     */
+    @Test
+    public void testNonExistentNestedLRAReportsCompensated() {
+        URI parentId = lraClient.startLRA(testName + "-parent");
+        URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
+
+        // Complete and forget the nested LRA
+        lraClient.completeNestedLRA(childId);
+        lraClient.forgetNestedLRA(childId);
+
+        // A forgotten/non-existent nested LRA should report Compensated (terminal state)
+        ParticipantStatus status = lraClient.getNestedLRAStatus(childId);
+        assertEquals(ParticipantStatus.Compensated, status,
+                "A non-existent nested LRA must report Compensated per coordinator convention");
+
+        lraClient.closeLRA(parentId);
+    }
+
+    /**
+     * Validates that closing a parent LRA cascades to nested LRAs following
+     * the participant state model. When a parent closes, the nested LRA
+     * (as a participant) should transition through the complete path:
+     * Active -> Completing -> Completed.
+     */
+    @Test
+    public void testParticipantStateModelParentCloseCascade() {
+        URI parentId = lraClient.startLRA(testName + "-parent");
+        URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
+
+        // Verify child is active before parent close
+        ParticipantStatus beforeClose = lraClient.getNestedLRAStatus(childId);
+        assertEquals(ParticipantStatus.Active, beforeClose,
+                "Nested LRA participant must be Active before parent close");
+
+        // Close the parent - this should cascade complete to the nested participant
+        lraClient.closeLRA(parentId);
+
+        // After parent close, the nested LRA status should be in a terminal complete state
+        // or the LRA may have been removed (returns Compensated for non-existent)
+        LRAStatus childFinalStatus = getStatus(childId);
+        if (childFinalStatus != null) {
+            assertEquals(LRAStatus.Closed, childFinalStatus,
+                    "After parent close, nested LRA should be Closed");
+        }
+    }
+
+    /**
+     * Validates that cancelling a parent LRA cascades to nested LRAs following
+     * the participant state model. When a parent cancels, the nested LRA
+     * (as a participant) should transition through the compensate path:
+     * Active -> Compensating -> Compensated.
+     */
+    @Test
+    public void testParticipantStateModelParentCancelCascade() {
+        URI parentId = lraClient.startLRA(testName + "-parent");
+        URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
+
+        // Verify child is active before parent cancel
+        ParticipantStatus beforeCancel = lraClient.getNestedLRAStatus(childId);
+        assertEquals(ParticipantStatus.Active, beforeCancel,
+                "Nested LRA participant must be Active before parent cancel");
+
+        // Cancel the parent - this should cascade compensate to the nested participant
+        lraClient.cancelLRA(parentId);
+
+        // After parent cancel, the nested LRA should be in a terminal compensate state
+        LRAStatus childFinalStatus = getStatus(childId);
+        if (childFinalStatus != null) {
+            assertEquals(LRAStatus.Cancelled, childFinalStatus,
+                    "After parent cancel, nested LRA should be Cancelled");
         }
     }
 

@@ -27,6 +27,12 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.jboss.resteasy.microprofile</groupId>
+      <artifactId>microprofile-rest-client</artifactId>
+      <version>${version.org.jboss.resteasy.microprofile}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>

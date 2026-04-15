@@ -70,12 +70,6 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.jboss.resteasy.microprofile</groupId>
-      <artifactId>microprofile-rest-client</artifactId>
-      <version>${version.org.jboss.resteasy.microprofile}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-jackson2-provider</artifactId>
     </dependency>

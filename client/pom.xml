@@ -37,7 +37,6 @@
       <groupId>org.jboss.resteasy.microprofile</groupId>
       <artifactId>microprofile-rest-client</artifactId>
       <version>${version.org.jboss.resteasy.microprofile}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.smallrye.config</groupId>

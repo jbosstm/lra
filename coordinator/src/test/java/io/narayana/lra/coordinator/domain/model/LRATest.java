@@ -1379,14 +1379,18 @@ public class LRATest extends LRATestBase {
      * The test calls A and verifies if return is status 412 (precondition failed) or 410 (gone) since LRA is not
      * active when Service B endpoint is called.
      */
-    // TODO this method is slow because of the sleeps - change it to use byteman
     @Test
+    @BMRules(rules = {
+            @BMRule(name = "Signal when LRA times out", targetClass = "io.narayana.lra.coordinator.domain.model.LongRunningAction", targetMethod = "updateState(org.eclipse.microprofile.lra.annotation.LRAStatus, boolean)", targetLocation = "AT EXIT", condition = "$! && $1 == org.eclipse.microprofile.lra.annotation.LRAStatus.Cancelling", action = "io.narayana.lra.coordinator.domain.model.BytemanHelper.signalRendezvous(\"lra-timeout\")")
+    })
     public void testTimeLimitWithPreConditionFailed() {
+        BytemanHelper.createRendezvous("lra-timeout");
         try (Response response = client.target(TestPortProvider.generateURL("/base/test/time-limit2")).request().get()) {
-
             assertThat("Expected 412 or 410 response", response.getStatus(),
                     Matchers.anyOf(Matchers.is(Response.Status.PRECONDITION_FAILED.getStatusCode()),
                             Matchers.is(Response.Status.GONE.getStatusCode())));
+        } finally {
+            BytemanHelper.removeRendezvous("lra-timeout");
         }
     }
 

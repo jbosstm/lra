@@ -5,11 +5,9 @@
 
 package io.narayana.lra.coordinator.domain.model;
 
-import static io.narayana.lra.LRAConstants.COORDINATOR_PATH_NAME;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_PARENT_CONTEXT_HEADER;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_RECOVERY_HEADER;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.arjuna.ats.arjuna.common.Uid;
 import com.arjuna.ats.arjuna.common.arjPropertyManager;
@@ -185,29 +183,19 @@ public class LRATestBase {
         @LRA(value = LRA.Type.REQUIRED, timeLimit = 500, timeUnit = ChronoUnit.MILLIS)
         public Response timeLimitTest(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lraId) {
             try {
-                Thread.sleep(1000); // sleep for longer than specified in the timeLimit annotation attribute
+                if (!BytemanHelper.awaitRendezvous("lra-timeout", 10)) {
+                    return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                            .entity("LRA did not time out within 10 seconds").build();
+                }
 
-                // force the implementation to notice that the LRA should have timed out by triggering
-                // a recovery scan so that the coordinator redelivers the listener notification which can take
-                // a few seconds (maybe put this in a routine so that other tests can use it)
-                String coordinatorPath = TestPortProvider.generateURL('/' + COORDINATOR_PATH_NAME);
-                String recoveryPath = coordinatorPath + "/recovery";
-
-                try (Client client = ClientBuilder.newClient()) {
-                    try (Response response = client.target(recoveryPath).request().get()) {
-                        assertEquals(200, response.getStatus(), "unable to trigger a recovery scan");
-                        response.getEntity(); // clean up by reading the response stream ignoring the result
-
-                        // now the next request should fail with a 412 code since the LRA should no longer be active
-                        restPutInvocation(lraId, "/mandatory", "");
-                    } catch (WebApplicationException wae) {
-                        return Response.status(wae.getResponse().getStatus()).build();
-                    }
+                try {
+                    restPutInvocation(lraId, "/mandatory", "");
+                } catch (WebApplicationException wae) {
+                    return Response.status(wae.getResponse().getStatus()).build();
                 }
 
                 return Response.status(Response.Status.OK).entity(lraId.toASCIIString()).build();
             } catch (InterruptedException e) {
-                System.out.printf("time-limit2: Interrupted because time limit elapsed:%s%n", e.getMessage());
                 return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
             }
         }

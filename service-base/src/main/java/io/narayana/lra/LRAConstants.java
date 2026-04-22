@@ -15,6 +15,7 @@ public final class LRAConstants {
     // warning: the WildFly subsystem uses lra-coordinator/lra-coordinator
     public static final String COORDINATOR_PATH_NAME = "lra-coordinator";
     public static final String RECOVERY_COORDINATOR_PATH_NAME = "recovery";
+    public static final String NESTED_COORDINATOR_PATH_NAME = "nested";
 
     public static final String COMPLETE = "complete";
     public static final String COMPENSATE = "compensate";

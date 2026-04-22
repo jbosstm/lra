@@ -7,6 +7,7 @@ package io.narayana.lra.client;
 
 import io.narayana.lra.LRAConstants;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HeaderParam;
@@ -250,7 +251,7 @@ public interface CoordinatorClient {
      * @param nestedLraId Nested LRA identifier
      * @return Response indicating success
      */
-    @PUT
+    @DELETE
     @Path("nested/{NestedLraId}/forget")
     CompletionStage<Response> forgetNestedLRA(@PathParam("NestedLraId") String nestedLraId);
 }

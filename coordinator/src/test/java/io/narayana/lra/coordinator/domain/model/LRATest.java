@@ -1762,15 +1762,12 @@ public class LRATest extends LRATestBase {
             // Now forget the nested LRA - this should succeed without throwing an exception
             lraClient.forgetNestedLRA(childId);
 
-            // Verify that the nested LRA is truly forgotten by checking its status
-            // It should either not be found or report as compensated (cleanup state)
+            // After forget, the @Status endpoint must return 410 (Gone)
             try {
-                ParticipantStatus afterForget = lraClient.getNestedLRAStatus(childId);
-                // If we get here, the LRA still exists but should be in a terminal state
-                assertTrue(afterForget == ParticipantStatus.Compensated || afterForget == ParticipantStatus.Completed,
-                        "After forget, nested LRA should be in terminal state if still exists");
+                lraClient.getNestedLRAStatus(childId);
+                fail("Expected NotFoundException for a forgotten nested LRA");
             } catch (NotFoundException expected) {
-                // This is expected - the LRA has been forgotten and removed
+                // per the @Status participant contract, 410 (Gone) for forgotten LRAs
             }
         } finally {
             // Clean up - close parent

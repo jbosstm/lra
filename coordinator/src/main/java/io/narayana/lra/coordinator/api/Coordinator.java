@@ -75,7 +75,6 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.faulttolerance.Bulkhead;
 import org.eclipse.microprofile.lra.annotation.LRAStatus;
-import org.eclipse.microprofile.lra.annotation.ParticipantStatus;
 import org.eclipse.microprofile.openapi.annotations.Components;
 import org.eclipse.microprofile.openapi.annotations.OpenAPIDefinition;
 import org.eclipse.microprofile.openapi.annotations.Operation;
@@ -111,15 +110,22 @@ public class Coordinator extends Application {
 
     private final LRAService lraService;
     private final RecoveryCoordinator recoveryCoordinator;
+    private final NestedCoordinator nestedCoordinator;
 
     public Coordinator() {
         lraService = LRARecoveryModule.getService();
         recoveryCoordinator = new RecoveryCoordinator();
+        nestedCoordinator = new NestedCoordinator();
     }
 
     @Path(RECOVERY_COORDINATOR_PATH_NAME)
     public RecoveryCoordinator getRecoveryCoordinator() {
         return recoveryCoordinator;
+    }
+
+    @Path(LRAConstants.NESTED_COORDINATOR_PATH_NAME)
+    public NestedCoordinator getNestedCoordinator() {
+        return nestedCoordinator;
     }
 
     private static boolean initAllowParticipantData() {
@@ -295,7 +301,8 @@ public class Coordinator extends Application {
 
         if (parentId != null) {
             // the startLRA call will have imported the parent LRA
-            String compensatorUrl = String.format("%s/nested/%s", coordinatorUrl, LRAConstants.getLRAUid(lraId));
+            String compensatorUrl = String.format("%s/%s/%s", coordinatorUrl, LRAConstants.NESTED_COORDINATOR_PATH_NAME,
+                    LRAConstants.getLRAUid(lraId));
 
             if (!lraService.hasTransaction(parentId)) {
 
@@ -366,90 +373,6 @@ public class Coordinator extends Application {
                 .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version)
                 .entity(lraId)
                 .build();
-    }
-
-    @GET
-    @Path("nested/{NestedLraId}/status")
-    public Response getNestedLRAStatus(@PathParam("NestedLraId") String nestedLraId) {
-        // needed to decode string passed from clients
-        String decodedURL = URLDecoder.decode(nestedLraId, StandardCharsets.UTF_8);
-        if (!lraService.hasTransaction(decodedURL)) {
-            // it must have compensated
-            return Response.ok(ParticipantStatus.Compensated.name()).build();
-        }
-
-        LongRunningAction lra = lraService.getTransaction(toURI(nestedLraId));
-        LRAStatus status = lra.getLRAStatus();
-
-        if (status == null || lra.getLRAStatus() == null) {
-            String errMsg = LRALogger.i18nLogger.error_cannotGetStatusOfNestedLraURI(nestedLraId, lra.getId());
-            LRALogger.logger.debug(errMsg);
-            throw new WebApplicationException(errMsg, Response.status(PRECONDITION_FAILED)
-                    .entity(errMsg)
-                    .build());
-        }
-
-        return Response.ok(mapToParticipantStatus(lra.getLRAStatus()).name()).build();
-    }
-
-    private ParticipantStatus mapToParticipantStatus(LRAStatus lraStatus) {
-        switch (lraStatus) {
-            case Active:
-                return ParticipantStatus.Active;
-            case Closed:
-                return ParticipantStatus.Completed;
-            case Cancelled:
-                return ParticipantStatus.Compensated;
-            case Closing:
-                return ParticipantStatus.Completing;
-            case Cancelling:
-                return ParticipantStatus.Compensating;
-            case FailedToClose:
-                return ParticipantStatus.FailedToComplete;
-            case FailedToCancel:
-                return ParticipantStatus.FailedToCompensate;
-            default:
-                // the status has been provided by a nested coordinator which we don't necessarily control
-                // - it's not a client error but a problem with the remote server so we have no other option
-                // than to report it as an internal error:
-                String errMsg = LRALogger.i18nLogger.warn_invalid_lraStatus(String.valueOf(lraStatus));
-                LRALogger.logger.debug(errMsg);
-                throw new WebApplicationException(errMsg, Response.status(INTERNAL_SERVER_ERROR)
-                        .entity(errMsg)
-                        .build());
-        }
-    }
-
-    @PUT
-    @Path("nested/{NestedLraId}/complete")
-    public Response completeNestedLRA(
-            @PathParam("NestedLraId") String nestedLraId,
-            @HeaderParam(HttpHeaders.ACCEPT) @DefaultValue(MediaType.TEXT_PLAIN) String mediaType,
-            @HeaderParam(LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) @DefaultValue(CURRENT_API_VERSION_STRING) String version) {
-
-        LRAData lraData = lraService.endLRA(toURI(nestedLraId), false, false, null, null);
-
-        return buildNestedResponse(mapToParticipantStatus(lraData.getStatus()).name(), version, mediaType);
-    }
-
-    @PUT
-    @Path("nested/{NestedLraId}/compensate")
-    public Response compensateNestedLRA(
-            @PathParam("NestedLraId") String nestedLraId,
-            @HeaderParam(HttpHeaders.ACCEPT) @DefaultValue(MediaType.TEXT_PLAIN) String mediaType,
-            @HeaderParam(LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) @DefaultValue(CURRENT_API_VERSION_STRING) String version) {
-
-        LRAData lraData = lraService.endLRA(toURI(nestedLraId), true, true, null, null);
-
-        return buildNestedResponse(mapToParticipantStatus(lraData.getStatus()).name(), version, mediaType);
-    }
-
-    @PUT
-    @Path("nested/{NestedLraId}/forget")
-    public Response forgetNestedLRA(@PathParam("NestedLraId") String nestedLraId) {
-        lraService.remove(toURI(nestedLraId));
-
-        return Response.ok().build();
     }
 
     /**
@@ -793,26 +716,6 @@ public class Coordinator extends Application {
             return builder.entity(model.toString()).build();
         } else { // produce MediaType.TEXT_PLAIN
             return builder.entity(statusName).build();
-        }
-    }
-
-    /**
-     * Build a response for nested LRA endpoints that return ParticipantStatus names.
-     * Nested endpoints always return 200 since they report participant-level status.
-     */
-    private Response buildNestedResponse(String status, String apiVersion, String mediaType) {
-        if (mediaType.equals(MediaType.APPLICATION_JSON)) {
-            JsonObject model = Json.createObjectBuilder()
-                    .add("status", status)
-                    .build();
-
-            return Response.ok(model.toString())
-                    .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, apiVersion)
-                    .build();
-        } else {
-            return Response.ok(status)
-                    .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, apiVersion)
-                    .build();
         }
     }
 

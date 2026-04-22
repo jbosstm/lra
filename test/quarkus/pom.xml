@@ -23,7 +23,7 @@
   </modules>
 
   <properties>
-    <version.quarkus>3.34.5</version.quarkus>
+    <version.quarkus>3.34.6</version.quarkus>
   </properties>
   <dependencyManagement>
     <dependencies>

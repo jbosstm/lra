@@ -53,6 +53,11 @@
       <version>${version.junit}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.eclipse.microprofile.jwt</groupId>
+      <artifactId>microprofile-jwt-auth-api</artifactId>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
 
   <build>

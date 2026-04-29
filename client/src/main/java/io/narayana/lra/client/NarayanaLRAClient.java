@@ -328,6 +328,7 @@ public class NarayanaLRAClient implements Closeable {
             return response.readEntity(new GenericType<List<LRAData>>() {
             });
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            rethrowIfUnauthorized(e);
             throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
                     .entity("getAllLRAs client request timed out, try again later").build());
         }
@@ -462,7 +463,7 @@ public class NarayanaLRAClient implements Closeable {
                 return lra;
 
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                // Handle connection exceptions, async timeout, and execution failures
+                rethrowIfUnauthorized(e);
                 Throwable t = e.getCause();
 
                 if (!supportsFailover) {
@@ -592,6 +593,7 @@ public class NarayanaLRAClient implements Closeable {
                 throwGenericLRAException(null, response.getStatus(), logMsg, null);
             }
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            rethrowIfUnauthorized(e);
             throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
                     .entity("leave LRA client request timed out, try again later").build());
         }
@@ -787,6 +789,7 @@ public class NarayanaLRAClient implements Closeable {
                 throw new WebApplicationException(Response.status(INTERNAL_SERVER_ERROR).entity(logMsg).build());
             }
         } catch (ExecutionException e) {
+            rethrowIfUnauthorized(e);
             throw new NotFoundException(e.getMessage());
         } catch (InterruptedException | TimeoutException e) {
             throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
@@ -837,6 +840,7 @@ public class NarayanaLRAClient implements Closeable {
 
             return response.readEntity(LRAData.class);
         } catch (ExecutionException e) {
+            rethrowIfUnauthorized(e);
             throw new NotFoundException(e.getMessage());
         } catch (InterruptedException | TimeoutException e) {
             throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
@@ -867,6 +871,7 @@ public class NarayanaLRAClient implements Closeable {
                 throw new WebApplicationException(response);
             }
         } catch (ExecutionException e) {
+            rethrowIfUnauthorized(e);
             throw new NotFoundException(e.getMessage());
         } catch (InterruptedException | TimeoutException e) {
             throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
@@ -907,6 +912,7 @@ public class NarayanaLRAClient implements Closeable {
             String statusString = response.readEntity(String.class);
             return ParticipantStatus.valueOf(statusString);
         } catch (ExecutionException e) {
+            rethrowIfUnauthorized(e);
             throw new NotFoundException(e.getMessage());
         } catch (InterruptedException | TimeoutException e) {
             throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
@@ -949,6 +955,7 @@ public class NarayanaLRAClient implements Closeable {
             String statusString = response.readEntity(String.class);
             return ParticipantStatus.valueOf(statusString);
         } catch (ExecutionException e) {
+            rethrowIfUnauthorized(e);
             throw new NotFoundException(e.getMessage());
         } catch (InterruptedException | TimeoutException e) {
             throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
@@ -990,6 +997,7 @@ public class NarayanaLRAClient implements Closeable {
             String statusString = response.readEntity(String.class);
             return ParticipantStatus.valueOf(statusString);
         } catch (ExecutionException e) {
+            rethrowIfUnauthorized(e);
             throw new NotFoundException(e.getMessage());
         } catch (InterruptedException | TimeoutException e) {
             throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
@@ -1017,6 +1025,7 @@ public class NarayanaLRAClient implements Closeable {
                 throw new WebApplicationException(response);
             }
         } catch (ExecutionException e) {
+            rethrowIfUnauthorized(e);
             throw new NotFoundException(e.getMessage());
         } catch (InterruptedException | TimeoutException e) {
             throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
@@ -1137,6 +1146,7 @@ public class NarayanaLRAClient implements Closeable {
                 return null;
             }
         } catch (ExecutionException e) {
+            rethrowIfUnauthorized(e);
             Throwable t = e.getCause();
             if (t instanceof ServiceUnavailableException) {
                 t = (ServiceUnavailableException) t;
@@ -1196,8 +1206,8 @@ public class NarayanaLRAClient implements Closeable {
                 throw new WebApplicationException(response);
             }
         } catch (ExecutionException e) {
+            rethrowIfUnauthorized(e);
             Throwable t = e.getCause();
-            // Handle 404 not found
             if (t instanceof NotFoundException) {
                 throw (NotFoundException) t;
             }
@@ -1296,6 +1306,17 @@ public class NarayanaLRAClient implements Closeable {
     public void close() {
         if (storkInitialised) {
             Stork.shutdown();
+        }
+    }
+
+    private static void rethrowIfUnauthorized(Throwable e) throws WebApplicationException {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t instanceof WebApplicationException) {
+                int status = ((WebApplicationException) t).getResponse().getStatus();
+                if (status == Response.Status.UNAUTHORIZED.getStatusCode()) {
+                    throw (WebApplicationException) t;
+                }
+            }
         }
     }
 

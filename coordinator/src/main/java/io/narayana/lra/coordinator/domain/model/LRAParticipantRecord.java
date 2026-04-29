@@ -23,11 +23,11 @@ import io.narayana.lra.Current;
 import io.narayana.lra.LRAConstants;
 import io.narayana.lra.LRAData;
 import io.narayana.lra.coordinator.domain.service.LRAService;
+import io.narayana.lra.coordinator.security.JwtTokenContext;
 import io.narayana.lra.logging.LRALogger;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.client.AsyncInvoker;
 import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.Invocation;
 import jakarta.ws.rs.client.WebTarget;
@@ -342,7 +342,7 @@ public class LRAParticipantRecord extends AbstractRecord implements Comparable<A
 
             try {
                 // ask the participant to complete or compensate
-                client = ClientBuilder.newClient();
+                client = JwtTokenContext.newClient();
                 Response response = client.target(endPath)
                         .request()
                         .header(LRA_HTTP_CONTEXT_HEADER, lraId.toASCIIString())
@@ -449,7 +449,7 @@ public class LRAParticipantRecord extends AbstractRecord implements Comparable<A
 
     private boolean afterLRARequest(URI target, String payload) {
 
-        try (Client client = ClientBuilder.newClient()) {
+        try (Client client = JwtTokenContext.newClient()) {
             Invocation.Builder builder = client.target(target)
                     .request()
                     .header(LRA_HTTP_RECOVERY_HEADER, recoveryURI.toASCIIString())
@@ -615,7 +615,7 @@ public class LRAParticipantRecord extends AbstractRecord implements Comparable<A
             // it is a standard participant - check the status URI
             Response response;
 
-            try (Client client = ClientBuilder.newClient()) {
+            try (Client client = JwtTokenContext.newClient()) {
                 // since this method is called from the recovery thread do not block
                 response = client.target(statusURI)//.path(getLRAId(lraId))
                         .request()
@@ -800,7 +800,7 @@ public class LRAParticipantRecord extends AbstractRecord implements Comparable<A
 
         if (forgetURI != null) {
             try {
-                client = ClientBuilder.newClient();
+                client = JwtTokenContext.newClient();
                 Response response = client.target(forgetURI)//.path(getLRAId(lraId))
                         .request()
                         .header(LRA_HTTP_CONTEXT_HEADER, lraId)

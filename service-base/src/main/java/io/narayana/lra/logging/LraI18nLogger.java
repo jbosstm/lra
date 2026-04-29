@@ -186,6 +186,13 @@ public interface LraI18nLogger {
             " balancer method `%s` is unsupported")
     String error_unsupportedLoadBalancer(String requestedMethod);
 
+    @LogMessage(level = WARN)
+    @Message(id = 25049, value = "Failed to read service token from '%s': %s")
+    void warn_failedToReadServiceToken(String location, String reason, @Cause Throwable t);
+
+    @Message(id = 25050, value = "Service token provider configured: location=%s, refresh=%ds")
+    String info_serviceTokenProviderConfigured(String location, long refreshSeconds);
+
     /*
      * Allocate new messages directly above this notice.
      * - id: use the next id number in numeric sequence. Don't reuse ids.

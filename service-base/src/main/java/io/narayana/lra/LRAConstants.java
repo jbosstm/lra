@@ -69,6 +69,12 @@ public final class LRAConstants {
     public static final long PARTICIPANT_TIMEOUT = 2;
     public static final String ALLOW_PARTICIPANT_DATA = "lra.participant.data";
 
+    public static final String HTTP_CLIENT_PROVIDERS = "lra.http-client.providers";
+    public static final String BEARER_TOKEN_PROPERTY = "lra.jwt.token";
+
+    public static final String SERVICE_TOKEN_LOCATION = "lra.security.service-token.location";
+    public static final String SERVICE_TOKEN_REFRESH_SECONDS = "lra.security.service-token.refresh-seconds";
+
     /**
      * Number of milliseconds for the coordinator to hold a lock for enlisting participants. Defaults to 500.
      */

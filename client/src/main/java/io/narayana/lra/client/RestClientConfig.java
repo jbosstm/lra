@@ -5,6 +5,7 @@
 
 package io.narayana.lra.client;
 
+import io.narayana.lra.LRAConstants;
 import io.narayana.lra.logging.LRALogger;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -49,7 +50,7 @@ public class RestClientConfig {
     private static final String HOSTNAME_VERIFIER_KEY = CONFIG_PREFIX + "hostnameVerifier";
     private static final String CONNECT_TIMEOUT_KEY = CONFIG_PREFIX + "connectTimeout";
     private static final String READ_TIMEOUT_KEY = CONFIG_PREFIX + "readTimeout";
-    private static final String PROVIDERS_KEY = CONFIG_PREFIX + "providers";
+    private static final String PROVIDERS_KEY = LRAConstants.HTTP_CLIENT_PROVIDERS;
 
     private static final String DEFAULT_KEYSTORE_TYPE = "JKS";
 

@@ -141,10 +141,12 @@
     <version.microprofile-context-propagation-api>1.3</version.microprofile-context-propagation-api>
     <version.microprofile.config-api>3.1.1</version.microprofile.config-api>
     <version.microprofile.fault-tolerance>4.1.2</version.microprofile.fault-tolerance>
+    <version.microprofile.jwt>2.1</version.microprofile.jwt>
 
     <!-- Needed for WildflyLRACoordinatorDeployment class -->
     <version.microprofile.lra>2.0.2</version.microprofile.lra>
     <version.microprofile.rest-client-api>4.0</version.microprofile.rest-client-api>
+    <version.nimbus-jose-jwt>10.9</version.nimbus-jose-jwt>
     <version.org.apache.activemq>2.44.0</version.org.apache.activemq>
     <version.org.codehaus.mojo.jboss-maven-plugin>1.5.0</version.org.codehaus.mojo.jboss-maven-plugin>
     <version.org.eclipse.microprofile.openapi>4.1.1</version.org.eclipse.microprofile.openapi>
@@ -375,6 +377,11 @@
         <version>${version.microprofile.lra}</version>
       </dependency>
       <dependency>
+        <groupId>org.eclipse.microprofile.jwt</groupId>
+        <artifactId>microprofile-jwt-auth-api</artifactId>
+        <version>${version.microprofile.jwt}</version>
+      </dependency>
+      <dependency>
         <groupId>org.eclipse.microprofile.openapi</groupId>
         <artifactId>microprofile-openapi-api</artifactId>
         <version>${version.org.eclipse.microprofile.openapi}</version>
@@ -386,6 +393,12 @@
       </dependency>
 
       <!-- test dependencies -->
+      <dependency>
+        <groupId>com.nimbusds</groupId>
+        <artifactId>nimbus-jose-jwt</artifactId>
+        <version>${version.nimbus-jose-jwt}</version>
+        <scope>test</scope>
+      </dependency>
       <dependency>
         <groupId>org.jboss.byteman</groupId>
         <artifactId>byteman-bmunit5</artifactId>

@@ -36,6 +36,7 @@ import io.narayana.lra.LRAData;
 import io.narayana.lra.coordinator.domain.model.LongRunningAction;
 import io.narayana.lra.coordinator.domain.service.LRAService;
 import io.narayana.lra.coordinator.internal.LRARecoveryModule;
+import io.narayana.lra.coordinator.security.JwtTokenContext;
 import io.narayana.lra.logging.LRALogger;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.json.Json;
@@ -53,7 +54,6 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.ServiceUnavailableException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
@@ -299,7 +299,7 @@ public class Coordinator extends Application {
 
             if (!lraService.hasTransaction(parentId)) {
 
-                try (Client client = ClientBuilder.newClient()) {
+                try (Client client = JwtTokenContext.newClient()) {
                     try (Response response = client.target(parentId)
                             .request()
                             .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, CURRENT_API_VERSION_STRING)

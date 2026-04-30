@@ -885,14 +885,16 @@ public class NarayanaLRAClient implements Closeable {
     public ParticipantStatus getNestedLRAStatus(URI nestedLraId)
             throws WebApplicationException {
         try {
-
             URI uriWithoutQuery = UriBuilder.fromUri(nestedLraId).replaceQuery(null).build();
             CoordinatorClient client = createCoordinatorClient(LRAConstants.getLRACoordinatorUrl(uriWithoutQuery));
 
-            // ParentLRA query is part of the lra id, so keeping it
             String encodedLRA = URLEncoder.encode(nestedLraId.toString(), StandardCharsets.UTF_8);
             Response response = client.getNestedLRAStatus(encodedLRA)
                     .toCompletableFuture().get(QUERY_TIMEOUT, TimeUnit.SECONDS);
+
+            if (response.getStatus() == Response.Status.GONE.getStatusCode()) {
+                throw new NotFoundException("Nested LRA is no longer known: " + nestedLraId);
+            }
 
             if (response.getStatus() != OK.getStatusCode()) {
                 throw new WebApplicationException(response);
@@ -928,7 +930,6 @@ public class NarayanaLRAClient implements Closeable {
             URI uriWithoutQuery = UriBuilder.fromUri(nestedLraId).replaceQuery(null).build();
             CoordinatorClient client = createCoordinatorClient(LRAConstants.getLRACoordinatorUrl(uriWithoutQuery));
 
-            // Extract the LRA UID
             String encodedLRA = URLEncoder.encode(nestedLraId.toString(), StandardCharsets.UTF_8);
             Response response = client.completeNestedLRA(
                     encodedLRA,
@@ -936,18 +937,7 @@ public class NarayanaLRAClient implements Closeable {
                     LRAConstants.CURRENT_API_VERSION_STRING)
                     .toCompletableFuture().get(END_TIMEOUT, TimeUnit.SECONDS);
 
-            if (response.getStatus() != OK.getStatusCode()) {
-                throw new WebApplicationException(response);
-            }
-
-            if (!response.hasEntity()) {
-                throw new WebApplicationException(
-                        Response.status(INTERNAL_SERVER_ERROR)
-                                .entity("No status returned for nested LRA completion").build());
-            }
-
-            String statusString = response.readEntity(String.class);
-            return ParticipantStatus.valueOf(statusString);
+            return handleNestedEndResponse(response, nestedLraId, "completion");
         } catch (ExecutionException e) {
             throw new NotFoundException(e.getMessage());
         } catch (InterruptedException | TimeoutException e) {
@@ -977,24 +967,36 @@ public class NarayanaLRAClient implements Closeable {
                     LRAConstants.CURRENT_API_VERSION_STRING)
                     .toCompletableFuture().get(END_TIMEOUT, TimeUnit.SECONDS);
 
-            if (response.getStatus() != OK.getStatusCode()) {
-                throw new WebApplicationException(response);
-            }
-
-            if (!response.hasEntity()) {
-                throw new WebApplicationException(
-                        Response.status(INTERNAL_SERVER_ERROR)
-                                .entity("No status returned for nested LRA compensation").build());
-            }
-
-            String statusString = response.readEntity(String.class);
-            return ParticipantStatus.valueOf(statusString);
+            return handleNestedEndResponse(response, nestedLraId, "compensation");
         } catch (ExecutionException e) {
             throw new NotFoundException(e.getMessage());
         } catch (InterruptedException | TimeoutException e) {
             throw new WebApplicationException(Response.status(SERVICE_UNAVAILABLE)
                     .entity("compensate nested LRA client request timed out, try again later").build());
         }
+    }
+
+    private ParticipantStatus handleNestedEndResponse(Response response, URI nestedLraId, String operation) {
+        int status = response.getStatus();
+
+        if (status == Response.Status.GONE.getStatusCode()) {
+            throw new NotFoundException("Nested LRA is no longer known: " + nestedLraId);
+        }
+
+        if (status != OK.getStatusCode()
+                && status != Response.Status.ACCEPTED.getStatusCode()
+                && status != Response.Status.CONFLICT.getStatusCode()) {
+            throw new WebApplicationException(response);
+        }
+
+        if (!response.hasEntity()) {
+            throw new WebApplicationException(
+                    Response.status(INTERNAL_SERVER_ERROR)
+                            .entity("No status returned for nested LRA " + operation).build());
+        }
+
+        String statusString = response.readEntity(String.class);
+        return ParticipantStatus.valueOf(statusString);
     }
 
     /**
@@ -1013,7 +1015,8 @@ public class NarayanaLRAClient implements Closeable {
             Response response = client.forgetNestedLRA(encodedLRA)
                     .toCompletableFuture().get(END_TIMEOUT, TimeUnit.SECONDS);
 
-            if (response.getStatus() != OK.getStatusCode()) {
+            int status = response.getStatus();
+            if (status != OK.getStatusCode() && status != Response.Status.GONE.getStatusCode()) {
                 throw new WebApplicationException(response);
             }
         } catch (ExecutionException e) {

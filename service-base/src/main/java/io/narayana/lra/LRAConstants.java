@@ -15,6 +15,7 @@ public final class LRAConstants {
     // warning: the WildFly subsystem uses lra-coordinator/lra-coordinator
     public static final String COORDINATOR_PATH_NAME = "lra-coordinator";
     public static final String RECOVERY_COORDINATOR_PATH_NAME = "recovery";
+    public static final String NESTED_COORDINATOR_PATH_NAME = "nested";
 
     public static final String COMPLETE = "complete";
     public static final String COMPENSATE = "compensate";
@@ -35,6 +36,7 @@ public final class LRAConstants {
     public static final String API_VERSION_1_0 = "1.0";
     public static final String API_VERSION_1_1 = "1.1";
     public static final String API_VERSION_1_2 = "1.2";
+    public static final String API_VERSION_1_3 = "1.3";
     public static final String API_VERSION_2_0 = "2.0";
 
     /*
@@ -42,12 +44,26 @@ public final class LRAConstants {
      * Any version not mentioned in the list of the supported versions is unsupported
      * and will fail on incoming HTTP call.
      * The valid version format is specified in API.adoc document.
-     * When a new version with a new features is added consider adding API tests under 'test/basic'.
+     * When a new version with new features is added consider adding API tests under 'test/basic'.
+     *
+     * Version history:
+     * 1.0 - initial version
+     * 1.1 - participant data support
+     * 1.2 - participant link header support
+     * 1.3 - nested LRA endpoints extracted into NestedCoordinator sub-resource;
+     * nested status returns 200/410 per @Status;
+     * nested forget uses HTTP DELETE per @Forget and returns 200/410
+     * 2.0 - close/cancel return 202 for transitional states (Closing/Cancelling)
+     * and 503 for transient failures (lock contention/store failure);
+     * nested complete/compensate return 200/202/409 per @Complete/@Compensate
+     * (pre-2.0 always returns 200 for backward compatibility);
+     * opt-in only, planned as default for a future release
      */
     public static final String[] NARAYANA_LRA_API_SUPPORTED_VERSIONS = new String[] {
             API_VERSION_1_0,
             API_VERSION_1_1,
             API_VERSION_1_2,
+            API_VERSION_1_3,
             API_VERSION_2_0
     };
 
@@ -55,7 +71,7 @@ public final class LRAConstants {
      * The Narayana API version for LRA coordinator supported for the release.
      * Any higher version is considered as unimplemented and unknown.
      */
-    public static final String CURRENT_API_VERSION_STRING = API_VERSION_1_2;
+    public static final String CURRENT_API_VERSION_STRING = API_VERSION_1_3;
 
     public static final String NARAYANA_LRA_API_VERSION_HEADER_NAME = "Narayana-LRA-API-version";
 

@@ -8,6 +8,7 @@ package io.narayana.lra.coordinator.api;
 import static io.narayana.lra.LRAConstants.API_VERSION_1_0;
 import static io.narayana.lra.LRAConstants.API_VERSION_1_1;
 import static io.narayana.lra.LRAConstants.API_VERSION_1_2;
+import static io.narayana.lra.LRAConstants.API_VERSION_1_3;
 import static io.narayana.lra.LRAConstants.CLIENT_ID_PARAM_NAME;
 import static io.narayana.lra.LRAConstants.COMPENSATE;
 import static io.narayana.lra.LRAConstants.COMPLETE;
@@ -736,7 +737,8 @@ public class Coordinator extends Application {
         return version != null
                 && !version.equals(API_VERSION_1_0)
                 && !version.equals(API_VERSION_1_1)
-                && !version.equals(API_VERSION_1_2);
+                && !version.equals(API_VERSION_1_2)
+                && !version.equals(API_VERSION_1_3);
     }
 
     private URI toURI(String lraId) {

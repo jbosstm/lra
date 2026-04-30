@@ -200,29 +200,35 @@ public class NestedCoordinator {
     }
 
     /**
-     * Build a response following the participant contract:
+     * Build a response following the participant contract.
+     * API version 2.0+ returns spec-compliant HTTP status codes:
      * 200 — terminal success (Completed, Compensated)
      * 202 — in progress (Completing, Compensating)
      * 409 — failure (FailedToComplete, FailedToCompensate)
+     * Older versions always return 200 for backward compatibility.
      */
     private Response buildNestedResponse(ParticipantStatus pStatus, String apiVersion, String mediaType) {
         int httpStatus;
-        switch (pStatus) {
-            case Completed:
-            case Compensated:
-                httpStatus = Response.Status.OK.getStatusCode();
-                break;
-            case Completing:
-            case Compensating:
-                httpStatus = Response.Status.ACCEPTED.getStatusCode();
-                break;
-            case FailedToComplete:
-            case FailedToCompensate:
-                httpStatus = Response.Status.CONFLICT.getStatusCode();
-                break;
-            default:
-                httpStatus = Response.Status.OK.getStatusCode();
-                break;
+        if (!supportsParticipantStatusCodes(apiVersion)) {
+            httpStatus = Response.Status.OK.getStatusCode();
+        } else {
+            switch (pStatus) {
+                case Completed:
+                case Compensated:
+                    httpStatus = Response.Status.OK.getStatusCode();
+                    break;
+                case Completing:
+                case Compensating:
+                    httpStatus = Response.Status.ACCEPTED.getStatusCode();
+                    break;
+                case FailedToComplete:
+                case FailedToCompensate:
+                    httpStatus = Response.Status.CONFLICT.getStatusCode();
+                    break;
+                default:
+                    httpStatus = Response.Status.OK.getStatusCode();
+                    break;
+            }
         }
 
         String statusName = pStatus.name();
@@ -267,5 +273,13 @@ public class NestedCoordinator {
                     .entity(errMsg)
                     .build());
         }
+    }
+
+    private static boolean supportsParticipantStatusCodes(String version) {
+        return version != null
+                && !version.equals(LRAConstants.API_VERSION_1_0)
+                && !version.equals(LRAConstants.API_VERSION_1_1)
+                && !version.equals(LRAConstants.API_VERSION_1_2)
+                && !version.equals(LRAConstants.API_VERSION_1_3);
     }
 }

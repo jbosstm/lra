@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.narayana.lra.LRAConstants;
 import io.narayana.lra.client.NarayanaLRAClient;
 import io.narayana.lra.coordinator.api.Coordinator;
 import io.narayana.lra.coordinator.domain.service.LRAService;
@@ -1078,19 +1079,19 @@ public class LRAStateModelTest extends LRATestBase {
     // ===================================================================
 
     /**
-     * @Complete returns 202 with Completing when a participant in the nested LRA
-     *           is unreachable. Per the spec, 202 signals that the completion is still in progress.
+     * With API version 2.0, @Complete returns 202 with Completing when a participant
+     * in the nested LRA is unreachable.
      */
     @Test
-    public void testNestedCompleteReturns202ForCompleting() {
+    public void testNestedCompleteReturns202ForCompletingWithV2() {
         URI parentId = lraClient.startLRA(testName + "-parent");
         URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
 
         enlistUnreachableParticipantInLRA(childId);
 
-        try (Response response = rawNestedComplete(childId)) {
+        try (Response response = rawNestedCompleteWithVersion(childId, LRAConstants.API_VERSION_2_0)) {
             assertEquals(202, response.getStatus(),
-                    "@Complete must return 202 when participants have not all responded");
+                    "@Complete with v2.0 must return 202 when participants have not all responded");
             assertEquals(ParticipantStatus.Completing.name(), response.readEntity(String.class),
                     "@Complete 202 body must be the ParticipantStatus Completing");
         }
@@ -1099,19 +1100,19 @@ public class LRAStateModelTest extends LRATestBase {
     }
 
     /**
-     * @Compensate returns 202 with Compensating when a participant in the nested LRA
-     *             is unreachable. Per the spec, 202 signals that the compensation is still in progress.
+     * With API version 2.0, @Compensate returns 202 with Compensating when a participant
+     * in the nested LRA is unreachable.
      */
     @Test
-    public void testNestedCompensateReturns202ForCompensating() {
+    public void testNestedCompensateReturns202ForCompensatingWithV2() {
         URI parentId = lraClient.startLRA(testName + "-parent");
         URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
 
         enlistUnreachableParticipantInLRA(childId);
 
-        try (Response response = rawNestedCompensate(childId)) {
+        try (Response response = rawNestedCompensateWithVersion(childId, LRAConstants.API_VERSION_2_0)) {
             assertEquals(202, response.getStatus(),
-                    "@Compensate must return 202 when participants have not all responded");
+                    "@Compensate with v2.0 must return 202 when participants have not all responded");
             assertEquals(ParticipantStatus.Compensating.name(), response.readEntity(String.class),
                     "@Compensate 202 body must be the ParticipantStatus Compensating");
         }
@@ -1120,19 +1121,19 @@ public class LRAStateModelTest extends LRATestBase {
     }
 
     /**
-     * @Complete returns 409 with FailedToComplete when a participant in the nested LRA
-     *           reports failure. Per the spec, 409 signals that the participant failed.
+     * With API version 2.0, @Complete returns 409 with FailedToComplete when a participant
+     * in the nested LRA reports failure.
      */
     @Test
-    public void testNestedCompleteReturns409ForFailedToComplete() {
+    public void testNestedCompleteReturns409ForFailedToCompleteWithV2() {
         URI parentId = lraClient.startLRA(testName + "-parent");
         URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
 
         enlistFailingParticipant(childId);
 
-        try (Response response = rawNestedComplete(childId)) {
+        try (Response response = rawNestedCompleteWithVersion(childId, LRAConstants.API_VERSION_2_0)) {
             assertEquals(409, response.getStatus(),
-                    "@Complete must return 409 when a participant failed to complete");
+                    "@Complete with v2.0 must return 409 when a participant failed to complete");
             assertEquals(ParticipantStatus.FailedToComplete.name(), response.readEntity(String.class),
                     "@Complete 409 body must be the ParticipantStatus FailedToComplete");
         }
@@ -1141,21 +1142,61 @@ public class LRAStateModelTest extends LRATestBase {
     }
 
     /**
-     * @Compensate returns 409 with FailedToCompensate when a participant in the nested LRA
-     *             reports failure. Per the spec, 409 signals that the participant failed.
+     * With API version 2.0, @Compensate returns 409 with FailedToCompensate when a participant
+     * in the nested LRA reports failure.
      */
     @Test
-    public void testNestedCompensateReturns409ForFailedToCompensate() {
+    public void testNestedCompensateReturns409ForFailedToCompensateWithV2() {
+        URI parentId = lraClient.startLRA(testName + "-parent");
+        URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
+
+        enlistFailingParticipant(childId);
+
+        try (Response response = rawNestedCompensateWithVersion(childId, LRAConstants.API_VERSION_2_0)) {
+            assertEquals(409, response.getStatus(),
+                    "@Compensate with v2.0 must return 409 when a participant failed to compensate");
+            assertEquals(ParticipantStatus.FailedToCompensate.name(), response.readEntity(String.class),
+                    "@Compensate 409 body must be the ParticipantStatus FailedToCompensate");
+        }
+
+        lraClient.cancelLRA(parentId);
+    }
+
+    /**
+     * With legacy API versions (pre-2.0), @Complete returns 200 even for non-terminal states.
+     */
+    @Test
+    public void testNestedCompleteReturns200ForLegacyVersion() {
+        URI parentId = lraClient.startLRA(testName + "-parent");
+        URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
+
+        enlistUnreachableParticipantInLRA(childId);
+
+        try (Response response = rawNestedComplete(childId)) {
+            assertEquals(200, response.getStatus(),
+                    "@Complete with default version must return 200 for backward compatibility");
+            assertEquals(ParticipantStatus.Completing.name(), response.readEntity(String.class),
+                    "Body must still contain the ParticipantStatus");
+        }
+
+        lraClient.cancelLRA(parentId);
+    }
+
+    /**
+     * With legacy API versions (pre-2.0), @Compensate returns 200 even for failed states.
+     */
+    @Test
+    public void testNestedCompensateReturns200ForLegacyVersion() {
         URI parentId = lraClient.startLRA(testName + "-parent");
         URI childId = lraClient.startLRA(parentId, testName + "-child", 0L, ChronoUnit.SECONDS);
 
         enlistFailingParticipant(childId);
 
         try (Response response = rawNestedCompensate(childId)) {
-            assertEquals(409, response.getStatus(),
-                    "@Compensate must return 409 when a participant failed to compensate");
+            assertEquals(200, response.getStatus(),
+                    "@Compensate with default version must return 200 for backward compatibility");
             assertEquals(ParticipantStatus.FailedToCompensate.name(), response.readEntity(String.class),
-                    "@Compensate 409 body must be the ParticipantStatus FailedToCompensate");
+                    "Body must still contain the ParticipantStatus");
         }
 
         lraClient.cancelLRA(parentId);
@@ -1229,9 +1270,23 @@ public class LRAStateModelTest extends LRATestBase {
                 .request().put(Entity.text(""));
     }
 
+    private Response rawNestedCompleteWithVersion(URI childId, String apiVersion) {
+        return client.target(nestedUrl(childId) + "/" + COMPLETE)
+                .request()
+                .header(LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME, apiVersion)
+                .put(Entity.text(""));
+    }
+
     private Response rawNestedCompensate(URI childId) {
         return client.target(nestedUrl(childId) + "/" + COMPENSATE)
                 .request().put(Entity.text(""));
+    }
+
+    private Response rawNestedCompensateWithVersion(URI childId, String apiVersion) {
+        return client.target(nestedUrl(childId) + "/" + COMPENSATE)
+                .request()
+                .header(LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME, apiVersion)
+                .put(Entity.text(""));
     }
 
     private Response rawNestedStatus(URI childId) {

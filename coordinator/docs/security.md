@@ -23,35 +23,49 @@ access control is left to the container or an external gateway.
 
 ## Outbound Token Propagation
 
-When a caller invokes a coordinator endpoint with a Bearer token, that token can be
-forwarded to participant callback URIs. This is useful when participants also require
-JWT authentication.
+When a caller invokes a coordinator or participant endpoint with a Bearer token, that
+token can be forwarded on outbound HTTP calls. This is useful when both the coordinator
+and participants require JWT authentication.
 
 ### Configuration
 
+Two filters are provided for different roles:
+
+| Filter | Module | Use case |
+|--------|--------|----------|
+| `io.narayana.lra.client.JwtTokenClientRequestFilter` | lra-client | Participants calling the coordinator |
+| `io.narayana.lra.coordinator.security.JwtTokenCallbackRequestFilter` | lra-coordinator-jar | Coordinator calling participant callbacks |
+
+### Participant Configuration
+
 ```properties
-lra.http-client.providers=io.narayana.lra.coordinator.security.JwtTokenClientRequestFilter
+lra.http-client.providers=io.narayana.lra.client.JwtTokenClientRequestFilter
 ```
 
-This registers a `ClientRequestFilter` on all outbound HTTP clients. The same config
-key (`lra.http-client.providers`) is used by `RestClientConfig` in the lra-client
-module, so one property covers both the coordinator's direct HTTP calls and the
-`NarayanaLRAClient`.
+### Coordinator Configuration
+
+```properties
+lra.http-client.providers=io.narayana.lra.coordinator.security.JwtTokenCallbackRequestFilter
+```
+
+The config key (`lra.http-client.providers`) is shared — `RestClientConfig` in the
+`lra-client` module reads it for the `NarayanaLRAClient`, and `JwtTokenContext` in the
+coordinator reads it for direct HTTP calls.
 
 ### How It Works
 
 1. The container's MicroProfile JWT implementation validates the inbound token and makes
-   `JsonWebToken` available via CDI (`@Inject JsonWebToken`).
-2. `JwtTokenClientRequestFilter` reads `JsonWebToken.getRawToken()` via CDI injection
-   (when instantiated by MicroProfile Rest Client on the request thread).
-3. `JwtTokenContext.newClient()` looks up `JsonWebToken` via `CDI.current()` and stores
-   the raw token as a client configuration property (surviving async thread dispatch
-   for plain JAX-RS clients used by the coordinator internally).
+   `JsonWebToken` available via CDI.
+2. Both filters resolve the token via `CDI.current().select(JsonWebToken.class)` on the
+   request thread.
+3. `JwtTokenContext.newClient()` (coordinator only) also looks up `JsonWebToken` via
+   `CDI.current()` and stores the raw token as a client configuration property
+   (surviving async thread dispatch for plain JAX-RS clients).
 4. The filter adds `Authorization: Bearer <token>` to the outbound request.
 
 Note: the container's security subsystem only handles inbound authentication. Outbound
-token propagation to participants is always configured at the application level using
-the properties described above.
+token propagation is always configured at the application level using the properties
+described above.
 
 ## Recovery Thread and Service Token
 
@@ -123,11 +137,10 @@ Token resolution is logged at different levels to aid troubleshooting:
 
 | Level | Message | Meaning |
 |-------|---------|---------|
-| `TRACE` | "JWT token resolved from CDI JsonWebToken" | Token found via CDI injection |
-| `TRACE` | "Using CDI JsonWebToken for outbound participant call" | Client filter using injected token |
-| `DEBUG` | "CDI JsonWebToken not available: ..." | CDI lookup failed (expected on recovery threads) |
-| `DEBUG` | "CDI JsonWebToken not resolvable in client request filter" | Filter has no CDI-injected token |
-| `TRACE` | "Bearer token from CDI JsonWebToken configured on REST client builder" | `RestClientConfig` successfully captured token |
+| `TRACE` | "JWT token resolved from CDI JsonWebToken" | Token found via CDI lookup |
+| `TRACE` | "Using CDI JsonWebToken for outbound participant call" | Client filter resolved token |
+| `DEBUG` | "CDI not available for JWT resolution: ..." | CDI lookup failed (expected on recovery threads) |
+| `DEBUG` | "CDI JsonWebToken not available: ..." | CDI lookup failed in JwtTokenContext |
 | `INFO` | "Service token provider configured: location=..." | `ServiceTokenProvider` initialized |
 | `WARN` | "Failed to read service token from ..." | Service token file/HTTP read failed |
 

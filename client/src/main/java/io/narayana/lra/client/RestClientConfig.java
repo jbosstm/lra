@@ -191,7 +191,7 @@ public class RestClientConfig {
         }
 
         try {
-            Class<?> clazz = Class.forName(className);
+            Class<?> clazz = Class.forName(className, true, Thread.currentThread().getContextClassLoader());
             return (HostnameVerifier) clazz.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
             LRALogger.logger.warnf(e, "Failed to load HostnameVerifier class %s: %s",
@@ -228,7 +228,7 @@ public class RestClientConfig {
             String trimmed = providerClassName.trim();
             if (!trimmed.isEmpty()) {
                 try {
-                    Class<?> providerClass = Class.forName(trimmed);
+                    Class<?> providerClass = Class.forName(trimmed, true, Thread.currentThread().getContextClassLoader());
                     builder.register(providerClass);
                 } catch (Exception e) {
                     LRALogger.logger.warnf(e, "Failed to load provider class %s: %s",

@@ -3,10 +3,9 @@
    SPDX-License-Identifier: Apache-2.0
  */
 
-package io.narayana.lra.coordinator.security;
+package io.narayana.lra.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import io.narayana.lra.LRAConstants;
 import jakarta.ws.rs.ApplicationPath;
@@ -27,19 +26,17 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests outbound JWT token propagation via {@link JwtTokenCallbackRequestFilter}.
- * The filter reads the token from a client configuration property
- * ({@value LRAConstants#BEARER_TOKEN_PROPERTY}) and adds it as a Bearer header.
+ * Tests that {@link JwtTokenClientRequestFilter} propagates JWT Bearer tokens
+ * on outbound HTTP requests from participants to the coordinator.
  */
-public class JwtTokenPropagationTest {
+public class JwtTokenClientRequestFilterTest {
 
     private static UndertowJaxrsServer server;
 
-    @Path("/jwt-test")
-    public static class JwtTestResource {
+    @Path("/jwt-echo")
+    public static class EchoResource {
 
         @GET
-        @Path("/echo-auth")
         public Response echoAuth(@HeaderParam(HttpHeaders.AUTHORIZATION) String auth) {
             return Response.ok(auth != null ? auth : "").build();
         }
@@ -51,7 +48,7 @@ public class JwtTokenPropagationTest {
         @Override
         public Set<Class<?>> getClasses() {
             Set<Class<?>> classes = new HashSet<>();
-            classes.add(JwtTestResource.class);
+            classes.add(EchoResource.class);
             return classes;
         }
     }
@@ -70,28 +67,28 @@ public class JwtTokenPropagationTest {
     }
 
     @Test
-    void testClientFilterAddsAuthorizationFromProperty() {
-        String echoUrl = TestPortProvider.generateURL("/jwt-test/echo-auth");
+    void tokenFromPropertyIsPropagated() {
+        String url = TestPortProvider.generateURL("/jwt-echo");
 
         try (Client client = ClientBuilder.newClient()) {
-            client.property(LRAConstants.BEARER_TOKEN_PROPERTY, "my-jwt-token");
-            client.register(JwtTokenCallbackRequestFilter.class);
+            client.property(LRAConstants.BEARER_TOKEN_PROPERTY, "participant-jwt-token");
+            client.register(JwtTokenClientRequestFilter.class);
 
-            try (Response response = client.target(echoUrl).request().get()) {
+            try (Response response = client.target(url).request().get()) {
                 assertEquals(200, response.getStatus());
-                assertEquals("Bearer my-jwt-token", response.readEntity(String.class));
+                assertEquals("Bearer participant-jwt-token", response.readEntity(String.class));
             }
         }
     }
 
     @Test
-    void testClientFilterNoTokenNoHeader() {
-        String echoUrl = TestPortProvider.generateURL("/jwt-test/echo-auth");
+    void noTokenMeansNoAuthorizationHeader() {
+        String url = TestPortProvider.generateURL("/jwt-echo");
 
         try (Client client = ClientBuilder.newClient()) {
-            client.register(JwtTokenCallbackRequestFilter.class);
+            client.register(JwtTokenClientRequestFilter.class);
 
-            try (Response response = client.target(echoUrl).request().get()) {
+            try (Response response = client.target(url).request().get()) {
                 assertEquals(200, response.getStatus());
                 assertEquals("", response.readEntity(String.class),
                         "No Authorization header should be sent when no token is available");
@@ -100,9 +97,18 @@ public class JwtTokenPropagationTest {
     }
 
     @Test
-    void testNewClientCreatesWorkingClient() {
-        try (Client client = JwtTokenContext.newClient()) {
-            assertNotNull(client);
+    void emptyTokenIsNotPropagated() {
+        String url = TestPortProvider.generateURL("/jwt-echo");
+
+        try (Client client = ClientBuilder.newClient()) {
+            client.property(LRAConstants.BEARER_TOKEN_PROPERTY, "");
+            client.register(JwtTokenClientRequestFilter.class);
+
+            try (Response response = client.target(url).request().get()) {
+                assertEquals(200, response.getStatus());
+                assertEquals("", response.readEntity(String.class),
+                        "Empty token should not produce an Authorization header");
+            }
         }
     }
 }

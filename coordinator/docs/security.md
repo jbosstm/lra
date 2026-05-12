@@ -1,71 +1,98 @@
-# LRA Coordinator Security
+# LRA Security
 
 ## Overview
 
-The LRA Coordinator supports optional JWT-based security for two concerns:
+The LRA project supports optional JWT-based security for three concerns:
 
 1. **Inbound authentication** -- validating Bearer tokens on coordinator API endpoints
    (delegated to the container's MicroProfile JWT implementation)
 2. **Outbound token propagation** -- forwarding credentials when the coordinator calls
-   participant callbacks (compensate, complete, status, forget, afterLRA)
+   participant callbacks, or when participants call the coordinator
+3. **Recovery thread authentication** -- using a pre-provisioned service token when no
+   inbound request context is available
 
 ## Inbound Authentication
 
 Inbound JWT authentication is **not implemented by the coordinator itself**. It is the
 responsibility of the deployment container:
 
-- **WildFly**: configure via the Elytron subsystem and `microprofile-jwt-smallrye` extension
+- **WildFly**: configure via the Elytron subsystem and `microprofile-jwt-smallrye` extension.
+  The LRA coordinator subsystem supports a `security-domain` attribute that wires
+  BEARER_TOKEN authentication on the internal deployment.
 - **Quarkus**: configure via `quarkus.smallrye-jwt.*` properties in `application.properties`
 
 The container validates the JWT, populates `SecurityContext`, and makes `JsonWebToken`
-available via CDI. The coordinator does not enforce authorization on its endpoints --
-access control is left to the container or an external gateway.
+available via CDI.
 
 ## Outbound Token Propagation
 
-When a caller invokes a coordinator or participant endpoint with a Bearer token, that
-token can be forwarded on outbound HTTP calls. This is useful when both the coordinator
-and participants require JWT authentication.
+### Zero-Config: `@PropagateToken`
 
-### Configuration
+The simplest way to propagate JWT tokens is the `@PropagateToken` annotation on
+participant resource methods. No `lra.http-client.providers` configuration needed:
 
-Two filters are provided for different roles:
+```java
+@LRA(value = LRA.Type.REQUIRED)
+@PropagateToken
+@GET
+public Response startWork() { ... }
+```
+
+When a request with a Bearer token hits an `@PropagateToken` method, the LRA runtime:
+1. Captures the token from the `Authorization` header
+2. Validates it has a plausible JWT structure (three dot-separated segments)
+3. Stores it in a thread-local for the duration of the request
+4. Automatically registers the token filter on outbound coordinator calls
+5. Clears the thread-local after the response
+
+`@PropagateToken` can be placed on individual methods or on the class (applies to all methods).
+
+### Explicit: `lra.http-client.providers`
+
+Two filters are provided for explicit registration:
 
 | Filter | Module | Use case |
 |--------|--------|----------|
 | `io.narayana.lra.client.JwtTokenClientRequestFilter` | lra-client | Participants calling the coordinator |
 | `io.narayana.lra.coordinator.security.JwtTokenCallbackRequestFilter` | lra-coordinator-jar | Coordinator calling participant callbacks |
 
-### Participant Configuration
+#### Participant Configuration
 
 ```properties
 lra.http-client.providers=io.narayana.lra.client.JwtTokenClientRequestFilter
 ```
 
-### Coordinator Configuration
+#### Coordinator Configuration
 
 ```properties
 lra.http-client.providers=io.narayana.lra.coordinator.security.JwtTokenCallbackRequestFilter
 ```
 
-The config key (`lra.http-client.providers`) is shared — `RestClientConfig` in the
+The config key (`lra.http-client.providers`) is shared -- `RestClientConfig` in the
 `lra-client` module reads it for the `NarayanaLRAClient`, and `JwtTokenContext` in the
 coordinator reads it for direct HTTP calls.
 
-### How It Works
+### Token Resolution
 
-1. The container's MicroProfile JWT implementation validates the inbound token and makes
-   `JsonWebToken` available via CDI.
-2. Both filters resolve the token via `CDI.current().select(JsonWebToken.class)` on the
-   request thread.
-3. `JwtTokenContext.newClient()` (coordinator only) also looks up `JsonWebToken` via
-   `CDI.current()` and stores the raw token as a client configuration property
-   (surviving async thread dispatch for plain JAX-RS clients).
-4. The filter adds `Authorization: Bearer <token>` to the outbound request.
+Both filters delegate to `BearerTokenResolver` which resolves the token from available
+sources in order:
 
-Note: the container's security subsystem only handles inbound authentication. Outbound
-token propagation is always configured at the application level using the properties
-described above.
+| Priority | Source | When Available | Used by |
+|:--------:|--------|----------------|---------|
+| 1 | `@PropagateToken` thread-local | `@PropagateToken` on resource method | Client filter only |
+| 2 | `JsonWebToken` via CDI | Request thread with MicroProfile JWT | Both filters |
+| 3 | Client property `lra.jwt.token` | Set by `JwtTokenContext.newClient()` | Both filters |
+
+The first non-null source wins. The filter adds `Authorization: Bearer <token>` to
+the outbound request.
+
+### Structural Validation
+
+When `@PropagateToken` captures a token, the LRA runtime validates it has the
+three dot-separated segments expected of a JWS compact serialization
+(`header.payload.signature`). Tokens that fail this check are not propagated and
+a warning is logged. This catches misconfigured Authorization headers early without
+performing full JWT signature or claims validation (that remains the receiver's job).
 
 ## Recovery Thread and Service Token
 
@@ -98,49 +125,29 @@ Supported location schemes:
 | Plain path | `/var/run/secrets/lra/token` | Kubernetes projected volumes |
 | `file://` | `file:///opt/tokens/service.jwt` | Filesystem with explicit scheme |
 | `classpath://` | `classpath://META-INF/service-token` | Bundled static token (dev/test) |
-| `http://` / `https://` | `https://token-service/token` | Token vending service |
+| `http://` / `https://` | `https://token-service/token` | Token vending service (5s timeout, 64KB limit) |
 
 The token is cached for `refresh-seconds` (default 300) and then re-read from the
 source. This supports external rotation: a sidecar, init container, or Vault Agent
 writes a new token to the file before the old one expires, and the coordinator picks
 it up on the next refresh.
 
-### Token Resolution Order
-
-When `JwtTokenContext.newClient()` creates an outbound client, the token is resolved
-in this order:
-
-| Priority | Source | When Available |
-|:--------:|--------|----------------|
-| 1 | `JsonWebToken` via CDI | Request thread (inbound token propagation) |
-| 2 | `ServiceTokenProvider.getToken()` | Recovery thread (service-to-service) |
-| 3 | No token | Neither source available |
-
-This means:
-
-- **Request-thread calls** (close, cancel, join) propagate the caller's token.
-- **Recovery-thread calls** (periodic retry) use the service token.
-- **If neither is available**, the outbound request has no `Authorization` header.
-  The participant decides how to handle unauthenticated requests.
-
 ### Participant Trust Model
 
 When a service token is used, the coordinator authenticates to participants with its
 own identity (not the original caller's identity). Participants must trust the
 coordinator's service account to perform compensations and completions on behalf of
-any caller. This is the standard trust model for service-to-service communication in
-a microservices architecture.
+any caller.
 
-### Logging
+## Logging
 
 Token resolution is logged at different levels to aid troubleshooting:
 
 | Level | Message | Meaning |
 |-------|---------|---------|
 | `TRACE` | "JWT token resolved from CDI JsonWebToken" | Token found via CDI lookup |
-| `TRACE` | "Using CDI JsonWebToken for outbound participant call" | Client filter resolved token |
 | `DEBUG` | "CDI not available for JWT resolution: ..." | CDI lookup failed (expected on recovery threads) |
-| `DEBUG` | "CDI JsonWebToken not available: ..." | CDI lookup failed in JwtTokenContext |
+| `WARN` | "@PropagateToken: Authorization header does not contain a valid JWT structure" | Bearer token failed structural validation |
 | `INFO` | "Service token provider configured: location=..." | `ServiceTokenProvider` initialized |
 | `WARN` | "Failed to read service token from ..." | Service token file/HTTP read failed |
 
@@ -153,6 +160,14 @@ JWT integration tests are in `test/security/` and run against WildFly via Arquil
   valid Bearer token is provided
 - **Token validation**: tokens signed with the correct key are accepted; tokens with
   a wrong issuer are rejected with HTTP 401
+
+Additional unit tests in `client/` verify:
+
+- **`@PropagateToken` flow**: annotation detection, token capture, structural validation,
+  filter propagation, auto-registration via `RestClientConfig`
+- **Filter resolution order**: thread-local precedence over CDI and client property
+- **Structural JWT validation**: three-segment check accepts valid JWTs, rejects
+  malformed, opaque, and multi-segment tokens
 
 Test keys are generated at runtime using `TestKeyManager` -- no PEM files are committed.
 

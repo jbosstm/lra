@@ -122,17 +122,29 @@ lra.http-client.readTimeout=30000
 
 #### JWT Token Propagation
 
-To propagate JWT Bearer tokens from participants to the coordinator, register
-the built-in filter:
+The simplest way to propagate JWT tokens from participants to the coordinator is the
+`@PropagateToken` annotation — no configuration needed:
+
+```java
+@LRA(value = LRA.Type.REQUIRED)
+@PropagateToken
+@GET
+public Response startWork() { ... }
+```
+
+The annotation captures the inbound Bearer token (validating it has a plausible JWT
+structure) and forwards it on outbound coordinator calls automatically.
+
+Alternatively, register the filter explicitly via configuration:
 
 ```properties
 lra.http-client.providers=io.narayana.lra.client.JwtTokenClientRequestFilter
 ```
 
 The filter resolves the token in order:
-1. `JsonWebToken` via CDI (`CDI.current().select(JsonWebToken.class)`) — available when the
-   participant has an active CDI request context with a validated JWT
-2. Client configuration property `lra.jwt.token` — for non-CDI contexts
+1. Thread-local token captured by `@PropagateToken`
+2. `JsonWebToken` via CDI (`CDI.current().select(JsonWebToken.class)`)
+3. Client configuration property `lra.jwt.token` — for non-CDI contexts
 
 This requires the `microprofile-jwt-auth-api` dependency (provided scope) and a
 MicroProfile JWT implementation in the container (WildFly, Quarkus, etc.).

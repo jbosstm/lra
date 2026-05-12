@@ -5,6 +5,7 @@
 
 package io.narayana.lra.client;
 
+import io.narayana.lra.Current;
 import io.narayana.lra.LRAConstants;
 import io.narayana.lra.logging.LRALogger;
 import java.io.FileInputStream;
@@ -219,6 +220,12 @@ public class RestClientConfig {
      * Registers custom providers on the builder
      */
     private void configureProviders(RestClientBuilder builder) {
+        String authToken = Current.getAuthToken();
+        if (authToken != null) {
+            builder.property(LRAConstants.BEARER_TOKEN_PROPERTY, authToken);
+            builder.register(JwtTokenClientRequestFilter.class);
+        }
+
         String providers = getConfigValue(PROVIDERS_KEY);
         if (providers == null || providers.trim().isEmpty()) {
             return;

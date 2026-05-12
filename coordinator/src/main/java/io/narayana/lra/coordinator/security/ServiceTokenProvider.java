@@ -110,18 +110,30 @@ final class ServiceTokenProvider {
         }
     }
 
+    private static final int MAX_TOKEN_SIZE = 64 * 1024;
+    private static final int HTTP_CONNECT_TIMEOUT_MS = 5000;
+    private static final int HTTP_READ_TIMEOUT_MS = 5000;
+
     private String readFromHttp() throws Exception {
         HttpURLConnection connection = (HttpURLConnection) URI.create(location).toURL().openConnection();
 
         try {
             connection.setRequestMethod("GET");
+            connection.setConnectTimeout(HTTP_CONNECT_TIMEOUT_MS);
+            connection.setReadTimeout(HTTP_READ_TIMEOUT_MS);
             int status = connection.getResponseCode();
 
             if (status != 200) {
                 throw new RuntimeException("Token endpoint returned HTTP " + status);
             }
 
-            return new String(connection.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
+            InputStream in = connection.getInputStream();
+            byte[] buf = in.readNBytes(MAX_TOKEN_SIZE + 1);
+            if (buf.length > MAX_TOKEN_SIZE) {
+                throw new RuntimeException("Token response exceeds maximum size of " + MAX_TOKEN_SIZE + " bytes");
+            }
+
+            return new String(buf, StandardCharsets.UTF_8).trim();
         } finally {
             connection.disconnect();
         }

@@ -21,6 +21,7 @@
   <modules>
     <module>tck</module>
     <module>basic</module>
+    <module>security</module>
   </modules>
 
   <properties>

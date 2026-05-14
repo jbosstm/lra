@@ -137,6 +137,11 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>org.eclipse.microprofile.jwt</groupId>
+      <artifactId>microprofile-jwt-auth-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.jboss.narayana.lra</groupId>
       <artifactId>narayana-lra</artifactId>
       <scope>test</scope>

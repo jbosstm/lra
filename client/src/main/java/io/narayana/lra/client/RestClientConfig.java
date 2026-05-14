@@ -5,6 +5,8 @@
 
 package io.narayana.lra.client;
 
+import io.narayana.lra.Current;
+import io.narayana.lra.LRAConstants;
 import io.narayana.lra.logging.LRALogger;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -49,7 +51,7 @@ public class RestClientConfig {
     private static final String HOSTNAME_VERIFIER_KEY = CONFIG_PREFIX + "hostnameVerifier";
     private static final String CONNECT_TIMEOUT_KEY = CONFIG_PREFIX + "connectTimeout";
     private static final String READ_TIMEOUT_KEY = CONFIG_PREFIX + "readTimeout";
-    private static final String PROVIDERS_KEY = CONFIG_PREFIX + "providers";
+    private static final String PROVIDERS_KEY = LRAConstants.HTTP_CLIENT_PROVIDERS;
 
     private static final String DEFAULT_KEYSTORE_TYPE = "JKS";
 
@@ -190,7 +192,7 @@ public class RestClientConfig {
         }
 
         try {
-            Class<?> clazz = Class.forName(className);
+            Class<?> clazz = Class.forName(className, true, Thread.currentThread().getContextClassLoader());
             return (HostnameVerifier) clazz.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
             LRALogger.logger.warnf(e, "Failed to load HostnameVerifier class %s: %s",
@@ -218,6 +220,12 @@ public class RestClientConfig {
      * Registers custom providers on the builder
      */
     private void configureProviders(RestClientBuilder builder) {
+        String authToken = Current.getAuthToken();
+        if (authToken != null) {
+            builder.property(LRAConstants.BEARER_TOKEN_PROPERTY, authToken);
+            builder.register(JwtTokenClientRequestFilter.class);
+        }
+
         String providers = getConfigValue(PROVIDERS_KEY);
         if (providers == null || providers.trim().isEmpty()) {
             return;
@@ -227,7 +235,7 @@ public class RestClientConfig {
             String trimmed = providerClassName.trim();
             if (!trimmed.isEmpty()) {
                 try {
-                    Class<?> providerClass = Class.forName(trimmed);
+                    Class<?> providerClass = Class.forName(trimmed, true, Thread.currentThread().getContextClassLoader());
                     builder.register(providerClass);
                 } catch (Exception e) {
                     LRALogger.logger.warnf(e, "Failed to load provider class %s: %s",

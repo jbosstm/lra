@@ -22,8 +22,10 @@ import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.Type.MANDATORY;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.Type.NESTED;
 
 import io.narayana.lra.AnnotationResolver;
+import io.narayana.lra.BearerTokenResolver;
 import io.narayana.lra.Current;
 import io.narayana.lra.LRAConstants;
+import io.narayana.lra.PropagateToken;
 import io.narayana.lra.client.LRAParticipantData;
 import io.narayana.lra.client.NarayanaLRAClient;
 import io.narayana.lra.client.internal.proxy.nonjaxrs.LRAParticipant;
@@ -42,6 +44,7 @@ import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.container.ResourceInfo;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Link;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
@@ -139,6 +142,19 @@ public class ServerLRAFilter implements ContainerRequestFilter, ContainerRespons
 
         if (transactional == null) {
             transactional = method.getDeclaringClass().getDeclaredAnnotation(LRA.class);
+        }
+
+        if (AnnotationResolver.isAnnotationPresent(PropagateToken.class, method)
+                || method.getDeclaringClass().isAnnotationPresent(PropagateToken.class)) {
+            String authHeader = containerRequestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
+            if (authHeader != null && authHeader.regionMatches(true, 0, "Bearer ", 0, 7)) {
+                String token = authHeader.substring(7);
+                if (BearerTokenResolver.isPlausibleJwt(token)) {
+                    Current.setAuthToken(token);
+                } else {
+                    LRALogger.logger.warnf("@PropagateToken: Authorization header does not contain a valid JWT structure");
+                }
+            }
         }
 
         if (transactional != null) {
@@ -633,6 +649,7 @@ public class ServerLRAFilter implements ContainerRequestFilter, ContainerRespons
 
             Current.popAll();
             Current.removeActiveLRACache(current);
+            Current.clearAuthToken();
         }
     }
 

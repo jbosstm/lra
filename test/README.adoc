@@ -82,7 +82,7 @@ mvn clean verify -Parq,coordinator.wildfly.subsystem -pl :lra-test-basic -Dit.te
 | `-Ddebug`
 | The WildFly waits at port `8787` for debugger to connect.
 
-| `-Dwildfly.version`
+| `-Dversion.wildfly`
 | When using the download or provision profiles; the version of WildFly to download resp. provision
 
 |===

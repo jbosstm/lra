@@ -161,7 +161,7 @@
     <version.org.jboss.shrinkwrap.resolvers>3.3.6</version.org.jboss.shrinkwrap.resolvers>
     <version.org.sonatype.plugins.nxrm3.plugin>1.0.13</version.org.sonatype.plugins.nxrm3.plugin>
     <version.org.wildfly.arquillian>5.1.0.Final</version.org.wildfly.arquillian>
-    <version.parsson>1.1.7</version.parsson>
+    <version.parsson>1.1.9</version.parsson>
     <version.sortpom>4.0.0</version.sortpom>
     <version.undertow.core>2.3.24.Final</version.undertow.core>
     <version.wildfly-maven-plugin>6.0.0.Final</version.wildfly-maven-plugin>

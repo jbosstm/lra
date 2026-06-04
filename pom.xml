@@ -163,7 +163,8 @@
     <version.org.wildfly.arquillian>5.1.0.Final</version.org.wildfly.arquillian>
     <version.parsson>1.1.9</version.parsson>
     <version.sortpom>4.0.0</version.sortpom>
-    <version.undertow.core>2.3.24.Final</version.undertow.core>
+    <version.undertow.core>2.4.1.Final</version.undertow.core>
+    <version.undertow.servlet>2.3.24.Final</version.undertow.servlet>
     <version.wildfly>40.0.0.Final</version.wildfly>
     <version.wildfly-maven-plugin>6.0.0.Final</version.wildfly-maven-plugin>
 
@@ -285,7 +286,7 @@
       <dependency>
         <groupId>io.undertow</groupId>
         <artifactId>undertow-servlet</artifactId>
-        <version>${version.undertow.core}</version>
+        <version>${version.undertow.servlet}</version>
       </dependency>
       <!-- end undertow with RestEasy -->
 

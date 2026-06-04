@@ -165,7 +165,7 @@
     <version.sortpom>4.0.0</version.sortpom>
     <version.undertow.core>2.4.1.Final</version.undertow.core>
     <!-- undertow.ee: 1.x is for jakarta EE 10, 2.x is for Jakarta 11 -->
-    <version.undertow.ee.servlet>1.0.0.Final</version.undertow.ee.servlet>
+    <version.undertow.ee.servlet>2.0.0.Final</version.undertow.ee.servlet>
     <version.wildfly>40.0.0.Final</version.wildfly>
     <version.wildfly-maven-plugin>6.0.0.Final</version.wildfly-maven-plugin>
 

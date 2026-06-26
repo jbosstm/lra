@@ -213,29 +213,6 @@
             <artifactId>maven-antrun-plugin</artifactId>
             <executions>
               <execution>
-                <id>replace-lra-jars</id>
-                <goals>
-                  <goal>run</goal>
-                </goals>
-                <phase>process-resources</phase>
-                <configuration>
-                  <target xmlns:if="ant:if" xmlns:unless="ant:unless">
-                    <echo if:true="${wildfly.download}">wildfly.download=true, updating LRA jar versions in ${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-participant/main/module.xml</echo>
-                    <echo unless:true="${wildfly.download}">wildfly.download is not true, skipping LRA module.xml update</echo>
-
-                    <!-- Update lra-client-* -->
-                    <replaceregexp byline="true" file="${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-participant/main/module.xml" match="(lra-client-)[^&quot;]+(\.jar)" replace="\1${project.version}\2" if:true="${wildfly.download}"></replaceregexp>
-
-                    <!-- Update lra-proxy-api-* -->
-                    <replaceregexp byline="true" file="${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-participant/main/module.xml" match="(lra-proxy-api-)[^&quot;]+(\.jar)" replace="\1${project.version}\2" if:true="${wildfly.download}"></replaceregexp>
-
-                    <!-- Update narayana-lra-* -->
-                    <replaceregexp byline="true" file="${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-participant/main/module.xml" match="(narayana-lra-)[^&quot;]+(\.jar)" replace="\1${project.version}\2" if:true="${wildfly.download}"></replaceregexp>
-                  </target>
-                </configuration>
-              </execution>
-
-              <execution>
                 <goals>
                   <goal>run</goal>
                 </goals>
@@ -457,7 +434,7 @@
         <plugins>
           <plugin>
             <artifactId>maven-dependency-plugin</artifactId>
-            <version>3.11.0</version>
+            <version>${version.maven.dependency-plugin}</version>
             <executions>
               <execution>
                 <id>unpack-wildfly</id>
@@ -519,7 +496,73 @@
                       <destFileName>lra-proxy-api-${project.version}.jar</destFileName>
                     </artifactItem>
 
+                    <artifactItem>
+                      <groupId>org.jboss.narayana.lra</groupId>
+                      <artifactId>lra-coordinator-jar</artifactId>
+                      <version>${project.version}</version>
+                      <type>jar</type>
+                      <overWrite>true</overWrite>
+                      <outputDirectory>${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-coordinator/main</outputDirectory>
+                      <destFileName>lra-coordinator-jar-${project.version}.jar</destFileName>
+                    </artifactItem>
+
+                    <artifactItem>
+                      <groupId>org.jboss.narayana.lra</groupId>
+                      <artifactId>lra-service-base</artifactId>
+                      <version>${project.version}</version>
+                      <type>jar</type>
+                      <overWrite>true</overWrite>
+                      <outputDirectory>${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-service-base/main</outputDirectory>
+                      <destFileName>lra-service-base-${project.version}.jar</destFileName>
+                    </artifactItem>
+
                   </artifactItems>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.wildfly.plugins</groupId>
+            <artifactId>wildfly-maven-plugin</artifactId>
+            <version>${version.wildfly-maven-plugin}</version>
+            <executions>
+              <execution>
+                <id>configure-lra-coordinator-subsystem</id>
+                <goals>
+                  <goal>execute-commands</goal>
+                </goals>
+                <phase>process-test-classes</phase>
+                <configuration>
+                  <skip>${narayana.noupdate}</skip>
+                  <jbossHome>${wildfly.home}</jbossHome>
+                  <offline>true</offline>
+                  <scripts>
+                    <script>${project.basedir}/src/test/resources/configure-lra-coordinator.cli</script>
+                  </scripts>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>update-coordinator-module-xml</id>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <phase>process-test-classes</phase>
+                <configuration>
+                  <skip>${narayana.noupdate}</skip>
+                  <target>
+                    <replaceregexp file="${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-coordinator/main/module.xml" match="lra-coordinator-jar-[^&quot;']+" replace="lra-coordinator-jar-${project.version}.jar"></replaceregexp>
+                    <replaceregexp file="${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-service-base/main/module.xml" match="lra-service-base-[^&quot;']+" replace="lra-service-base-${project.version}.jar"></replaceregexp>
+                    <replaceregexp file="${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-participant/main/module.xml" match="lra-client-[^&quot;']+" replace="lra-client-${project.version}.jar"></replaceregexp>
+                    <replaceregexp file="${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-participant/main/module.xml" match="lra-proxy-api-[^&quot;']+" replace="lra-proxy-api-${project.version}.jar"></replaceregexp>
+                    <replaceregexp file="${wildfly.home}/modules/system/layers/base/org/jboss/narayana/lra/lra-participant/main/module.xml" match="narayana-lra-[^&quot;']+" replace="narayana-lra-${project.version}.jar"></replaceregexp>
+                  </target>
                 </configuration>
               </execution>
             </executions>

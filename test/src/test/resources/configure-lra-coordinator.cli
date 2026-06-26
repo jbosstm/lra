@@ -1,0 +1,26 @@
+## WildFly CLI script to add the LRA coordinator and participant subsystems
+## to standalone-microprofile.xml.
+##
+## Run via: jboss-cli.sh --file=configure-lra-coordinator.cli
+## Uses embed-server so no running WildFly instance is required.
+## Idempotent: each block is skipped if the component already exists.
+
+embed-server --server-config=standalone-microprofile.xml --std-out=discard
+
+if (outcome != success) of /extension=org.wildfly.extension.microprofile.lra-coordinator:read-resource()
+    /extension=org.wildfly.extension.microprofile.lra-coordinator:add()
+end-if
+
+if (outcome != success) of /subsystem=microprofile-lra-coordinator:read-resource()
+    /subsystem=microprofile-lra-coordinator:add()
+end-if
+
+if (outcome != success) of /extension=org.wildfly.extension.microprofile.lra-participant:read-resource()
+    /extension=org.wildfly.extension.microprofile.lra-participant:add()
+end-if
+
+if (outcome != success) of /subsystem=microprofile-lra-participant:read-resource()
+    /subsystem=microprofile-lra-participant:add()
+end-if
+
+stop-embedded-server

@@ -73,6 +73,111 @@ To apply code formatting (enabled by default via the `format` profile):
 | Integration tests — see link:test/README.adoc[test/README.adoc] for details
 |===
 
+== Running the Coordinator
+
+The coordinator URL path differs by runtime:
+
+[cols="1,2"]
+|===
+| Runtime | Coordinator URL
+
+| WildFly WAR or subsystem
+| `http://localhost:8080/lra-coordinator/lra-coordinator`
+
+| Container (Quarkus)
+| `http://localhost:8080/lra-coordinator`
+|===
+
+=== WildFly — coordinator WAR
+
+The simplest way to run the coordinator built from this branch. Build first, then deploy the WAR to any WildFly instance:
+
+[source,sh]
+----
+./mvnw clean install -DskipTests
+
+export JBOSS_HOME=/path/to/wildfly
+$JBOSS_HOME/bin/standalone.sh -c standalone.xml &
+$JBOSS_HOME/bin/jboss-cli.sh -c \
+  "deploy --force coordinator-war/target/lra-coordinator.war"
+----
+
+=== WildFly — built-in subsystem coordinator
+
+The `download` profile downloads WildFly, replaces all LRA module jars with the locally built SNAPSHOTs, and configures the LRA coordinator subsystem — all in one step:
+
+[source,sh]
+----
+./mvnw clean install -DskipTests
+
+mvn process-test-classes -Pdownload -f test/pom.xml -N
+
+export JBOSS_HOME=target/wildfly/wildfly-$(mvn help:evaluate \
+  -Dexpression=version.wildfly -q -DforceStdout -f test/pom.xml)
+$JBOSS_HOME/bin/standalone.sh -c standalone-microprofile.xml
+----
+
+=== Container (quay.io)
+
+Pre-built images are published at https://quay.io/repository/jbosstm/lra-coordinator[quay.io/jbosstm/lra-coordinator].
+Tags follow the pattern `<narayana-version>-<quarkus-version>`. Use `latest` for the most recent release.
+
+[source,sh]
+----
+# Preferred — full network access so the coordinator can reach participant services
+podman run --network host quay.io/jbosstm/lra-coordinator:latest
+
+# Or with explicit port forwarding (limits outbound connectivity)
+podman run -p 8080:8080 quay.io/jbosstm/lra-coordinator:latest
+----
+
+The coordinator is then available at `http://localhost:8080/lra-coordinator`.
+
+=== Quarkus participant — connecting to the coordinator
+
+The `quarkus-narayana-lra` extension makes a Quarkus service an LRA _participant_. It does not run a coordinator itself — add it to your participant application and point it at whichever coordinator is running:
+
+[source,xml]
+----
+<dependency>
+  <groupId>io.quarkus</groupId>
+  <artifactId>quarkus-narayana-lra</artifactId>
+</dependency>
+----
+
+[source,properties]
+----
+# application.properties — adjust the URL to match the coordinator runtime
+# WildFly:            http://coordinator-host:8080/lra-coordinator/lra-coordinator
+# Quarkus/container:  http://coordinator-host:8080/lra-coordinator
+quarkus.lra.coordinator-url=http://localhost:8080/lra-coordinator
+----
+
+**Using SNAPSHOT Narayana artifacts**
+
+`quarkus-narayana-lra` bundles its own `narayana-lra` version. To replace it with the SNAPSHOT from this repo, exclude the bundled jar and declare the local one:
+
+[source,xml]
+----
+<dependency>
+  <groupId>io.quarkus</groupId>
+  <artifactId>quarkus-narayana-lra</artifactId>
+  <exclusions>
+    <exclusion>
+      <groupId>org.jboss.narayana.lra</groupId>
+      <artifactId>narayana-lra</artifactId>
+    </exclusion>
+  </exclusions>
+</dependency>
+<dependency>
+  <groupId>org.jboss.narayana.lra</groupId>
+  <artifactId>narayana-lra</artifactId>
+  <version>${project.version}</version>
+</dependency>
+----
+
+Requires `./mvnw clean install -DskipTests` first so the SNAPSHOT is in the local Maven repository.
+
 == Running Integration Tests
 
 Integration tests use the link:https://maven.apache.org/surefire/maven-failsafe-plugin/[Maven Failsafe Plugin] and link:https://arquillian.org[Arquillian] to spin up separate JVMs for the coordinator, participant, and test client.

@@ -7,6 +7,7 @@ on:
 permissions:
   actions: write
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ${{ github.workflow }}
@@ -28,66 +29,40 @@ jobs:
           echo "Target repository: $REPO"
           echo "Deleting successful and cancelled runs older than $RETENTION_DAYS days (before $CUTOFF_DATE)"
 
-          PAGE=1
-          while true; do
-            RUNS=$(gh run list \
-              --repo "$REPO" \
-              --limit 100 \
-              --page "$PAGE" \
-              --json databaseId,event,headBranch,conclusion,createdAt \
-              -q '[.[] | select(.conclusion=="success" or .conclusion=="cancelled") | {id:.databaseId, event:.event, branch:.headBranch, createdAt:.createdAt}]')
+          gh api --paginate "repos/$REPO/actions/runs?status=completed&per_page=100" \
+            --jq '.workflow_runs[] | select((.conclusion == "success") or (.conclusion == "cancelled")) | {id: .id, event: .event, created_at: .created_at, prs: [.pull_requests[]?.number]}' |
+          jq -c --arg cutoff "$CUTOFF_DATE" 'select(.created_at < $cutoff)' |
+          while read -r run; do
+            RUN_ID=$(echo "$run" | jq -r '.id')
+            EVENT=$(echo "$run" | jq -r '.event')
 
-            if [[ "$(echo "$RUNS" | jq 'length')" -eq 0 ]]; then
-              break
-            fi
+            DELETE_RUN=true
+            if [[ "$EVENT" == "pull_request" ]]; then
+              PR_NUMBERS=$(echo "$run" | jq -r '.prs[]')
 
-            echo "$RUNS" | jq -c '.[]' | while read -r run; do
-              RUN_ID=$(echo "$run" | jq -r '.id')
-              EVENT=$(echo "$run" | jq -r '.event')
-              BRANCH=$(echo "$run" | jq -r '.branch')
-              CREATED_AT=$(echo "$run" | jq -r '.createdAt')
-
-              if [[ "$CREATED_AT" > "$CUTOFF_DATE" ]]; then
-                echo "Skipping run $RUN_ID (created $CREATED_AT, within retention period)"
-                continue
-              fi
-
-              DELETE_RUN=true
-              if [[ "$EVENT" == "pull_request" && -n "$BRANCH" ]]; then
-                PR_NUMBER=$(gh pr list \
+              for PR_NUMBER in $PR_NUMBERS; do
+                STATE=$(gh pr view "$PR_NUMBER" \
                   --repo "$REPO" \
-                  --head "$BRANCH" \
-                  --state all \
-                  --json number \
-                  -q '.[0].number') || {
-                  echo "Failed to list PRs for branch $BRANCH; skipping run $RUN_ID" >&2
-                  continue
+                  --json state \
+                  -q '.state') || {
+                  echo "Failed to view PR #$PR_NUMBER; skipping run $RUN_ID" >&2
+                  DELETE_RUN=false
+                  break
                 }
 
-                if [[ -n "$PR_NUMBER" ]]; then
-                  STATE=$(gh pr view "$PR_NUMBER" \
-                    --repo "$REPO" \
-                    --json state \
-                    -q '.state') || {
-                    echo "Failed to view PR $PR_NUMBER; skipping run $RUN_ID" >&2
-                    continue
-                  }
+                STATE=$(echo "$STATE" | tr '[:upper:]' '[:lower:]')
 
-                  STATE=$(echo "$STATE" | tr '[:upper:]' '[:lower:]')
-
-                  if [[ "$STATE" == "open" ]]; then
-                    DELETE_RUN=false
-                    echo "Skipping run $RUN_ID (PR #$PR_NUMBER is still open)"
-                  fi
+                if [[ "$STATE" == "open" ]]; then
+                  DELETE_RUN=false
+                  echo "Skipping run $RUN_ID (PR #$PR_NUMBER is still open)"
+                  break
                 fi
-              fi
+              done
+            fi
 
-              if [[ "$DELETE_RUN" == true ]]; then
-                echo "Deleting run ID: $RUN_ID"
-                gh run delete "$RUN_ID" --repo "$REPO"
-                sleep 0.5
-              fi
-            done
-
-            PAGE=$((PAGE + 1))
+            if [[ "$DELETE_RUN" == true ]]; then
+              echo "Deleting run ID: $RUN_ID"
+              gh run delete "$RUN_ID" --repo "$REPO" || echo "Failed to delete run $RUN_ID" >&2
+              sleep 0.5
+            fi
           done

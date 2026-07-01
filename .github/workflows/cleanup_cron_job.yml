@@ -1,0 +1,68 @@
+name: Cleanup Successful and Cancelled Workflow Runs
+
+on:
+  schedule:
+    - cron: "0 7 * * 0"
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Cleanup successful and cancelled runs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete successful and cancelled workflow runs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          REPO="$GITHUB_REPOSITORY"
+          RETENTION_DAYS=14
+          CUTOFF_DATE=$(date -u -d "$RETENTION_DAYS days ago" +%Y-%m-%dT%H:%M:%SZ)
+          echo "Target repository: $REPO"
+          echo "Deleting successful and cancelled runs older than $RETENTION_DAYS days (before $CUTOFF_DATE)"
+
+          gh api --paginate "repos/$REPO/actions/runs?per_page=100" \
+            --jq '.workflow_runs[] | select(.status == "completed") | select((.conclusion == "success") or (.conclusion == "cancelled")) | {id: .id, created_at: .created_at, prs: [.pull_requests[]?.number]}' |
+          jq -c --arg cutoff "$CUTOFF_DATE" 'select(.created_at < $cutoff)' |
+          while read -r run; do
+            RUN_ID=$(echo "$run" | jq -r '.id')
+            PR_COUNT=$(echo "$run" | jq '.prs | length')
+
+            DELETE_RUN=true
+            if [[ "$PR_COUNT" -gt 0 ]]; then
+              PR_NUMBERS=$(echo "$run" | jq -r '.prs[]')
+
+              for PR_NUMBER in $PR_NUMBERS; do
+                STATE=$(gh pr view "$PR_NUMBER" \
+                  --repo "$REPO" \
+                  --json state \
+                  -q '.state') || {
+                  echo "Failed to view PR #$PR_NUMBER; skipping run $RUN_ID" >&2
+                  DELETE_RUN=false
+                  break
+                }
+
+                STATE=$(echo "$STATE" | tr '[:upper:]' '[:lower:]')
+
+                if [[ "$STATE" == "open" ]]; then
+                  DELETE_RUN=false
+                  echo "Skipping run $RUN_ID (PR #$PR_NUMBER is still open)"
+                  break
+                fi
+              done
+            fi
+
+            if [[ "$DELETE_RUN" == true ]]; then
+              echo "Deleting run ID: $RUN_ID"
+              gh run delete "$RUN_ID" --repo "$REPO"
+              sleep 0.5
+            fi
+          done

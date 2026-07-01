@@ -791,7 +791,7 @@
           <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-ide-config</artifactId>
-            <version>3.37.0</version>
+            <version>3.37.1</version>
           </dependency>
         </dependencies>
       </plugin>

@@ -1,58 +1,93 @@
-name: Cleanup Successful Workflow Runs
+name: Cleanup Successful and Cancelled Workflow Runs
 
 on:
   schedule:
     - cron: "0 7 * * 0"
 
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   cleanup:
+    name: Cleanup successful and cancelled runs
     runs-on: ubuntu-latest
     steps:
-      - name: Delete successful workflow runs
+      - name: Delete successful and cancelled workflow runs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           REPO="$GITHUB_REPOSITORY"
+          RETENTION_DAYS=14
+          CUTOFF_DATE=$(date -u -d "$RETENTION_DAYS days ago" +%Y-%m-%dT%H:%M:%SZ)
           echo "Target repository: $REPO"
+          echo "Deleting successful and cancelled runs older than $RETENTION_DAYS days (before $CUTOFF_DATE)"
 
-          RUNS=$(gh run list \
-            --repo "$REPO" \
-            --limit 500 \
-            --json databaseId,event,headBranch,conclusion \
-            -q '.[] | select(.conclusion=="success") | {id:.databaseId, event:.event, branch:.headBranch}')
+          PAGE=1
+          while true; do
+            RUNS=$(gh run list \
+              --repo "$REPO" \
+              --limit 100 \
+              --page "$PAGE" \
+              --json databaseId,event,headBranch,conclusion,createdAt \
+              -q '[.[] | select(.conclusion=="success" or .conclusion=="cancelled") | {id:.databaseId, event:.event, branch:.headBranch, createdAt:.createdAt}]')
 
-          echo "$RUNS" | jq -c '.' | while read -r run; do
-            RUN_ID=$(echo "$run" | jq -r '.id')
-            EVENT=$(echo "$run" | jq -r '.event')
-            BRANCH=$(echo "$run" | jq -r '.branch')
+            if [[ "$(echo "$RUNS" | jq 'length')" -eq 0 ]]; then
+              break
+            fi
 
-            DELETE_RUN=true
-            if [[ "$EVENT" == "pull_request" && -n "$BRANCH" ]]; then
-              PR_NUMBER=$(gh pr list \
-                --repo "$REPO" \
-                --head "$BRANCH" \
-                --state all \
-                --json number \
-                -q '.[0].number' 2>/dev/null || true)
+            echo "$RUNS" | jq -c '.[]' | while read -r run; do
+              RUN_ID=$(echo "$run" | jq -r '.id')
+              EVENT=$(echo "$run" | jq -r '.event')
+              BRANCH=$(echo "$run" | jq -r '.branch')
+              CREATED_AT=$(echo "$run" | jq -r '.createdAt')
 
-              if [[ -n "$PR_NUMBER" ]]; then
-                STATE=$(gh pr view "$PR_NUMBER" \
+              if [[ "$CREATED_AT" > "$CUTOFF_DATE" ]]; then
+                echo "Skipping run $RUN_ID (created $CREATED_AT, within retention period)"
+                continue
+              fi
+
+              DELETE_RUN=true
+              if [[ "$EVENT" == "pull_request" && -n "$BRANCH" ]]; then
+                PR_NUMBER=$(gh pr list \
                   --repo "$REPO" \
-                  --json state \
-                  -q '.state' 2>/dev/null || echo "UNKNOWN")
+                  --head "$BRANCH" \
+                  --state all \
+                  --json number \
+                  -q '.[0].number') || {
+                  echo "Failed to list PRs for branch $BRANCH; skipping run $RUN_ID" >&2
+                  continue
+                }
 
-                # Normalize state to lowercase for safe comparison
-                STATE=$(echo "$STATE" | tr '[:upper:]' '[:lower:]')
+                if [[ -n "$PR_NUMBER" ]]; then
+                  STATE=$(gh pr view "$PR_NUMBER" \
+                    --repo "$REPO" \
+                    --json state \
+                    -q '.state') || {
+                    echo "Failed to view PR $PR_NUMBER; skipping run $RUN_ID" >&2
+                    continue
+                  }
 
-                if [[ "$STATE" == "open" ]]; then
-                  DELETE_RUN=false
-                  echo "Skipping run $RUN_ID (PR #$PR_NUMBER is still open)"
+                  STATE=$(echo "$STATE" | tr '[:upper:]' '[:lower:]')
+
+                  if [[ "$STATE" == "open" ]]; then
+                    DELETE_RUN=false
+                    echo "Skipping run $RUN_ID (PR #$PR_NUMBER is still open)"
+                  fi
                 fi
               fi
-            fi
 
-            if [[ "$DELETE_RUN" == true ]]; then
-              echo "Deleting successful run ID: $RUN_ID"
-              gh run delete "$RUN_ID" --repo "$REPO"
-            fi
+              if [[ "$DELETE_RUN" == true ]]; then
+                echo "Deleting run ID: $RUN_ID"
+                gh run delete "$RUN_ID" --repo "$REPO"
+                sleep 0.5
+              fi
+            done
+
+            PAGE=$((PAGE + 1))
           done

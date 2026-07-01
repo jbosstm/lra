@@ -29,15 +29,15 @@ jobs:
           echo "Target repository: $REPO"
           echo "Deleting successful and cancelled runs older than $RETENTION_DAYS days (before $CUTOFF_DATE)"
 
-          gh api --paginate "repos/$REPO/actions/runs?status=completed&per_page=100" \
-            --jq '.workflow_runs[] | select((.conclusion == "success") or (.conclusion == "cancelled")) | {id: .id, event: .event, created_at: .created_at, prs: [.pull_requests[]?.number]}' |
+          gh api --paginate "repos/$REPO/actions/runs?per_page=100" \
+            --jq '.workflow_runs[] | select(.status == "completed") | select((.conclusion == "success") or (.conclusion == "cancelled")) | {id: .id, created_at: .created_at, prs: [.pull_requests[]?.number]}' |
           jq -c --arg cutoff "$CUTOFF_DATE" 'select(.created_at < $cutoff)' |
           while read -r run; do
             RUN_ID=$(echo "$run" | jq -r '.id')
-            EVENT=$(echo "$run" | jq -r '.event')
+            PR_COUNT=$(echo "$run" | jq '.prs | length')
 
             DELETE_RUN=true
-            if [[ "$EVENT" == "pull_request" ]]; then
+            if [[ "$PR_COUNT" -gt 0 ]]; then
               PR_NUMBERS=$(echo "$run" | jq -r '.prs[]')
 
               for PR_NUMBER in $PR_NUMBERS; do
@@ -62,7 +62,7 @@ jobs:
 
             if [[ "$DELETE_RUN" == true ]]; then
               echo "Deleting run ID: $RUN_ID"
-              gh run delete "$RUN_ID" --repo "$REPO" || echo "Failed to delete run $RUN_ID" >&2
+              gh run delete "$RUN_ID" --repo "$REPO"
               sleep 0.5
             fi
           done

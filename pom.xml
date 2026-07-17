@@ -115,7 +115,7 @@
     <version.com.github.spotbugs.spotbugs-maven-plugin>4.10.3.0</version.com.github.spotbugs.spotbugs-maven-plugin>
     <version.com.h2database>2.4.240</version.com.h2database>
     <version.doxia>1.11.1</version.doxia>
-    <version.fasterxml.jackson.core>2.20.2</version.fasterxml.jackson.core>
+    <version.fasterxml.jackson.core>2.18.9</version.fasterxml.jackson.core>
     <version.formatter.plugin>2.29.0</version.formatter.plugin>
 
     <version.hamcrest>3.0</version.hamcrest>

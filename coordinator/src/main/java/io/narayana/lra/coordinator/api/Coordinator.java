@@ -46,6 +46,7 @@ import jakarta.ws.rs.ApplicationPath;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
@@ -207,7 +208,8 @@ public class Coordinator extends Application {
                     + " The status may be any LRAStatus value: Active, Closing, Cancelling,"
                     + " Closed, Cancelled, FailedToClose, or FailedToCancel.", content = @Content(schema = @Schema(implementation = String.class)), headers = {
                             @Header(ref = LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) }),
-            @APIResponse(responseCode = "404", description = "The coordinator has no knowledge of this LRA", content = @Content(schema = @Schema(implementation = String.class))),
+            @APIResponse(responseCode = "404", description = "The coordinator has no knowledge of this LRA", content = @Content(schema = @Schema(implementation = String.class)), headers = {
+                    @Header(ref = LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) }),
             @APIResponse(responseCode = "417", description = "The requested version provided in HTTP Header is not supported by this end point", content = @Content(schema = @Schema(implementation = String.class))),
     })
     public Response getLRAStatus(
@@ -217,24 +219,32 @@ public class Coordinator extends Application {
                     "to be an id which will be declared to exist at URL where coordinator is deployed at.", required = true) @PathParam("LraId") String lraId,
             @HeaderParam(HttpHeaders.ACCEPT) @DefaultValue(MediaType.TEXT_PLAIN) String mediaType,
             @Parameter(ref = LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) @HeaderParam(LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) @DefaultValue(CURRENT_API_VERSION_STRING) String version) {
-        LongRunningAction transaction = lraService.getTransaction(toURI(lraId));
-        LRAStatus status = transaction.getLRAStatus();
+        try {
+            LongRunningAction transaction = lraService.getTransaction(toURI(lraId));
+            LRAStatus status = transaction.getLRAStatus();
 
-        if (status == null) {
-            status = LRAStatus.Active;
-        }
+            if (status == null) {
+                status = LRAStatus.Active;
+            }
 
-        if (mediaType.equals(MediaType.APPLICATION_JSON)) {
-            JsonObject model = Json.createObjectBuilder().add("status", status.name()).build();
+            if (mediaType.equals(MediaType.APPLICATION_JSON)) {
+                JsonObject model = Json.createObjectBuilder().add("status", status.name()).build();
+
+                return Response.ok()
+                        .entity(model)
+                        .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version).build();
+            }
 
             return Response.ok()
-                    .entity(model)
+                    .entity(status.name())
                     .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version).build();
+        } catch (NotFoundException e) {
+            LRALogger.logger.debug(e.getMessage());
+            return Response.status(Response.Status.NOT_FOUND.getStatusCode())
+                    .entity(e.getMessage())
+                    .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version)
+                    .build();
         }
-
-        return Response.ok()
-                .entity(status.name())
-                .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version).build();
     }
 
     @GET
@@ -244,17 +254,26 @@ public class Coordinator extends Application {
     @APIResponses({
             @APIResponse(responseCode = "200", description = "The LRA exists and the information is packed as JSON in the content body.", content = @Content(schema = @Schema(implementation = LRAData.class)), headers = {
                     @Header(ref = LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) }),
-            @APIResponse(responseCode = "404", description = "The coordinator has no knowledge of this LRA", content = @Content(schema = @Schema(implementation = String.class))),
+            @APIResponse(responseCode = "404", description = "The coordinator has no knowledge of this LRA", content = @Content(schema = @Schema(implementation = String.class)), headers = {
+                    @Header(ref = LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) }),
             @APIResponse(responseCode = "417", description = "The requested version provided in HTTP Header is not supported by this end point", content = @Content(schema = @Schema(implementation = String.class))),
     })
     public Response getLRAInfo(
             @Parameter(name = "LraId", description = "The unique identifier of the LRA", required = true) @PathParam("LraId") String lraId,
             @HeaderParam(HttpHeaders.ACCEPT) @DefaultValue(MediaType.TEXT_PLAIN) String mediaType,
             @Parameter(ref = LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) @HeaderParam(LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) @DefaultValue(CURRENT_API_VERSION_STRING) String version) {
-        URI lraIdURI = toURI(lraId);
-        LRAData lraData = lraService.getLRA(lraIdURI);
-        return Response.status(OK).entity(lraData)
-                .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version).build();
+        try {
+            URI lraIdURI = toURI(lraId);
+            LRAData lraData = lraService.getLRA(lraIdURI);
+            return Response.status(OK).entity(lraData)
+                    .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version).build();
+        } catch (NotFoundException e) {
+            LRALogger.logger.debug(e.getMessage());
+            return Response.status(Response.Status.NOT_FOUND.getStatusCode())
+                    .entity(e.getMessage())
+                    .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version)
+                    .build();
+        }
     }
 
     /**
@@ -495,7 +514,8 @@ public class Coordinator extends Application {
                     @Header(ref = LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) }),
             @APIResponse(responseCode = "400", description = "Link does not contain all required fields for joining the LRA. " +
                     "Probably no compensator or after 'rel' is available.", content = @Content(schema = @Schema(implementation = String.class))),
-            @APIResponse(responseCode = "404", description = "The coordinator has no knowledge of this LRA", content = @Content(schema = @Schema(implementation = String.class))),
+            @APIResponse(responseCode = "404", description = "The coordinator has no knowledge of this LRA", content = @Content(schema = @Schema(implementation = String.class)), headers = {
+                    @Header(ref = LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) }),
             @APIResponse(responseCode = "412", description = "The LRA is not longer active (ie the complete or compensate message has been sent), or wrong format of compensator data", content = @Content(schema = @Schema(implementation = String.class)), headers = {
                     @Header(ref = LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) }),
             @APIResponse(responseCode = "417", description = "The requested version provided in HTTP Header is not supported by this end point", content = @Content(schema = @Schema(implementation = String.class))),
@@ -619,8 +639,17 @@ public class Coordinator extends Application {
 
         try {
             status = lraService.joinLRA(recoveryUrl, lraId, timeLimit, null, linkHeader, recoveryUrlBase, userData, version);
+        } catch (NotFoundException e) {
+            LRALogger.logger.debug(e.getMessage());
+            return Response.status(Response.Status.NOT_FOUND.getStatusCode())
+                    .entity(e.getMessage())
+                    .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version)
+                    .build();
         } catch (ServiceUnavailableException e) {
-            return Response.status(Response.Status.SERVICE_UNAVAILABLE.getStatusCode()).entity(e.getMessage()).build();
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE.getStatusCode())
+                    .entity(e.getMessage())
+                    .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version)
+                    .build();
         }
 
         if (acceptMediaType.equals(MediaType.APPLICATION_JSON)) {
@@ -660,7 +689,8 @@ public class Coordinator extends Application {
             @APIResponse(responseCode = "200", description = "If the participant was successfully removed from the LRA", headers = {
                     @Header(ref = LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) }),
             @APIResponse(responseCode = "400", description = "The coordinator has no knowledge of this participant compensator URL", content = @Content(schema = @Schema(implementation = String.class))),
-            @APIResponse(responseCode = "404", description = "The coordinator has no knowledge of this LRA", content = @Content(schema = @Schema(implementation = String.class))),
+            @APIResponse(responseCode = "404", description = "The coordinator has no knowledge of this LRA", content = @Content(schema = @Schema(implementation = String.class)), headers = {
+                    @Header(ref = LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) }),
             @APIResponse(responseCode = "412", description = "The LRA is not longer active (ie in the complete or compensate messages have been sent"),
             @APIResponse(responseCode = "417", description = "The requested version provided in HTTP Header is not supported by this end point", content = @Content(schema = @Schema(implementation = String.class))),
     })
@@ -669,11 +699,19 @@ public class Coordinator extends Application {
             @HeaderParam(HttpHeaders.ACCEPT) @DefaultValue(MediaType.TEXT_PLAIN) String mediaType,
             @Parameter(ref = LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) @HeaderParam(LRAConstants.NARAYANA_LRA_API_VERSION_HEADER_NAME) @DefaultValue(CURRENT_API_VERSION_STRING) String version,
             String participantCompensatorUrl) {
-        int status = lraService.leave(toURI(lraId), participantCompensatorUrl);
+        try {
+            int status = lraService.leave(toURI(lraId), participantCompensatorUrl);
 
-        return Response.status(status)
-                .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version)
-                .build();
+            return Response.status(status)
+                    .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version)
+                    .build();
+        } catch (NotFoundException e) {
+            LRALogger.logger.debug(e.getMessage());
+            return Response.status(Response.Status.NOT_FOUND.getStatusCode())
+                    .entity(e.getMessage())
+                    .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version)
+                    .build();
+        }
     }
 
     private Response buildResponse(LRAStatus lraStatus, String apiVersion, String mediaType, URI lraId) {

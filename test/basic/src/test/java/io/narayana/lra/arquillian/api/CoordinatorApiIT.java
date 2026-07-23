@@ -253,30 +253,21 @@ public class CoordinatorApiIT extends TestBase {
 
     /**
      * GET - /{lraId}/status
-     * Finding a status of a non-existing LRA or wrong LRA id.
+     * Finding a status of a non-existing LRA.
      */
-    public void getLRAStatusFailed() {
-        String nonExistingLRAId = "http://localhost:1234/Non-Existing-LRA-id";
-        String nonExistingLRAIdEncodedForUrl = URLEncoder.encode("http://localhost:1234/Non-Existing-LRA-id",
-                StandardCharsets.UTF_8);
-        try (Response response = client.target(coordinatorUrl).path(nonExistingLRAIdEncodedForUrl).path("status")
+    @MethodSource("parameters")
+    @ParameterizedTest(name = "#{index}, version: {0}")
+    public void getLRAStatusNotExisting(String version) {
+        initCoordinatorApiIT(version);
+        String nonExistingLRA = "Non-Existing-LRA-id";
+        try (Response response = client.target(coordinatorUrl).path(nonExistingLRA).path("status")
                 .request().header(LRA_API_VERSION_HEADER_NAME, version).get()) {
             Assertions.assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus(),
-                    "LRA ID " + nonExistingLRAIdEncodedForUrl + " was expected not being found, GET/404.");
+                    "Expected that the status call fails on LRA not found, GET/404.");
             Assertions.assertEquals(version, response.getHeaderString(LRA_API_VERSION_HEADER_NAME),
                     "Expected API header to be returned with the version provided in request");
             assertThat("Expected the failure message to contain the wrong LRA id",
-                    response.readEntity(String.class), containsString(nonExistingLRAId));
-        }
-
-        String nonExistingLRAWrongUrlFormat = "Non-Existing-LRA-id";
-        try (Response response = client.target(coordinatorUrl).path(nonExistingLRAWrongUrlFormat).path("status").request()
-                .get()) {
-            Assertions.assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus(),
-                    "LRA id " + nonExistingLRAWrongUrlFormat + " was expected not being found , GET/404.");
-            assertThat("Expected the failure message to contain the wrong LRA id",
-                    response.readEntity(String.class),
-                    containsString(lraClient.getCoordinatorUrl() + "/" + nonExistingLRAWrongUrlFormat));
+                    response.readEntity(String.class), containsString(nonExistingLRA));
         }
     }
 
@@ -847,6 +838,31 @@ public class CoordinatorApiIT extends TestBase {
                 .put(Entity.text(""))) {
             Assertions.assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus(),
                     "Expected the join failing on unknown LRA id, PUT/404 is expected.");
+            Assertions.assertEquals(version, response.getHeaderString(LRA_API_VERSION_HEADER_NAME),
+                    "Expected API header to be returned with the version provided in request");
+            assertThat("Expected error message to contain the LRA id where enlist failed",
+                    response.readEntity(String.class), containsString(notExistingLRAid));
+        }
+    }
+
+    /**
+     * PUT - /{lraId}
+     * Joining a non-existing LRA via link header.
+     */
+    @MethodSource("parameters")
+    @ParameterizedTest(name = "#{index}, version: {0}")
+    public void joinLRAUnknownLRAViaLink(String version) {
+        initCoordinatorApiIT(version);
+        String notExistingLRAid = "not-existing-lra-id";
+        Link link = Link.fromUri("http://compensator.url:8080").rel("compensate").build();
+        try (Response response = client.target(coordinatorUrl)
+                .path(notExistingLRAid)
+                .request()
+                .header(LRA_API_VERSION_HEADER_NAME, version)
+                .header("Link", link.toString())
+                .put(null)) {
+            Assertions.assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus(),
+                    "Expected the join failing on unknown LRA id via link, PUT/404 is expected.");
             Assertions.assertEquals(version, response.getHeaderString(LRA_API_VERSION_HEADER_NAME),
                     "Expected API header to be returned with the version provided in request");
             assertThat("Expected error message to contain the LRA id where enlist failed",

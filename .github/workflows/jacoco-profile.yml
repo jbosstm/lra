@@ -40,7 +40,7 @@ jobs:
 
       - name: Set up JDK ${{ matrix.java-version }}
         if: steps.check-label.outputs.should_skip != 'true'
-        uses: actions/setup-java@v5.6.0
+        uses: actions/setup-java@v5.7.0
         with:
           distribution: temurin
           java-version: ${{ matrix.java-version }}

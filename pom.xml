@@ -164,6 +164,7 @@
     <version.org.jboss.resteasy>7.0.3.Final</version.org.jboss.resteasy>
     <version.org.jboss.resteasy.microprofile>3.0.1.Final</version.org.jboss.resteasy.microprofile>
     <version.org.jboss.shrinkwrap.resolvers>3.3.7</version.org.jboss.shrinkwrap.resolvers>
+    <version.org.jboss.weld>6.0.4.Final</version.org.jboss.weld>
     <version.org.sonatype.plugins.nxrm3.plugin>1.0.13</version.org.sonatype.plugins.nxrm3.plugin>
     <version.org.wildfly.arquillian>5.1.0.Final</version.org.wildfly.arquillian>
     <version.parsson>1.1.9</version.parsson>
@@ -227,6 +228,14 @@
         <groupId>jakarta.enterprise.concurrent</groupId>
         <artifactId>jakarta.enterprise.concurrent-api</artifactId>
         <version>${version.jakarta.concurrent}</version>
+      </dependency>
+
+      <!-- Weld SE: CDI container used by unit tests that exercise CDI-based token resolution -->
+      <dependency>
+        <groupId>org.jboss.weld.se</groupId>
+        <artifactId>weld-se-core</artifactId>
+        <version>${version.org.jboss.weld}</version>
+        <scope>test</scope>
       </dependency>
 
       <!-- Ensure these are in the distribution -->

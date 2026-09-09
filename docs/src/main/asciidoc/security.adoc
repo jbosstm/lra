@@ -391,9 +391,15 @@ Token resolution is logged at different levels to aid troubleshooting:
 |"JWT token resolved from CDI JsonWebToken"
 |Token found via CDI lookup
 
+|`TRACE`
+|"No active CDI request scope for JWT resolution: ..."
+|No request scope on this thread -- expected on async, recovery, and callback threads;
+resolution falls back to the client property (participant calls) or the service token
+(coordinator recovery) instead of failing
+
 |`DEBUG`
-|"CDI not available for JWT resolution: ..."
-|CDI lookup failed (expected on recovery threads)
+|"No CDI container available for JWT resolution: ..."
+|No CDI container is present (e.g. a non-CDI runtime)
 
 |`INFO`
 |"Service token provider configured: location=..."

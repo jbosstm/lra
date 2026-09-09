@@ -7,6 +7,7 @@ package io.narayana.lra.coordinator.security;
 
 import io.narayana.lra.LRAConstants;
 import io.narayana.lra.logging.LRALogger;
+import jakarta.enterprise.context.ContextNotActiveException;
 import jakarta.enterprise.inject.spi.CDI;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
@@ -89,9 +90,19 @@ public final class JwtTokenContext {
                 }
             }
             return rawToken;
+        } catch (ContextNotActiveException e) {
+            // No active request scope on this thread (recovery, async participant callbacks): the
+            // container is present but nothing backs JsonWebToken here. This is expected off the
+            // request thread, so trace only and return null so newClient() falls back to the
+            // service token instead of aborting the outbound call.
+            if (LRALogger.logger.isTraceEnabled()) {
+                LRALogger.logger.tracef("No active CDI request scope for JWT resolution: %s", e.getMessage());
+            }
+            return null;
         } catch (IllegalStateException e) {
+            // No CDI container available at all (e.g. a non-CDI runtime).
             if (LRALogger.logger.isDebugEnabled()) {
-                LRALogger.logger.debugf("CDI JsonWebToken not available: %s", e.getMessage());
+                LRALogger.logger.debugf("No CDI container available for JWT resolution: %s", e.getMessage());
             }
             return null;
         }

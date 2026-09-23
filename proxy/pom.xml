@@ -20,18 +20,4 @@
   <modules>
     <module>api</module>
   </modules>
-
-  <profiles>
-    <profile>
-      <id>testing</id>
-      <activation>
-        <property>
-          <name>!release</name>
-        </property>
-      </activation>
-      <modules>
-        <module>test</module>
-      </modules>
-    </profile>
-  </profiles>
 </project>

@@ -1,0 +1,26 @@
+<!--
+   Copyright The Narayana Authors
+   SPDX short identifier: Apache-2.0
+ -->
+
+<arquillian xmlns="http://jboss.org/schema/arquillian" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="
+        http://jboss.org/schema/arquillian
+        http://jboss.org/schema/arquillian/arquillian_1_0.xsd">
+
+    <container qualifier="${arquillian.lra.participant.container.qualifier}" mode="suite" default="true">
+        <configuration>
+            <!-- -Djboss.socket.binding.port-offset=100 shifts ports in Wildfly. This is used to avoid overlapping between the two instances of Wildfly-->
+            <!-- lra.http.host/lra.http.port tell the ProxyService running in this container which endpoint the coordinator
+                 must call back on; it must match the participant HTTP listener (8080 + offset 100 = 8180) -->
+            <property name="jbossHome">${wildfly.home}</property>
+            <property name="javaVmArguments">${server.jvm.args} ${lra.participant.debug.params} -Dlra.coordinator.url=${lra.coordinator.url} -Dlra.http.host=${test.application.host} -Dlra.http.port=8180 -Djboss.socket.binding.port-offset=100</property>
+            <property name="managementAddress">${test.application.host}</property>
+            <property name="managementPort">10090</property>
+            <property name="startupTimeoutInSeconds">${server.startup.timeout:60}</property>
+            <property name="serverConfig">${lra.participant.xml.filename}</property>
+        </configuration>
+    </container>
+
+    <extension qualifier="Deployer"/>
+</arquillian>

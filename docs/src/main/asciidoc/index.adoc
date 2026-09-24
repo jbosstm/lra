@@ -9,6 +9,7 @@
 
 include::overview.adoc[]
 include::jaxrs.adoc[]
+include::context-propagation.adoc[]
 include::non-jaxrs.adoc[]
 include::examples.adoc[]
 include::integration.adoc[]

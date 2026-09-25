@@ -1,0 +1,102 @@
+
+= LRA context propagation and the `LRAContextResolver` SPI
+
+This section explains how the "current LRA" is resolved on the server side, why relying on a `ThreadLocal` alone is unsafe, and how the RESTEasy-backed resolver protects against a leaked context.
+
+== The problem: a `ThreadLocal` is not guaranteed to survive a thread hop
+
+Narayana LRA is implemented as JAX-RS request/response filters. The inbound `ServerLRAFilter` resolves the LRA for the request and records it in a `ThreadLocal` held by `io.narayana.lra.Current`. Several places then read it back through `Current.peek()` (which is what `NarayanaLRAClient.getCurrent()`, the outbound `ClientLRARequestFilter`, and the response-header writer all use).
+
+This works only if the request filter and the resource method run on the *same* thread. The MicroProfile LRA specification, and JAX-RS itself, make no such guarantee. On a container such as WildFly/RESTEasy the resource method (and any outgoing client call it makes) can run on a *different, pooled* thread. Two failure modes follow:
+
+* the `ThreadLocal` set by the filter is simply *invisible* to the resource method; or
+* worse, a pooled thread still carries a *previous* request's LRA, so an unrelated request silently picks up the wrong context.
+
+The second case is a genuine specification violation: an outgoing JAX-RS call would then propagate the leaked LRA (the spec requires it to carry the LRA of the request the method is actually running in), enlisting a downstream resource in the wrong LRA. The symptom is intermittent, thread-pool- and timing-dependent MicroProfile LRA TCK failures.
+
+== The fix: read the LRA from the propagated request context
+
+The reliable channel already exists. `ServerLRAFilter` writes the resolved LRA into the request header `LRA_HTTP_CONTEXT_HEADER` (`Long-Running-Action`), and the JAX-RS runtime propagates the request context — including the request headers — to whichever thread runs the resource method. So instead of trusting the `ThreadLocal`, `Current.peek()` reads the LRA back from that propagated request context.
+
+To keep `io.narayana.lra.Current` (in the `lra-service-base` module) free of any dependency on a particular JAX-RS implementation, the read is expressed through a small, vendor-neutral SPI:
+
+[source,java]
+----
+package io.narayana.lra.spi;
+
+import java.net.URI;
+
+public interface LRAContextResolver {
+
+    /**
+     * @return the LRA propagated for the request currently being processed on the
+     *         calling thread, or {@code null} when there is no active request context
+     *         or the request carries no LRA
+     */
+    URI currentLRA();
+}
+----
+
+`Current` discovers an implementation once through the `java.util.ServiceLoader`:
+
+* if a resolver is registered, `peek()` reconciles the resolver-provided LRA against the `ThreadLocal` (see <<reconciliation>>);
+* if none is registered — for example a pure, standalone client with no server request context — `peek()` falls back to the `ThreadLocal`, which is correct there because no cross-thread dispatch takes place.
+
+[[reconciliation]]
+=== How `peek()` reconciles the header with the `ThreadLocal`
+
+`peek()` does not blindly trust either source; it reconciles them so that programmatic context changes are still honoured while a leaked `ThreadLocal` is discarded:
+
+* *A request LRA is present* (the resolver returned a value). Prefer the `ThreadLocal` only when it still contains that LRA — this preserves a programmatic nested push such as `NarayanaLRAClient.startLRA()` made inside the resource method. Otherwise the `ThreadLocal` is stale, foreign, or absent (the filter and the resource method ran on different threads) and the propagated header is authoritative.
+* *No request LRA is present* (pure client, or a non-transactional method that pushed a context after the header was removed). Fall back to the `ThreadLocal`, guarded by the active-LRA cache so a leaked context from a previous request is dropped rather than returned.
+
+The same reconciliation guards the response path: the LRA echoed back to the caller in the response `LRA_HTTP_CONTEXT_HEADER` is the LRA that was resolved for the request, never a stale value still sitting on the pooled thread.
+
+== Using the RESTEasy resolver
+
+For RESTEasy deployments an implementation is provided out of the box in the `narayana-lra` (JAX-RS) module — you do not have to write or register anything. It is `io.narayana.lra.filter.ResteasyLRAContextResolver`:
+
+[source,java]
+----
+public class ResteasyLRAContextResolver implements LRAContextResolver {
+
+    @Override
+    public URI currentLRA() {
+        HttpHeaders headers = ResteasyContext.getContextData(HttpHeaders.class);
+
+        if (headers == null) {
+            return null;
+        }
+
+        // getRequestHeader + getLast (not getHeaderString, which comma-joins values)
+        // matches the value ServerLRAFilter resolves from the incoming header
+        String last = Current.getLast(headers.getRequestHeader(LRA_HTTP_CONTEXT_HEADER));
+
+        return last == null ? null : URI.create(last);
+    }
+}
+----
+
+`org.jboss.resteasy.core.ResteasyContext#getContextData(HttpHeaders.class)` returns the propagated request headers on *any* thread RESTEasy dispatches to, which is exactly what makes it immune to the thread hop.
+
+It is registered for the `ServiceLoader` on the classpath of the `narayana-lra` module:
+
+.`META-INF/services/io.narayana.lra.spi.LRAContextResolver`
+[source]
+----
+io.narayana.lra.filter.ResteasyLRAContextResolver
+----
+
+Because the module dependency graph is `coordinator` → `narayana-lra` → `lra-client` → `lra-service-base`, and `lra-client` does *not* depend on `narayana-lra`, this resolver is discovered at runtime for both participant applications and the coordinator, while a standalone client that only pulls in `lra-client` finds no resolver and safely uses the `ThreadLocal`.
+
+The `narayana-lra` module declares `resteasy-core` at `provided` scope (the RESTEasy runtime is supplied by the container), so no extra runtime dependency is added to your deployment.
+
+== Providing your own resolver for another JAX-RS runtime
+
+If you run on a JAX-RS runtime other than RESTEasy, protect yourself from the same `ThreadLocal` hazard by supplying your own resolver:
+
+. implement `io.narayana.lra.spi.LRAContextResolver`, returning the LRA from your runtime's propagated request context — read the `LRA_HTTP_CONTEXT_HEADER` request header and, when it is multi-valued, use the *last* value (equivalently `io.narayana.lra.Current#getLast`), so you match the value `ServerLRAFilter` resolves;
+. register the implementation class in `META-INF/services/io.narayana.lra.spi.LRAContextResolver` on the deployment classpath;
+. return `null` whenever there is no active request context, so `Current` falls back to the `ThreadLocal`.
+
+`Current` loads exactly one resolver via the `ServiceLoader`; a badly registered or unloadable provider is treated as "no resolver" and logged at DEBUG, so it degrades to the `ThreadLocal` fallback rather than breaking context handling.

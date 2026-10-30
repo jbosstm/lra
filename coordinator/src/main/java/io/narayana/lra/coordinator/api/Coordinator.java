@@ -29,8 +29,6 @@ import static jakarta.ws.rs.core.Response.Status.PRECONDITION_FAILED;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
 import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_RECOVERY_HEADER;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.narayana.lra.Current;
 import io.narayana.lra.LRAConstants;
 import io.narayana.lra.LRAData;
@@ -41,7 +39,9 @@ import io.narayana.lra.coordinator.security.JwtTokenContext;
 import io.narayana.lra.logging.LRALogger;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 import jakarta.ws.rs.ApplicationPath;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -177,24 +177,51 @@ public class Coordinator extends Application {
         List<LRAData> lras = lraService.getAll(requestedLRAStatus);
 
         if (mediaType.equals(MediaType.APPLICATION_JSON)) {
-            try {
-                String jsonArray = new ObjectMapper().writeValueAsString(lras);
-
-                return Response.ok()
-                        .entity(jsonArray)
-                        .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version)
-                        .build();
-            } catch (JsonProcessingException e) {
-                return Response.status(INTERNAL_SERVER_ERROR)
-                        .entity(e.getMessage())
-                        .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version)
-                        .build();
-            }
+            return Response.ok()
+                    .entity(toJsonArray(lras))
+                    .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version)
+                    .build();
         } else { // produce MediaType.TEXT_PLAIN
             return Response.ok()
                     .entity(lras)
                     .header(NARAYANA_LRA_API_VERSION_HEADER_NAME, version)
                     .build();
+        }
+    }
+
+    // Serialize a list of LRAData using the Jakarta JSON-P API (already bundled with the coordinator) rather than
+    // Jackson so the coordinator is independent of the Jackson major version on the runtime classpath (e.g.
+    // Jackson 2 on WildFly vs Jackson 3 on Quarkus 4). The field names and encodings below reproduce the output
+    // previously produced by Jackson for a List<LRAData>, including null fields.
+    static String toJsonArray(List<LRAData> lras) {
+        JsonArrayBuilder jsonArray = Json.createArrayBuilder();
+
+        for (LRAData lra : lras) {
+            JsonObjectBuilder json = Json.createObjectBuilder();
+
+            addStringOrNull(json, "lraId", lra.getLraId() == null ? null : lra.getLraIdAsString());
+            addStringOrNull(json, "clientId", lra.getClientId());
+            addStringOrNull(json, "status", lra.getStatus() == null ? null : lra.getStatus().name());
+            json.add("topLevel", lra.isTopLevel());
+            json.add("recovering", lra.isRecovering());
+            json.add("startTime", lra.getStartTime());
+            json.add("finishTime", lra.getFinishTime());
+            json.add("httpStatus", lra.getHttpStatus());
+
+            jsonArray.add(json);
+        }
+
+        return jsonArray.build().toString();
+    }
+
+    // Adds a string member to the builder, writing an explicit JSON null when the value is null
+    // (JsonObjectBuilder.add(String, String) would reject a null value), matching Jackson's default
+    // behaviour of serializing null fields.
+    private static void addStringOrNull(JsonObjectBuilder builder, String name, String value) {
+        if (value == null) {
+            builder.addNull(name);
+        } else {
+            builder.add(name, value);
         }
     }
 
